@@ -1,0 +1,15 @@
+inputs:
+  nixpkgs:
+    url: github:cachix/devenv-nixpkgs/rolling
+  rust-overlay:
+    url: github:oxalica/rust-overlay
+    inputs:
+      nixpkgs:
+        follows: nixpkgs
+  rusty-commit-saver:
+    url: github:chess-seventh/rusty-commit-saver?ref=HEAD
+    inputs:
+      nixpkgs:
+        follows: nixpkgs
+backend: nix
+allowUnfree: true

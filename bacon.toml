@@ -1,0 +1,35 @@
+# bacon.toml
+
+[jobs.clippy]
+command = [
+  "cargo",
+  "clippy",
+  "--all-targets",
+  "--",
+  "-W",
+  "clippy::pedantic",
+  "-A",
+  "clippy::must-use-candidate"
+]
+need_stdout = true
+watch = ["src", "tests", "Cargo.toml"]
+
+[jobs.coverage]
+command = [
+  "bash",
+  "-c",
+  "cargo llvm-cov --html nextest --no-fail-fast"
+]
+need_stdout = true
+watch = ["src", "tests", "Cargo.toml"]
+
+[jobs.nextest-run]
+command = [
+  "cargo",
+  "nextest",
+  "run",
+  "--no-fail-fast",
+  "--all-targets"
+]
+need_stdout = true
+watch = ["src", "tests", "Cargo.toml"]
