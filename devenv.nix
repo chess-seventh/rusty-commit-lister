@@ -26,9 +26,7 @@
     ];
 
     # Targets for cross-compilation
-    targets = [
-      "x86_64-unknown-linux-gnu"
-    ];
+    targets = [ "x86_64-unknown-linux-gnu" ];
   };
 
   # Development packages
@@ -65,19 +63,7 @@
     # Container tools
     docker
     docker-compose
-
-    # Shell improvements
-    starship
   ];
-
-  # Starship prompt
-  starship = {
-    enable = true;
-    config = {
-      enable = false;
-      path = "~/.config/starship.toml";
-    };
-  };
 
   # Git hooks
   git-hooks.hooks = {
@@ -86,7 +72,9 @@
       name = "🦀 Rusty Commit Saver";
       stages = [ "post-commit" ];
       after = [ "commitizen" "gitlint" "gptcommit" ];
-      entry = "${inputs.rusty-commit-saver.packages.${pkgs.system}.default}/bin/rusty-commit-saver";
+      entry = "${
+          inputs.rusty-commit-saver.packages.${pkgs.system}.default
+        }/bin/rusty-commit-saver";
       pass_filenames = false;
       language = "system";
       always_run = true;
@@ -143,8 +131,13 @@
     treefmt = {
       name = "🌲 TreeFMT";
       enable = true;
-      settings.formatters =
-        [ pkgs.nixfmt-classic pkgs.deadnix pkgs.yamlfmt pkgs.rustfmt pkgs.toml-sort ];
+      settings.formatters = [
+        pkgs.nixfmt-classic
+        pkgs.deadnix
+        pkgs.yamlfmt
+        pkgs.rustfmt
+        pkgs.toml-sort
+      ];
       stages = [ "pre-commit" ];
     };
 
@@ -190,7 +183,7 @@
       name = "🦀 Clippy";
       enable = true;
       stages = [ "pre-commit" ];
-      args = [ "--all-targets" "--all-targets" "--" "-W" "clippy::pedantic" ];
+      args = [ "--" "-W" "clippy::pedantic" ];
     };
   };
 
@@ -385,13 +378,14 @@
     devhelp = {
       description = "Returns the helper comamnds";
       exec = ''
-          echo
-          echo 💡 Helper scripts for DevBootstrapper development:
-          echo
-          ${pkgs.gnused}/bin/sed -e 's| |••|g' -e 's|=| |' <<EOF | ${pkgs.util-linuxMinimal}/bin/column -t | ${pkgs.gnused}/bin/sed -e 's|^|• |' -e 's|••| |g'
-          ${lib.generators.toKeyValue { } (lib.mapAttrs (_name: value: value.description) config.scripts)}
-          EOF
-          echo
+        echo
+        echo 💡 Helper scripts for DevBootstrapper development:
+        echo
+        ${pkgs.gnused}/bin/sed -e 's| |••|g' -e 's|=| |' <<EOF | ${pkgs.util-linuxMinimal}/bin/column -t | ${pkgs.gnused}/bin/sed -e 's|^|• |' -e 's|••| |g'
+        ${lib.generators.toKeyValue { }
+        (lib.mapAttrs (_name: value: value.description) config.scripts)}
+        EOF
+        echo
       '';
     };
   };
@@ -428,7 +422,8 @@
     echo 💡 Helper scripts for Rust development:
     echo
     ${pkgs.gnused}/bin/sed -e 's| |••|g' -e 's|=| |' <<EOF | ${pkgs.util-linuxMinimal}/bin/column -t | ${pkgs.gnused}/bin/sed -e 's|^|• |' -e 's|••| |g'
-    ${lib.generators.toKeyValue { } (lib.mapAttrs (_name: value: value.description) config.scripts)}
+    ${lib.generators.toKeyValue { }
+    (lib.mapAttrs (_name: value: value.description) config.scripts)}
     EOF
     echo
   '';

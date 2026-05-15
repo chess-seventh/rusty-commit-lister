@@ -2,7 +2,7 @@ use thiserror::Error;
 
 /// Custom error types for rusty-commit-lister
 #[derive(Error, Debug)]
-pub enum Rusty_commit_listerError {
+pub enum RustyCommitListerError {
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
 
@@ -19,7 +19,7 @@ pub enum Rusty_commit_listerError {
     Generic(String),
 }
 
-impl Rusty_commit_listerError {
+impl RustyCommitListerError {
     pub fn config(message: impl Into<String>) -> Self {
         Self::Config {
             message: message.into(),
@@ -40,7 +40,7 @@ impl Rusty_commit_listerError {
 }
 
 /// Result type for this crate
-pub type Result<T> = std::result::Result<T, Rusty_commit_listerError>;
+pub type Result<T> = std::result::Result<T, RustyCommitListerError>;
 
 #[cfg(test)]
 mod tests {
@@ -48,13 +48,13 @@ mod tests {
 
     #[test]
     fn test_error_creation() {
-        let error = Rusty_commit_listerError::config("test message");
-        assert!(matches!(error, Rusty_commit_listerError::Config { .. }));
+        let error = RustyCommitListerError::config("test message");
+        assert!(matches!(error, RustyCommitListerError::Config { .. }));
     }
 
     #[test]
     fn test_error_display() {
-        let error = Rusty_commit_listerError::validation("test_field");
+        let error = RustyCommitListerError::validation("test_field");
         assert_eq!(error.to_string(), "Validation error: test_field is invalid");
     }
 }

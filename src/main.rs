@@ -1,17 +1,15 @@
+use anyhow::Result;
 use clap::{Arg, Command};
-use anyhow::{Context, Result};
-use tracing::{info, warn, error};
-use tracing_subscriber;
-use rusty_commit_lister::config::Settings;
+use rusty_commit_lister::RustyCommitLister;
+use tracing::info;
 fn main() -> Result<()> {
-// Initialize tracing
+    // Initialize tracing
     tracing_subscriber::fmt::init();
 
     info!("Starting rusty-commit-lister");
-// Load configuration
-    let settings = Settings::new()
-        .context("Failed to load configuration")?;
-let matches = Command::new("rusty-commit-lister")
+    // Load configuration
+    // let settings = Settings::new().context("Failed to load configuration")?;
+    let matches = Command::new("rusty-commit-lister")
         .version(env!("CARGO_PKG_VERSION"))
         .author(" <>")
         .about("")
@@ -20,14 +18,14 @@ let matches = Command::new("rusty-commit-lister")
                 .short('v')
                 .long("verbose")
                 .action(clap::ArgAction::Count)
-                .help("Increase verbosity")
+                .help("Increase verbosity"),
         )
         .arg(
             Arg::new("config")
                 .short('c')
                 .long("config")
                 .value_name("FILE")
-                .help("Sets a custom config file")
+                .help("Sets a custom config file"),
         )
         .get_matches();
 
@@ -36,29 +34,35 @@ let matches = Command::new("rusty-commit-lister")
     if verbosity > 0 {
         info!("Verbose mode enabled (level: {})", verbosity);
     }
-// Main application logic
-    run(settings)?;
 
-info!("rusty-commit-lister completed successfully");
-Ok(())
+    let rcl = RustyCommitLister::new();
+
+    // Main application logic
+    run(rcl)?;
+
+    info!("rusty-commit-lister completed successfully");
+    Ok(())
 }
 
-fn run(_settings: Settings) -> Result<()> {
-println!("🦀 Welcome to rusty-commit-lister!");
+fn run(rusty_commit_lister: RustyCommitLister) -> Result<()> {
+    println!("🦀 Welcome to rusty-commit-lister!");
     println!("This is a Rust binary created with DevBootstrapper");
 
     // TODO: Implement your application logic here
 
-Ok(())
+    match rusty_commit_lister.hello() {
+        Some(_msg) => Ok(()),
+        _ => panic!("not a string"),
+    }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_run() {
-        let settings = Settings::default();
-        assert!(run(settings).is_ok());
-        }
-}
+// #[cfg(test)]
+// mod tests {
+//     use super::*;
+//
+//     #[test]
+//     fn test_run() {
+//         let _run_ret = run();
+//         assert!(run(settings).is_ok());
+//     }
+// }

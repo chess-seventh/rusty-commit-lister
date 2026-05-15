@@ -1,4 +1,4 @@
-//! 
+//!
 //!
 //! This library provides...
 //!
@@ -11,16 +11,14 @@
 //! ```
 
 pub mod error;
-pub use error::{ Rusty_commit_listerError, Result};
-pub mod config;
-pub mod utils;
+pub use error::{Result, RustyCommitListerError};
 
 /// Main library functionality
-pub struct Rusty_commit_lister {
+pub struct RustyCommitLister {
     // TODO: Add fields as needed
 }
 
-impl Rusty_commit_lister {
+impl RustyCommitLister {
     /// Create a new instance
     pub fn new() -> Self {
         Self {
@@ -29,12 +27,14 @@ impl Rusty_commit_lister {
     }
 
     /// Example method
-    pub fn hello(&self) -> String {
-        format!("Hello from rusty-commit-lister!")
+    pub fn hello(&self) -> Option<String> {
+        let hello_msg = "Hello from rusty-commit-lister!";
+        println!("{hello_msg:?}");
+        Some(hello_msg.to_string())
     }
 }
 
-impl Default for Rusty_commit_lister {
+impl Default for RustyCommitLister {
     fn default() -> Self {
         Self::new()
     }
@@ -46,13 +46,19 @@ mod tests {
 
     #[test]
     fn test_new() {
-        let instance = Rusty_commit_lister::new();
-        assert_eq!(instance.hello(), "Hello from rusty-commit-lister!");
+        let instance = RustyCommitLister::new();
+        assert_eq!(
+            instance.hello(),
+            Some("Hello from rusty-commit-lister!".to_string())
+        );
     }
 
     #[test]
     fn test_default() {
-        let instance = Rusty_commit_lister::default();
-        assert_eq!(instance.hello(), "Hello from rusty-commit-lister!");
+        let instance = RustyCommitLister::default();
+        assert_eq!(
+            instance.hello(),
+            Some("Hello from rusty-commit-lister!".to_string())
+        );
     }
 }
