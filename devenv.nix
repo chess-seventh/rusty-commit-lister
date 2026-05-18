@@ -167,8 +167,10 @@
         MD013 = {
           line_length = 120;
           tables = false;
+          code_blocks = false;
         };
         MD041 = false;
+        MD060 = false;
       };
     };
 
@@ -210,7 +212,7 @@
         #!/usr/bin/env bash
         set -euxo pipefail
         gptcommit install
-        gptcommit config set openai.model gpt-4-turbo
+        gptcommit config set openai.model gpt-4o
         gptcommit config set output.conventional_commit true
       '';
     };
@@ -236,7 +238,6 @@
               echo "Current directory is niether github or gitlab, manual operation is needed"
             fi
         fi
-
       '';
     };
 
