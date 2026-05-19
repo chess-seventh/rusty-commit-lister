@@ -107,6 +107,14 @@ fn handle_browse_key(mut model: AppModel, key: KeyEvent) -> AppModel {
                 model.cursor = model.cursor.checked_sub(1).unwrap_or(row_count - 1);
             }
         }
+        KeyCode::PageDown => {
+            if row_count > 0 {
+                model.cursor = (model.cursor + model.page_size).min(row_count.saturating_sub(1));
+            }
+        }
+        KeyCode::PageUp => {
+            model.cursor = model.cursor.saturating_sub(model.page_size);
+        }
         KeyCode::Char('/') => {
             model.mode = AppMode::Search;
             model.search_query = String::new();

@@ -89,6 +89,8 @@ pub struct AppModel {
     pub status_message: Option<String>,
     /// Whether the application should exit after the next event loop tick.
     pub quit: bool,
+    /// Number of rows to scroll per PageDown / PageUp key press.
+    pub page_size: usize,
 }
 
 impl AppModel {
@@ -106,6 +108,7 @@ impl AppModel {
             error_message: None,
             status_message: None,
             quit: false,
+            page_size: 10,
         }
     }
 }

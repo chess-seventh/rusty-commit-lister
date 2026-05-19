@@ -474,12 +474,12 @@ mod property_tests {
         ]
     }
 
-    //! @property @US-03 @US-06 @US-07 @US-09 @in-memory
-    //!
-    //! Property: any sequence of valid events from a valid model produces a valid model
-    //!
-    //! Validity invariant: cursor must not exceed filtered_rows.len() (or 0 if empty).
-    //! The model must never be in an inconsistent state after any event sequence.
+    // @property @US-03 @US-06 @US-07 @US-09 @in-memory
+    //
+    // Property: any sequence of valid events from a valid model produces a valid model
+    //
+    // Validity invariant: cursor must not exceed filtered_rows.len() (or 0 if empty).
+    // The model must never be in an inconsistent state after any event sequence.
     proptest! {
         #![proptest_config(proptest::test_runner::Config {
             cases: 300,
