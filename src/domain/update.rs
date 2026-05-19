@@ -146,6 +146,10 @@ fn handle_search_key(mut model: AppModel, key: KeyEvent) -> AppModel {
             model.search_query = String::new();
             model.filtered_rows = model.commit_rows.clone();
         }
+        KeyCode::Enter => {
+            model.mode = AppMode::Browse;
+            model.cursor = 0;
+        }
         KeyCode::Backspace => {
             model.search_query.pop();
             model.filtered_rows = recompute_filtered(&model);

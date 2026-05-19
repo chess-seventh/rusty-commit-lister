@@ -178,6 +178,39 @@ fn esc_in_search_mode_restores_browse_and_clears_query() {
     );
 }
 
+/// @US-06 @in-memory
+///
+/// Scenario: Enter in Search mode confirms search and returns to Browse
+///   Given Search mode with search_query = "feat" and 1 filtered row
+///   When Enter is pressed
+///   Then mode returns to Browse
+///   And search_query is preserved ("feat" — confirm, not cancel)
+///   And filtered_rows remains as-is (1 row — not reset to all rows)
+///   And cursor resets to 0 (start of filtered result set)
+#[test]
+fn enter_in_search_mode_confirms_and_returns_to_browse() {
+    let model = loaded_browse_model();
+    let in_search = update(model, key_event(KeyCode::Char('/')));
+
+    // Type "feat" to narrow to 1 result
+    let with_query = ['f', 'e', 'a', 't'].iter().fold(in_search, |m, &ch| {
+        update(
+            m,
+            AppEvent::KeyPress(KeyEvent::new(KeyCode::Char(ch), KeyModifiers::NONE)),
+        )
+    });
+    assert_eq!(with_query.search_query, "feat", "precondition: query is 'feat'");
+    assert_eq!(with_query.filtered_rows.len(), 1, "precondition: 1 filtered row");
+    assert_eq!(with_query.mode, AppMode::Search, "precondition: Search mode");
+
+    let after = update(with_query, key_event(KeyCode::Enter));
+
+    assert_eq!(after.mode, AppMode::Browse, "Enter must return to Browse");
+    assert_eq!(after.search_query, "feat", "search_query must be preserved (confirm, not cancel)");
+    assert_eq!(after.filtered_rows.len(), 1, "filtered_rows must remain filtered (not reset)");
+    assert_eq!(after.cursor, 0, "cursor must reset to 0 on Enter");
+}
+
 /// @US-07 @in-memory
 ///
 /// Scenario: Enter in Browse mode transitions to Detail mode
