@@ -893,3 +893,55 @@ Walking skeleton `tool_loads_commits_from_vault_and_exits_successfully` green.
 Remaining 10 missed mutants are all in view.rs TUI render infrastructure (same category as slice-02):
 replace-with-() on render functions and `== / !=` arithmetic in render_status_bar.
 These require ratatui TestBackend integration to reach — deferred to slice-04 or later.
+
+---
+
+## Wave: DELIVER / [REF] Implementation Summary — Slice-04
+
+Slice-04 ships the Commit Detail Panel (US-07). Pressing Enter on any row in Browse mode opens
+a full-screen detail overlay showing un-truncated date, time, message, folder, and URL for the
+selected commit. If the URL field is absent, the panel shows "— not available —". Esc closes the
+panel and returns to the same row. The domain transitions (Enter→Detail, Esc→Browse) were already
+wired in slice-01; this slice added only the view rendering layer.
+
+A pure helper `detail_lines(&CommitRecord) -> Vec<String>` was extracted as the testable core of
+the overlay renderer. Seven ratatui `TestBackend` render tests were added to `view_specifications.rs`,
+achieving 100% mutation kill rate on view.rs (previously 0% for render functions due to missing
+test infrastructure). This also closes the slice-03 "deferred to later" note above.
+
+## Wave: DELIVER / [REF] Files Modified — Slice-04
+
+**Production**
+- `src/tui/view.rs` — added `detail_lines()`, `render_detail_overlay()`, Detail branch in
+  `render_main_area()`, "Esc to return" arm in `render_status_bar()`
+
+**Tests**
+- `tests/unit/view_specifications.rs` — NEW file; 9 tests covering `detail_lines()` pure function
+  (2 tests) and ratatui TestBackend render tests (7 tests)
+
+## Wave: DELIVER / [REF] Scenarios Green — Slice-04
+
+9 of 9 new view_specifications tests pass. 66 total active tests pass across all test suites.
+Walking skeleton `tool_loads_commits_from_vault_and_exits_successfully` green.
+
+## Wave: DELIVER / [REF] DoD Check — Slice-04
+
+| DoD Item | Status |
+|---|---|
+| All active tests green | PASS — 66/66 pass |
+| Walking skeleton green | PASS — exits 0 |
+| No `panic!` in production | PASS |
+| `#![forbid(unsafe_code)]` enforced | PASS |
+| Domain layer has zero adapter/TUI imports | PASS |
+| L1-L6 RPP refactor complete | PASS — no refactoring needed; code shipped clean |
+| Mutation kill rate ≥ 80% | PASS — 100% (24/24 mutants caught) |
+| DES integrity verification passes | PASS — all 1 step has complete traces |
+
+## Wave: DELIVER / [REF] Quality Gates — Slice-04
+
+| Phase | Outcome |
+|---|---|
+| Phase 2 — All Steps | PASS — commit `51eee7c` |
+| Phase 3 — L1-L6 Refactor | PASS — code shipped clean; no separate refactor commit needed |
+| Phase 5 — Mutation Testing | PASS — 100% kill rate (commit `75db2b0` adds TestBackend tests) |
+| Phase 6 — DES Integrity | PASS — `des-verify-integrity` exit 0, 1/1 steps |

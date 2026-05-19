@@ -54,3 +54,20 @@
 - view.rs render functions still untestable without terminal mock (same as slice-02). Deferred.
 
 **Deferred to slice-04**: Commit Detail Panel (US-07) — Enter in Browse opens detail overlay; full message/path/URL display; Esc returns to Browse with cursor preserved.
+
+## Slice-04: Commit Detail Panel (2026-05-19)
+
+**Shipped**: Detail mode overlay rendering. Enter on any row in Browse opens a full-screen
+"Commit Detail" panel with un-truncated date, time, message, folder, and URL. Missing URL shows
+"— not available —". Status bar shows "Esc to return". Esc returns to same row (domain already
+handled this). 1 step TDD'd through RED→GREEN→COMMIT.
+
+**Key design choices**:
+- `detail_lines(&CommitRecord) -> Vec<String>` extracted as pure helper — testable without Frame.
+- `render_detail_overlay` is a thin wrapper that calls `detail_lines` and renders into a bordered Block.
+- Detail branch inserted in `render_main_area` before the table path — no layout changes needed.
+
+**Mutation coverage breakthrough**: Added 7 ratatui `TestBackend` render tests to
+`view_specifications.rs`, achieving 100% kill rate on view.rs (up from 0% for render functions).
+Closes the deferred gap from slices 02 and 03. TestBackend setup is 3 lines; the pattern is now
+established for future view tests in this codebase.
