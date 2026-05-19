@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use serde::Deserialize;
 
-use crate::domain::model::AppConfig;
+use crate::domain::model::{AppConfig, DEFAULT_SCAN_DAYS_BACK};
 use crate::error::{Result, RustyCommitListerError};
 use crate::ports::config_port::{ConfigPort, Probe};
 
@@ -73,7 +73,7 @@ impl ConfigPort for TomlConfigAdapter {
             RustyCommitListerError::config(format!("Invalid TOML in {:?}: {}", self.config_path, e))
         })?;
 
-        let scan_days_back = file_config.scan_days_back.unwrap_or(7);
+        let scan_days_back = file_config.scan_days_back.unwrap_or(DEFAULT_SCAN_DAYS_BACK);
         if scan_days_back == 0 {
             return Err(RustyCommitListerError::config(format!(
                 "scan_days_back must be > 0 in config file {:?}",
@@ -81,13 +81,10 @@ impl ConfigPort for TomlConfigAdapter {
             )));
         }
 
-        let vault_path = match file_config.vault_path {
-            Some(raw_path) => {
-                let expanded = expand_tilde(raw_path);
-                PathBuf::from(expanded)
-            }
-            None => AppConfig::default().vault_path,
-        };
+        let vault_path = file_config
+            .vault_path
+            .map(|raw_path| PathBuf::from(expand_tilde(raw_path)))
+            .unwrap_or_else(|| AppConfig::default().vault_path);
 
         Ok(AppConfig {
             vault_path,

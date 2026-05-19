@@ -1,5 +1,3 @@
-// SCAFFOLD: false — implemented in DELIVER wave step 01-05.
-
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Layout};
 use ratatui::style::{Style, Stylize};
@@ -76,12 +74,8 @@ fn render_commit_table(model: &AppModel, frame: &mut Frame, area: ratatui::layou
         .block(Block::new().borders(Borders::ALL))
         .highlight_style(Style::new().reversed());
 
-    let selected_index = if model.filtered_rows.is_empty() {
-        None
-    } else {
-        Some(model.cursor)
-    };
-    let mut table_state = TableState::default().with_selected(selected_index);
+    // render_commit_table is only called when filtered_rows is non-empty
+    let mut table_state = TableState::default().with_selected(Some(model.cursor));
 
     frame.render_stateful_widget(table, area, &mut table_state);
 }

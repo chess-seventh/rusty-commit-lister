@@ -57,30 +57,32 @@ fn recompute_filtered(model: &AppModel) -> Vec<CommitRecord> {
     model
         .commit_rows
         .iter()
-        .filter(|record| {
-            let repo_matches = model.active_repo_filter.as_ref().map_or(true, |filter| {
-                record
-                    .url
-                    .as_deref()
-                    .unwrap_or("")
-                    .contains(filter.as_str())
-            });
-            let query = model.search_query.to_lowercase();
-            let search_matches = if query.is_empty() {
-                true
-            } else {
-                record.message.to_lowercase().contains(&query)
-                    || record
-                        .url
-                        .as_deref()
-                        .unwrap_or("")
-                        .to_lowercase()
-                        .contains(&query)
-            };
-            repo_matches && search_matches
-        })
+        .filter(|record| record_matches_filters(record, &model.search_query, &model.active_repo_filter))
         .cloned()
         .collect()
+}
+
+fn record_matches_filters(
+    record: &CommitRecord,
+    search_query: &str,
+    active_repo_filter: &Option<String>,
+) -> bool {
+    repo_filter_matches(record, active_repo_filter) && search_query_matches(record, search_query)
+}
+
+fn repo_filter_matches(record: &CommitRecord, active_repo_filter: &Option<String>) -> bool {
+    active_repo_filter.as_ref().map_or(true, |filter| {
+        record.url.as_deref().unwrap_or("").contains(filter.as_str())
+    })
+}
+
+fn search_query_matches(record: &CommitRecord, search_query: &str) -> bool {
+    if search_query.is_empty() {
+        return true;
+    }
+    let query = search_query.to_lowercase();
+    record.message.to_lowercase().contains(&query)
+        || record.url.as_deref().unwrap_or("").to_lowercase().contains(&query)
 }
 
 fn handle_key(model: AppModel, key: KeyEvent) -> AppModel {
@@ -157,11 +159,8 @@ fn handle_detail_key(mut model: AppModel, key: KeyEvent) -> AppModel {
 }
 
 fn handle_repo_picker_key(mut model: AppModel, key: KeyEvent) -> AppModel {
-    match key.code {
-        KeyCode::Esc => {
-            model.mode = AppMode::Browse;
-        }
-        _ => {}
+    if key.code == KeyCode::Esc {
+        model.mode = AppMode::Browse;
     }
     model
 }

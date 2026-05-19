@@ -1,12 +1,14 @@
-// SCAFFOLD: false — implemented in DELIVER wave step 01-05.
-
 use std::io::Stdout;
+use std::time::Duration;
 
 use anyhow::Result;
 use crossterm::event::Event;
 
 use crate::domain::events::AppEvent;
 use crate::domain::model::AppModel;
+
+/// Event poll interval — balances responsiveness with CPU usage.
+const POLL_INTERVAL: Duration = Duration::from_millis(250);
 
 /// The TUI event loop struct. Owns the terminal and drives the Elm update→view cycle.
 ///
@@ -40,7 +42,7 @@ impl TuiEventLoop {
         loop {
             self.terminal
                 .draw(|frame| crate::tui::view::view(&model, frame))?;
-            if crossterm::event::poll(std::time::Duration::from_millis(250))? {
+            if crossterm::event::poll(POLL_INTERVAL)? {
                 let evt = crossterm::event::read()?;
                 let app_event = translate_event(evt);
                 model = crate::domain::update::update(model, app_event);

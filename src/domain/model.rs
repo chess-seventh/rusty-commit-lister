@@ -1,8 +1,7 @@
-// SCAFFOLD: true
-// Bootstrapped by DISTILL wave 2026-05-18.
-// Replace panic!() bodies with real implementation in DELIVER wave.
-
 use std::path::PathBuf;
+
+/// Default number of days to scan back for daily notes when no config overrides it.
+pub const DEFAULT_SCAN_DAYS_BACK: u32 = 7;
 
 /// The current interaction mode of the TUI.
 #[derive(Debug, Clone, PartialEq)]
@@ -54,7 +53,7 @@ impl Default for AppConfig {
     fn default() -> Self {
         Self {
             vault_path: PathBuf::from(""),
-            scan_days_back: 7,
+            scan_days_back: DEFAULT_SCAN_DAYS_BACK,
             repo_filter: None,
             clipboard_available: false,
         }

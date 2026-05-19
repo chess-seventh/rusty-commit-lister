@@ -13,6 +13,15 @@ use rusty_commit_lister::ports::config_port::ConfigPort;
 use rusty_commit_lister::ports::config_port::Probe;
 use rusty_commit_lister::ports::vault_port::VaultScanPort;
 
+/// Resolves the default config file path: `~/.config/rusty-commit-lister/config.toml`.
+fn default_config_path() -> std::path::PathBuf {
+    let home = std::env::var("HOME").unwrap_or_else(|_| String::from("."));
+    std::path::PathBuf::from(home)
+        .join(".config")
+        .join("rusty-commit-lister")
+        .join("config.toml")
+}
+
 fn main() -> Result<()> {
     tracing_subscriber::fmt::init();
     info!("Starting rusty-commit-lister");
@@ -46,13 +55,7 @@ fn main() -> Result<()> {
     let config_path = matches
         .get_one::<String>("config")
         .map(std::path::PathBuf::from)
-        .unwrap_or_else(|| {
-            let home = std::env::var("HOME").unwrap_or_else(|_| String::from("."));
-            std::path::PathBuf::from(home)
-                .join(".config")
-                .join("rusty-commit-lister")
-                .join("config.toml")
-        });
+        .unwrap_or_else(default_config_path);
 
     // 2. Load config
     let config_adapter =

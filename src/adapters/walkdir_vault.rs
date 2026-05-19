@@ -10,6 +10,10 @@ use crate::parser::parse_note;
 use crate::ports::config_port::Probe;
 use crate::ports::vault_port::VaultScanPort;
 
+/// Maximum directory depth to walk when scanning the vault.
+/// Prevents accidental full-filesystem traversal if vault_path is misconfigured.
+const VAULT_SCAN_MAX_DEPTH: usize = 10;
+
 /// Adapter that walks the Obsidian vault directory using `walkdir 2`,
 /// filters daily notes by date range using `chrono 0.4`, and calls
 /// `parse_note()` on each discovered file.
@@ -50,7 +54,7 @@ impl VaultScanPort for WalkdirScanAdapter {
         let window_start = today - chrono::Duration::days(days_back as i64);
 
         let mut records: Vec<CommitRecord> = WalkDir::new(&self.vault_path)
-            .max_depth(10)
+            .max_depth(VAULT_SCAN_MAX_DEPTH)
             .into_iter()
             .filter_map(|entry_result| entry_result.ok())
             .filter(|entry| entry.path().extension() == Some(OsStr::new("md")))

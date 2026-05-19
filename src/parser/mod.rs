@@ -75,11 +75,7 @@ pub fn parse_note(path: &Path) -> Vec<CommitRecord> {
             .map(str::trim)
             .collect();
 
-        // Skip separator row (cells contain only dashes, spaces, and colons)
-        if cols
-            .iter()
-            .all(|c| c.chars().all(|ch| ch == '-' || ch == ' ' || ch == ':'))
-        {
+        if is_separator_row(&cols) {
             continue;
         }
 
@@ -93,11 +89,7 @@ pub fn parse_note(path: &Path) -> Vec<CommitRecord> {
             continue;
         }
 
-        let url = if cols[3].is_empty() {
-            None
-        } else {
-            Some(cols[3].to_string())
-        };
+        let url = optional_column(cols[3]);
 
         records.push(CommitRecord {
             folder: cols[0].to_string(),
@@ -109,4 +101,16 @@ pub fn parse_note(path: &Path) -> Vec<CommitRecord> {
     }
 
     records
+}
+
+/// Returns true if every cell in the row contains only `-`, ` `, and `:` characters,
+/// which identifies a Markdown table separator row (e.g. `| --- | :---: | --- |`).
+fn is_separator_row(cols: &[&str]) -> bool {
+    cols.iter()
+        .all(|cell| cell.chars().all(|ch| ch == '-' || ch == ' ' || ch == ':'))
+}
+
+/// Returns `None` if the column value is empty, `Some(String)` otherwise.
+fn optional_column(value: &str) -> Option<String> {
+    if value.is_empty() { None } else { Some(value.to_string()) }
 }
