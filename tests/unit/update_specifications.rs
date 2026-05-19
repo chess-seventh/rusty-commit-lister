@@ -446,6 +446,232 @@ fn page_up_clamps_at_zero() {
     );
 }
 
+// ─── Browse mode — quit and reload keys ──────────────────────────────────────
+
+/// @US-03 @in-memory
+///
+/// Scenario: 'r' key in Browse mode triggers reload by setting loading = true
+///   Given Browse mode with commits loaded
+///   When 'r' is pressed
+///   Then loading is true
+#[test]
+fn r_key_in_browse_mode_sets_loading_true() {
+    let model = loaded_browse_model();
+    assert!(!model.loading, "precondition: not loading");
+
+    let after = update(model, key_event(KeyCode::Char('r')));
+
+    assert!(after.loading, "loading must be true after 'r' to signal reload");
+    assert_eq!(after.mode, AppMode::Browse, "mode must remain Browse");
+}
+
+/// @US-03 @in-memory
+///
+/// Scenario: 'q' key in Browse mode signals application exit
+///   Given Browse mode with commits loaded
+///   When 'q' is pressed
+///   Then quit is true
+#[test]
+fn q_key_in_browse_mode_sets_quit_true() {
+    let model = loaded_browse_model();
+    assert!(!model.quit, "precondition: not quitting");
+
+    let after = update(model, key_event(KeyCode::Char('q')));
+
+    assert!(after.quit, "quit must be true after 'q'");
+}
+
+// ─── Browse mode — empty rows guard ──────────────────────────────────────────
+
+/// @US-03 @in-memory
+///
+/// Scenario: j key with empty filtered_rows is a no-op
+///   Given Browse mode with no commits (empty filtered_rows)
+///   When j is pressed
+///   Then cursor remains at 0 (no panic, no wrap)
+#[test]
+fn j_key_with_empty_rows_is_noop() {
+    let config = AppConfig::default();
+    let model = AppModel::new(config);
+    let empty = update(model, AppEvent::LoadComplete(vec![]));
+    assert!(empty.filtered_rows.is_empty(), "precondition: no rows");
+
+    let after = update(empty, key_event(KeyCode::Char('j')));
+
+    assert_eq!(after.cursor, 0, "cursor must stay at 0 when no rows");
+}
+
+/// @US-03 @in-memory
+///
+/// Scenario: k key with empty filtered_rows is a no-op
+///   Given Browse mode with no commits (empty filtered_rows)
+///   When k is pressed
+///   Then cursor remains at 0 (no panic, no underflow)
+#[test]
+fn k_key_with_empty_rows_is_noop() {
+    let config = AppConfig::default();
+    let model = AppModel::new(config);
+    let empty = update(model, AppEvent::LoadComplete(vec![]));
+    assert!(empty.filtered_rows.is_empty(), "precondition: no rows");
+
+    let after = update(empty, key_event(KeyCode::Char('k')));
+
+    assert_eq!(after.cursor, 0, "cursor must stay at 0 when no rows");
+}
+
+/// @US-03 @in-memory
+///
+/// Scenario: PageDown with empty filtered_rows is a no-op
+///   Given Browse mode with no commits
+///   When PageDown is pressed
+///   Then cursor remains at 0
+#[test]
+fn page_down_with_empty_rows_is_noop() {
+    let config = AppConfig::default();
+    let model = AppModel::new(config);
+    let empty = update(model, AppEvent::LoadComplete(vec![]));
+
+    let after = update(empty, key_event(KeyCode::PageDown));
+
+    assert_eq!(after.cursor, 0, "cursor must stay at 0 with no rows");
+}
+
+/// @US-03 @in-memory
+///
+/// Scenario: PageDown preserves cursor when search filter empties filtered_rows
+///   Given Browse mode with cursor at row 2 and active_repo_filter filtering out all rows
+///   When PageDown is pressed
+///   Then cursor stays at 2 (no navigation into empty list)
+///
+/// This distinguishes `row_count > 0` from `row_count >= 0` (always true for usize):
+/// with >= the body would execute and .min(0) would drag cursor from 2 to 0.
+#[test]
+fn page_down_with_empty_filtered_rows_preserves_cursor() {
+    let config = AppConfig::default();
+    // Load 3 commits, navigate cursor to 2
+    let commits = vec![
+        make_commit("feat: first", "https://github.com/franci/a"),
+        make_commit("fix: second", "https://github.com/franci/b"),
+        make_commit("chore: third", "https://github.com/franci/c"),
+    ];
+    let model = AppModel::new(config);
+    let loaded = update(model.clone(), AppEvent::LoadComplete(commits.clone()));
+    // Position cursor at 2
+    let mut at_row_2 = loaded;
+    at_row_2.cursor = 2;
+    // Apply repo filter that excludes all commits, then reload
+    at_row_2.active_repo_filter = Some("no-such-repo".to_string());
+    let empty_filtered = update(at_row_2, AppEvent::LoadComplete(commits));
+
+    assert!(empty_filtered.filtered_rows.is_empty(), "precondition: filter empties rows");
+    assert_eq!(empty_filtered.cursor, 2, "precondition: cursor is 2");
+
+    let after = update(empty_filtered, key_event(KeyCode::PageDown));
+
+    assert_eq!(after.cursor, 2, "PageDown must not move cursor when filtered_rows is empty");
+}
+
+// ─── Search mode — backspace and control chars ────────────────────────────────
+
+/// @US-06 @in-memory
+///
+/// Scenario: Backspace in Search mode removes the last character from search_query
+///   Given Search mode with query "feat"
+///   When Backspace is pressed
+///   Then search_query is "fea"
+#[test]
+fn backspace_in_search_mode_removes_last_char() {
+    let model = loaded_browse_model();
+    let in_search = update(model, key_event(KeyCode::Char('/')));
+    let with_query = update(
+        update(
+            update(
+                update(in_search, key_event(KeyCode::Char('f'))),
+                key_event(KeyCode::Char('e')),
+            ),
+            key_event(KeyCode::Char('a')),
+        ),
+        key_event(KeyCode::Char('t')),
+    );
+    assert_eq!(with_query.search_query, "feat", "precondition: query is 'feat'");
+
+    let after = update(with_query, key_event(KeyCode::Backspace));
+
+    assert_eq!(after.search_query, "fea", "Backspace must remove the last char");
+}
+
+/// @US-06 @in-memory
+///
+/// Scenario: Control character is not appended to search_query in Search mode
+///   Given Search mode with empty query
+///   When a control char (KeyCode::Null) is pressed as a Char event
+///   Then search_query remains empty
+#[test]
+fn control_char_not_appended_in_search_mode() {
+    let model = loaded_browse_model();
+    let in_search = update(model, key_event(KeyCode::Char('/')));
+    assert_eq!(in_search.search_query, "", "precondition: empty query");
+
+    let after = update(in_search, AppEvent::KeyPress(crossterm::event::KeyEvent::new(
+        KeyCode::Char('\x01'),
+        crossterm::event::KeyModifiers::CONTROL,
+    )));
+
+    assert_eq!(after.search_query, "", "control chars must not be appended");
+}
+
+// ─── RepoPicker mode ──────────────────────────────────────────────────────────
+
+/// @US-09 @in-memory
+///
+/// Scenario: Esc in RepoPicker mode returns to Browse mode
+///   Given RepoPicker mode (entered via 'f')
+///   When Esc is pressed
+///   Then mode returns to Browse
+#[test]
+fn esc_in_repo_picker_returns_to_browse() {
+    let model = loaded_browse_model();
+    let in_picker = update(model, key_event(KeyCode::Char('f')));
+    assert_eq!(in_picker.mode, AppMode::RepoPicker, "precondition: RepoPicker mode");
+
+    let after = update(in_picker, key_event(KeyCode::Esc));
+
+    assert_eq!(after.mode, AppMode::Browse, "Esc must return to Browse from RepoPicker");
+}
+
+// ─── Repository filter ────────────────────────────────────────────────────────
+
+/// @US-09 @in-memory
+///
+/// Scenario: active_repo_filter hides commits whose URL does not match
+///   Given a model with active_repo_filter set to "franci/a"
+///   When LoadComplete fires with 3 commits (only 1 matches the filter)
+///   Then filtered_rows contains only the matching commit
+#[test]
+fn active_repo_filter_excludes_non_matching_commits() {
+    let config = AppConfig::default();
+    let mut model = AppModel::new(config);
+    model.active_repo_filter = Some("franci/a".to_string());
+
+    let commits = vec![
+        make_commit("feat: first", "https://github.com/franci/a"),
+        make_commit("fix: second", "https://github.com/franci/b"),
+        make_commit("chore: third", "https://github.com/franci/c"),
+    ];
+
+    let after = update(model, AppEvent::LoadComplete(commits));
+
+    assert_eq!(
+        after.filtered_rows.len(),
+        1,
+        "only the commit matching 'franci/a' must be in filtered_rows"
+    );
+    assert!(
+        after.filtered_rows[0].message.contains("first"),
+        "the matching commit must be the 'first' commit"
+    );
+}
+
 // ─── State machine PBT invariant (proptest — layer 1) ─────────────────────────
 
 #[cfg(test)]
