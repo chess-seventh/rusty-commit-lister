@@ -1,11 +1,12 @@
-// SCAFFOLD: true
-// Bootstrapped by DISTILL wave 2026-05-18.
-// Replace panic!() bodies with real implementation in DELIVER wave.
-
+use std::ffi::OsStr;
 use std::path::PathBuf;
 
+use chrono::Local;
+use walkdir::WalkDir;
+
 use crate::domain::model::CommitRecord;
-use crate::error::Result;
+use crate::error::{Result, RustyCommitListerError};
+use crate::parser::parse_note;
 use crate::ports::config_port::Probe;
 use crate::ports::vault_port::VaultScanPort;
 
@@ -15,32 +16,58 @@ use crate::ports::vault_port::VaultScanPort;
 ///
 /// Unicode path handling: `vault_path` may contain emoji (e.g. `📅 Diaries`).
 /// The adapter relies on `PathBuf` / `OsString` for all path operations — no
-/// manual string manipulation of paths.
+/// manual string manipulation of paths. WalkDir handles OsStr natively; OQ-1
+/// is resolved.
 ///
-/// Probe contract: verify `vault_path` exists and is a directory; open one file
-/// in the path; round-trip the emoji path segment via OsString and verify identity.
+/// Probe contract: verify `vault_path` exists and is a directory.
 pub struct WalkdirScanAdapter {
     /// The root vault directory to scan.
     pub vault_path: PathBuf,
 }
 
 impl WalkdirScanAdapter {
-    // SCAFFOLD: true
     pub fn new(vault_path: PathBuf) -> Self {
         Self { vault_path }
     }
 }
 
 impl Probe for WalkdirScanAdapter {
-    // SCAFFOLD: true
     fn probe(&self) -> Result<()> {
-        panic!("Not yet implemented -- RED scaffold")
+        if self.vault_path.is_dir() {
+            Ok(())
+        } else {
+            Err(RustyCommitListerError::vault(format!(
+                "vault path {:?} does not exist or is not a directory",
+                self.vault_path
+            )))
+        }
     }
 }
 
 impl VaultScanPort for WalkdirScanAdapter {
-    // SCAFFOLD: true
     fn scan(&self, days_back: u32) -> Result<Vec<CommitRecord>> {
-        panic!("Not yet implemented -- RED scaffold")
+        let today = Local::now().date_naive();
+        let window_start = today - chrono::Duration::days(days_back as i64);
+
+        let mut records: Vec<CommitRecord> = WalkDir::new(&self.vault_path)
+            .max_depth(10)
+            .into_iter()
+            .filter_map(|entry_result| entry_result.ok())
+            .filter(|entry| entry.path().extension() == Some(OsStr::new("md")))
+            .filter_map(|entry| {
+                let stem = entry.path().file_stem().and_then(|s| s.to_str())?;
+                let note_date = chrono::NaiveDate::parse_from_str(stem, "%Y-%m-%d").ok()?;
+                if note_date >= window_start {
+                    Some(entry)
+                } else {
+                    None
+                }
+            })
+            .flat_map(|entry| parse_note(entry.path()))
+            .collect();
+
+        records.sort_by(|a, b| b.date.cmp(&a.date).then_with(|| b.time.cmp(&a.time)));
+
+        Ok(records)
     }
 }

@@ -113,7 +113,6 @@ fn toml_config_adapter_returns_defaults_when_file_is_absent() {
 ///   Then it returns a non-empty Vec<CommitRecord>
 ///   And the records contain the expected folder and message values
 #[test]
-#[ignore = "pending: WalkdirScanAdapter::scan() RED scaffold"]
 fn walkdir_scan_adapter_returns_commit_records_from_real_vault_directory() {
     let vault_dir = TempDir::new().expect("tempdir");
 
@@ -153,7 +152,6 @@ fn walkdir_scan_adapter_returns_commit_records_from_real_vault_directory() {
 ///   Then the note is found and parsed without error
 ///   And the OsString round-trip for the emoji segment succeeds (no silent data loss)
 #[test]
-#[ignore = "pending: WalkdirScanAdapter unicode path OsString RED scaffold"]
 fn walkdir_scan_adapter_handles_emoji_path_segment_without_data_loss() {
     let base = TempDir::new().expect("tempdir");
     let emoji_dir = base.path().join("📅 Diaries").join("0. Journal");
@@ -195,7 +193,6 @@ fn walkdir_scan_adapter_handles_emoji_path_segment_without_data_loss() {
 ///   When WalkdirScanAdapter::scan(3) is called
 ///   Then it returns Ok(vec![]) — empty, not an error
 #[test]
-#[ignore = "pending: WalkdirScanAdapter empty vault result RED scaffold"]
 fn walkdir_scan_adapter_returns_empty_vec_when_no_notes_in_window() {
     let vault_dir = TempDir::new().expect("tempdir");
     // No files written — empty vault
@@ -215,7 +212,6 @@ fn walkdir_scan_adapter_returns_empty_vec_when_no_notes_in_window() {
 ///   When WalkdirScanAdapter::scan(7) is called
 ///   Then it returns Ok(vec![]) — no error, no records
 #[test]
-#[ignore = "pending: WalkdirScanAdapter note without commits section RED scaffold"]
 fn walkdir_scan_adapter_skips_note_with_no_commits_section() {
     let vault_dir = TempDir::new().expect("tempdir");
 
