@@ -786,3 +786,59 @@ DESIGN components shipped:
 - `parse_note()` pure function — fully wired
 - `AppModel` / `update()` / `view()` / `TuiEventLoop` — fully wired
 - `ClipboardPort` + `ArboardClipboardAdapter` — deferred to slice-02
+
+---
+
+## Wave: DELIVER / [REF] Implementation Summary — Slice-02 (Full Browse Experience)
+
+Slice-02 extends the walking skeleton with three production-ready browse capabilities:
+PageUp/PageDown navigation with page_size=10 and boundary clamping (no wrap); message and
+folder truncation in the commit table with ellipsis suffix; a "Row N/Total | q quit" status
+bar; and a reload_fn closure wired into TuiEventLoop::run() so pressing 'r' re-scans the
+vault and refreshes the table within the same event loop iteration.
+
+## Wave: DELIVER / [REF] Files Modified — Slice-02
+
+| File | Change |
+|---|---|
+| `src/domain/model.rs` | Added `page_size: usize` field (default 10) to `AppModel` |
+| `src/domain/update.rs` | Added `PageDown`/`PageUp` arms with clamped navigation |
+| `src/tui/view.rs` | Added `truncate()` + `format_status_text()` pure helpers; updated status bar and table cells |
+| `src/tui/event_loop.rs` | Changed `run()` to accept `reload_fn: impl FnMut() -> Vec<CommitRecord>`; detects `model.loading` and fires `LoadComplete` |
+| `src/main.rs` | Passes vault reload closure to `tui.run()` |
+| `tests/unit/update_specifications.rs` | Added 10 new tests (PageUp/Down, r-key, q-key, empty-rows guards, search, repo filter) |
+
+## Wave: DELIVER / [REF] Scenarios Green — Slice-02
+
+38 of 38 active tests pass (25 unit + 6 parser + 7 adapter + 0 ignored acceptance).
+Walking skeleton `tool_loads_commits_from_vault_and_exits_successfully` green.
+
+## Wave: DELIVER / [REF] DoD Check — Slice-02
+
+| DoD Item | Status |
+|---|---|
+| All active tests green | PASS — 38/38 pass |
+| Walking skeleton green | PASS — exits 0, non-TTY path unchanged |
+| No `panic!` in production | PASS |
+| `#![forbid(unsafe_code)]` enforced | PASS |
+| Domain layer has zero adapter/TUI imports | PASS |
+| L1-L6 RPP refactor complete | PASS — import consolidation; minimal changes needed (code was clean) |
+| Mutation kill rate ≥ 80% | PASS — 80.3% (49/61 viable mutants caught) |
+| DES integrity verification passes | PASS — all 3 steps have complete traces |
+
+## Wave: DELIVER / [REF] Quality Gates — Slice-02
+
+| Phase | Outcome |
+|---|---|
+| Phase 2 — All Steps | PASS — commits `30aa416`, `1c25df9`, `ff68037` |
+| Phase 3 — L1-L6 Refactor | PASS — import consolidation in view.rs |
+| Phase 5 — Mutation Testing | PASS — 80.3% kill rate (cargo-mutants 26.0.0) |
+| Phase 6 — DES Integrity | PASS — `des-verify-integrity` exit 0, 3/3 steps |
+
+## Wave: DELIVER / [REF] Mutation Gaps Logged — Slice-02
+
+Remaining 12 missed mutants are structurally untestable at unit level without a terminal mock:
+- `event_loop.rs`: run loop body, restore guard, Drop impl, translate_event arm — TUI lifecycle requires real terminal
+- `view.rs`: view/render_* function bodies, render_status_bar arithmetic — TUI render requires terminal buffer
+
+These gaps are logged for future slice consideration (terminal mock or ratatui TestBackend integration).

@@ -17,3 +17,22 @@
 - Backspace in Search mode not explicitly tested (covered by proptest invariant but not example test).
 
 **Deferred to slice-02**: ClipboardPort/ArboardClipboardAdapter (US-08), Detail view (US-06), RepoPicker filter (US-07), probe gold tests.
+
+## Slice-02: Full Browse Experience (2026-05-19)
+
+**Shipped**: PgUp/PgDn navigation with page_size clamping; message/folder truncation with ellipsis; "Row N/Total | q quit" status bar; r-refresh via reload_fn closure in TuiEventLoop::run().
+
+**Steps**: 3 TDD steps (02-01, 02-02, 02-03), all COMMIT/PASS.
+
+**Key decisions made during DELIVER**:
+- PageDown/PageUp clamp at boundaries (no wrap) — contrast with j/k which wrap. Clamping matches typical pager UX.
+- Folder column truncated to 20 chars; message to 40 chars — both use a char-boundary-safe `truncate()` pure helper.
+- reload_fn closure pattern chosen over channel/message-passing: simpler for sync blocking I/O (ADR-002: async upgrade deferred until > 100ms latency observed).
+- Status bar "Row N/Total" format matches vi-style line position — familiar to terminal users.
+
+**Mutation gaps logged for future slice**:
+- `event_loop.rs` TUI lifecycle (run loop, restore guard, Drop, translate_event) — requires terminal mock (ratatui TestBackend) to reach.
+- `view.rs` render functions and status bar arithmetic — same reason.
+- The PageDown `row_count > 0` guard was an equivalent mutant for empty-cursor-0 case; added `page_down_with_empty_filtered_rows_preserves_cursor` to discriminate cursor>0 case.
+
+**Deferred to slice-03**: ClipboardPort/ArboardClipboardAdapter (US-08), Detail view (US-06), RepoPicker filter logic (US-07), ratatui TestBackend integration for TUI render tests.
