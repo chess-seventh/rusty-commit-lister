@@ -13,6 +13,11 @@ thiserror = "2.0.17"
 tracing = "0.1.43"
 tracing-subscriber = {version = "0.3", features = ["env-filter"]}
 config = "0.15.19"
+ratatui = "0.26"
+crossterm = "0.27"
+chrono = {version = "0.4", features = ["serde"]}
+walkdir = "2"
+toml = "0.8"
 
 [dev-dependencies]
 tokio-test = "0.4"
@@ -20,6 +25,7 @@ tempfile = "3.23.0"
 assert_cmd = "2.1.1"
 predicates = "3.1.3"
 criterion = {version = "0.5", features = ["html_reports"]}
+proptest = "1.4"
 
 [features]
 default = []
@@ -43,6 +49,26 @@ rust-version = "1.70.0"
 [profile.dist]
 inherits = "release"
 lto = "thin"
+
+[[test]]
+name = "walking_skeleton_scenarios"
+path = "tests/acceptance/walking_skeleton_scenarios.rs"
+
+[[test]]
+name = "config_scenarios"
+path = "tests/acceptance/config_scenarios.rs"
+
+[[test]]
+name = "adapter_integration_scenarios"
+path = "tests/acceptance/adapter_integration_scenarios.rs"
+
+[[test]]
+name = "parser_specifications"
+path = "tests/unit/parser_specifications.rs"
+
+[[test]]
+name = "update_specifications"
+path = "tests/unit/update_specifications.rs"
 
 # Config for 'cargo dist'
 [workspace.metadata.dist]

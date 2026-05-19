@@ -1,0 +1,69 @@
+{
+  "schema_version": "3.0",
+  "feature_id": "rusty-commit-lister",
+  "events": [
+    {
+      "sid": "01-01",
+      "p": "PREPARE",
+      "s": "SKIPPED",
+      "d": "NOT_APPLICABLE: 3-phase ADR-025 canon",
+      "t": "2026-05-18T22:24:09Z"
+    },
+    {
+      "sid": "01-01",
+      "p": "RED_ACCEPTANCE",
+      "s": "SKIPPED",
+      "d": "NOT_APPLICABLE: folded into RED per ADR-025",
+      "t": "2026-05-18T22:24:23Z"
+    },
+    {
+      "sid": "01-01",
+      "p": "RED_UNIT",
+      "s": "SKIPPED",
+      "d": "NOT_APPLICABLE: folded into RED per ADR-025",
+      "t": "2026-05-18T22:24:23Z"
+    },
+    {
+      "sid": "01-01",
+      "p": "GREEN",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-05-18T22:25:43Z"
+    },
+    {
+      "sid": "01-01",
+      "p": "COMMIT",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-05-18T22:31:59Z"
+    },
+    {
+      "sid": "01-02",
+      "p": "PREPARE",
+      "s": "SKIPPED",
+      "d": "NOT_APPLICABLE: 3-phase ADR-025 canon",
+      "t": "2026-05-19T06:57:41Z"
+    },
+    {
+      "sid": "01-02",
+      "p": "RED_ACCEPTANCE",
+      "s": "EXECUTED",
+      "d": "PASS: 12 tests collected, 12 failures \u2014 all panic at AppModel::new() RED scaffold",
+      "t": "2026-05-19T06:57:44Z"
+    },
+    {
+      "sid": "01-02",
+      "p": "RED_UNIT",
+      "s": "EXECUTED",
+      "d": "PASS: proptest state machine invariant unskipped with example-based tests",
+      "t": "2026-05-19T06:57:47Z"
+    },
+    {
+      "sid": "01-02",
+      "p": "GREEN",
+      "s": "EXECUTED",
+      "d": "PASS: 12/12 update_specifications pass including proptest 300 cases",
+      "t": "2026-05-19T06:57:50Z"
+    }
+  ]
+}

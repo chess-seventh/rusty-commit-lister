@@ -12,6 +12,19 @@ pub enum RustyCommitListerError {
     #[error("Validation error: {field} is invalid")]
     Validation { field: String },
 
+    /// Vault directory or file access failed.
+    #[error("Vault error: {message}")]
+    Vault { message: String },
+
+    /// Parser encountered unrecoverable structure (rare — normal skip-and-log is non-error).
+    #[error("Parse error: {message}")]
+    Parse { message: String },
+
+    /// System clipboard is unavailable (SSH session, headless environment).
+    /// This is NON-FATAL — the composition root degrades clipboard capability.
+    #[error("Clipboard unavailable: {reason}")]
+    ClipboardUnavailable { reason: String },
+
     #[error("External service error: {service}")]
     ExternalService { service: String },
 
@@ -29,6 +42,24 @@ impl RustyCommitListerError {
     pub fn validation(field: impl Into<String>) -> Self {
         Self::Validation {
             field: field.into(),
+        }
+    }
+
+    pub fn vault(message: impl Into<String>) -> Self {
+        Self::Vault {
+            message: message.into(),
+        }
+    }
+
+    pub fn parse(message: impl Into<String>) -> Self {
+        Self::Parse {
+            message: message.into(),
+        }
+    }
+
+    pub fn clipboard_unavailable(reason: impl Into<String>) -> Self {
+        Self::ClipboardUnavailable {
+            reason: reason.into(),
         }
     }
 

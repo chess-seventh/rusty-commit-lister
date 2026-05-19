@@ -1,0 +1,123 @@
+{
+  "roadmap": {
+    "project_id": "rusty-commit-lister",
+    "created_at": "2026-05-18T21:44:12Z",
+    "total_steps": 6
+  },
+  "phases": [
+    {
+      "id": "01",
+      "name": "Slice-01 Walking Skeleton",
+      "steps": [
+        {
+          "id": "01-01",
+          "name": "Parser: parse_note() pure function",
+          "criteria": [
+            "parse_note returns correct CommitRecord structs from a real fixture file (5 rows)",
+            "malformed rows are skipped without panic (skip-and-log)",
+            "note with no ## Commits section returns empty Vec",
+            "empty URL column produces CommitRecord with url=None",
+            "proptest: parse_note never panics on any markdown input",
+            "proptest: result count never exceeds pipe-row count"
+          ],
+          "test_file": "tests/unit/parser_specifications.rs",
+          "scenario_name": "standard_note_with_five_rows_produces_five_commit_records",
+          "files_to_modify": ["src/parser/mod.rs"],
+          "implementation_notes": "Implement parse_note(path: &Path) -> Vec<CommitRecord>. Pure function: read file with std::fs::read_to_string (return empty Vec on error, log with tracing::warn). Locate ## Commits heading. Parse pipe table: skip header row (FOLDER|TIME|COMMIT MESSAGE|REPOSITORY URL) and separator row (---|---|---|---). For each data row: split on | and trim; skip if fewer than 4 non-empty segments; extract folder/time/message/url. url=None if column is empty after trim. Derive date from path.file_stem().to_str() (e.g. 2026-05-18). Skip malformed rows with tracing::debug. Return Vec<CommitRecord>. Unskip all 6 scenarios in RED phase."
+        },
+        {
+          "id": "01-02",
+          "name": "Domain: AppModel::new() and update() state machine",
+          "criteria": [
+            "AppModel::new(config) initialises with loading=true, empty vecs, Browse mode, cursor=0, quit=false",
+            "LoadComplete populates commit_rows and filtered_rows, sets loading=false",
+            "LoadFailed sets error_message, loading=false, commit_rows empty",
+            "j increments cursor; k decrements; both wrap at bounds",
+            "/ transitions Browse to Search; Esc in Search restores Browse and clears query",
+            "Enter transitions Browse to Detail; Esc in Detail restores Browse with cursor preserved",
+            "f transitions Browse to RepoPicker",
+            "search input accumulates in search_query and recomputes filtered_rows case-insensitively",
+            "proptest: any valid event sequence on a loaded model produces cursor-in-bounds and valid AppMode"
+          ],
+          "test_file": "tests/unit/update_specifications.rs",
+          "scenario_name": "load_complete_event_populates_commit_rows",
+          "files_to_modify": ["src/domain/model.rs", "src/domain/update.rs"],
+          "implementation_notes": "Add quit: bool to AppModel (default false). AppModel::new() sets loading=true, Browse mode, cursor=0, all vecs empty. update() pattern-matches (mode, event): LoadComplete sets commit_rows, filtered_rows (apply active_repo_filter + search_query), loading=false; LoadFailed sets error_message, loading=false; KeyPress in Browse: j cursor+1 wrapping at filtered_rows.len(), k cursor-1 wrapping, / mode=Search, Enter mode=Detail, f mode=RepoPicker, q/Q/Esc quit=true, r loading=true; KeyPress in Search: printable char appends to search_query + recomputes filtered_rows via case-insensitive contains(search_query) on message and url fields, Esc clears search_query + mode=Browse + filtered_rows=commit_rows; Detail: Esc mode=Browse; RepoPicker: Esc mode=Browse; Tick: no-op; ClipboardResult(Ok) status_message=Some(URL copied); ClipboardResult(Err(s)) status_message=Some(s). filtered_rows recompute: filter commit_rows by search_query (if non-empty) and active_repo_filter (if Some). Unskip all 12 scenarios in RED."
+        },
+        {
+          "id": "01-03",
+          "name": "Adapter: TomlConfigAdapter (ConfigPort)",
+          "criteria": [
+            "load() reads vault_path and scan_days_back from a real TOML file in tempdir",
+            "load() returns AppConfig::default() when file is absent (not an error)",
+            "load() returns Err(Config) when scan_days_back=0, naming the field and config path",
+            "probe() returns Ok(()) for valid config; structured error for unreadable file",
+            "~ in vault_path is expanded to home directory"
+          ],
+          "test_file": "tests/acceptance/adapter_integration_scenarios.rs",
+          "scenario_name": "toml_config_adapter_reads_vault_path_and_scan_days_back_from_real_file",
+          "files_to_modify": ["src/adapters/toml_config.rs", "Cargo.toml"],
+          "implementation_notes": "Use toml::from_str on file contents. Define a TomlFile serde struct with optional vault_path: Option<String> and scan_days_back: Option<u32>. If file absent, return Ok(AppConfig::default()). Expand ~ in vault_path: replace leading ~ with std::env::var(HOME).unwrap_or_default(). Validate scan_days_back > 0; if 0, return Err(RustyCommitListerError::config(format!(scan_days_back must be > 0 in {config_path:?}))). probe(): if file exists, attempt to open it; Err on permission failure. Also remove config = 0.15.19 from Cargo.toml dependencies in this step (it is superseded by direct toml parsing)."
+        },
+        {
+          "id": "01-04",
+          "name": "Adapter: WalkdirScanAdapter (VaultScanPort)",
+          "criteria": [
+            "scan() returns CommitRecord structs from a real vault tempdir with matching daily notes",
+            "scan() handles emoji path segment in vault_path without data loss (OQ-1 spike resolved)",
+            "scan() returns empty Vec when no notes fall within the scan window",
+            "scan() skips notes with no ## Commits section via parse_note skip-and-log",
+            "probe() returns Ok(()) when vault_path is a valid directory; Err(Vault) otherwise"
+          ],
+          "test_file": "tests/acceptance/adapter_integration_scenarios.rs",
+          "scenario_name": "walkdir_scan_adapter_returns_commit_records_from_real_vault",
+          "files_to_modify": ["src/adapters/walkdir_vault.rs"],
+          "implementation_notes": "probe(): verify vault_path.is_dir(); return Err(RustyCommitListerError::vault(format!(vault path {:?} does not exist or is not a directory, self.vault_path))) if not. scan(): use walkdir::WalkDir::new(&self.vault_path).max_depth(10).into_iter(). For each entry, check entry.path().extension() == Some(OsStr::new(md)). Check filename (file_stem) parses as YYYY-MM-DD via chrono::NaiveDate::parse_from_str(stem, %Y-%m-%d). Compute window: chrono::Local::today().naive_local() - chrono::Duration::days(days_back as i64). Include note if note_date >= window_start. Call parse_note(entry.path()) and collect. Sort by date desc then time desc (string lexicographic is correct for ISO dates). OsString: use entry.path().file_stem().and_then(|s| s.to_str()) to get filename as &str; skip with debug log if None (non-UTF8 filename). WalkDir handles emoji paths natively via OsStr — no manual string conversion of the vault_path itself."
+        },
+        {
+          "id": "01-05",
+          "name": "TUI: view() render and TuiEventLoop event loop",
+          "criteria": [
+            "view() renders a 4-column ratatui Table (Date, Time, Message, Folder) for Browse mode",
+            "view() renders a status bar with commit count and q-to-quit hint",
+            "view() renders Loading... when model.loading is true",
+            "view() renders No commits found in scan window when empty state",
+            "TuiEventLoop::new() enters raw mode and alt screen without panicking",
+            "TuiEventLoop::run(model) drives update->view cycle until model.quit is true",
+            "TuiEventLoop::restore() exits raw mode and alt screen",
+            "Drop impl calls restore() ensuring terminal cleanup"
+          ],
+          "test_file": "",
+          "scenario_name": "",
+          "files_to_modify": ["src/tui/view.rs", "src/tui/event_loop.rs"],
+          "implementation_notes": "view(): use ratatui widgets. Layout: two vertical chunks (main table, 1-line status bar). Main: Block-bordered Table with header Row [Date, Time, Message, Folder] and rows from model.filtered_rows (truncate message to available width with ... ellipsis). Highlight selected row with Style::new().reversed(). Status bar: Paragraph with text N commits | q quit. If model.loading: render Paragraph(Loading...) instead of table. If model.error_message: render Paragraph with error string. If empty filtered_rows and not loading: render Paragraph(No commits found in scan window). event_loop: TuiEventLoop holds terminal: ratatui::Terminal<CrosstermBackend<Stdout>> and a restored: bool flag. new(): enable_raw_mode()?; execute!(stdout(), EnterAlternateScreen)?; create Terminal; set restored=false. run(initial_model): loop { terminal.draw(|f| view(&model, f))?; if crossterm::event::poll(Duration::from_millis(250))? { let evt = crossterm::event::read()?; let app_event = translate_event(evt); model = update(model, app_event); if model.quit { break; } } else { model = update(model, AppEvent::Tick); } } restore(): if !self.restored { disable_raw_mode()?; execute!(stdout(), LeaveAlternateScreen)?; self.restored = true; } Drop: self.restore().ok();. translate_event: crossterm Event::Key(ke) -> AppEvent::KeyPress(ke); others -> Tick. This step has no acceptance test — validated by integration in step 01-06."
+        },
+        {
+          "id": "01-06",
+          "name": "Composition root: wired binary and walking skeleton green",
+          "criteria": [
+            "cargo test --test walking_skeleton_scenarios tool_loads_commits_from_vault_and_exits_successfully exits 0",
+            "binary exits 0 with stdout containing commit or Commit when run non-interactively",
+            "binary detects non-TTY via std::io::IsTerminal and prints text summary instead of starting TUI",
+            "wire order: CLI parse -> config load -> vault probe -> vault scan -> model init -> run",
+            "config errors exit with code 2; vault probe errors exit with code 1"
+          ],
+          "test_file": "tests/acceptance/walking_skeleton_scenarios.rs",
+          "scenario_name": "tool_loads_commits_from_vault_and_exits_successfully",
+          "files_to_modify": ["src/main.rs", "src/lib.rs"],
+          "implementation_notes": "Replace panic! in main() with real composition root. (1) Get config_path from --config arg or default ~/.config/rusty-commit-lister/config.toml. (2) let adapter = TomlConfigAdapter::new(config_path); let config = adapter.load().map_err(|e| { eprintln!(Configuration error: {e}); std::process::exit(2); })?; (3) let vault = WalkdirScanAdapter::new(config.vault_path.clone()); vault.probe().map_err(|e| { eprintln!(Vault error: {e}); std::process::exit(1); })?; (4) let records = vault.scan(config.scan_days_back).unwrap_or_else(|e| { tracing::warn!(%e, vault scan failed); vec![] }); (5) let model = update(AppModel::new(config), AppEvent::LoadComplete(records)); (6) use std::io::IsTerminal; if std::io::stdout().is_terminal() { let mut tui = TuiEventLoop::new()?; tui.run(model)?; } else { println!(Found {} commits:, model.commit_rows.len()); for r in &model.commit_rows { println!(  {} {} - {}, r.date, r.time, r.message); } } In lib.rs: add pub mod tui; and pub use tui::*; if needed. The walking skeleton test invokes the binary via assert_cmd without a TTY, so stdout.is_terminal() is false and the text summary path runs. Confirm scenario tool_loads_commits_from_vault_and_exits_successfully is already unskipped (it has no #[ignore]) — in RED phase just confirm it fails for the right reason (panics at composition root), then implement and make it green."
+        }
+      ]
+    }
+  ],
+  "implementation_scope": {
+    "source_directories": ["src/"],
+    "test_directories": ["tests/unit/", "tests/acceptance/"],
+    "excluded_patterns": ["target/**", "*.lock"]
+  },
+  "validation": {
+    "status": "approved",
+    "reviewer": "nw-acceptance-designer-reviewer",
+    "approved_at": "2026-05-19T00:00:00Z"
+  }
+}

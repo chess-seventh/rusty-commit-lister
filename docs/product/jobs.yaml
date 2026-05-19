@@ -1,0 +1,123 @@
+# Product Jobs Registry
+# Generated: 2026-05-18 — rusty-commit-lister DISCUSS wave
+# Owner: franci (sole user / sole author)
+# Source of truth for JTBD traceability across all user stories
+schema_version: 1
+jobs:
+  - id: job-orient
+    type: functional
+    tier: primary
+    statement: >
+      When I start or end a working session, I want to scan all commits from the past N days across every repo, so I can orient myself about what I worked on without leaving the terminal.
+
+    dimensions:
+      functional: >
+        Retrieve and render a unified, chronologically sorted list of commits from Obsidian daily-note Markdown tables covering a configurable look-back window.
+
+      emotional: >
+        Feel immediately grounded — a quick glance should replace the scattered mental effort of remembering what I touched across repos.
+
+      social: >
+        N/A — sole-user tool. No audience or social signal required.
+
+    four_forces:
+      push: >
+        grep-ing Markdown files and switching to Obsidian to read daily notes is slow, context-breaking, and produces no sorted cross-repo view.
+
+      pull: >
+        A sub-2-second TUI that presents the last week of commits in a scannable table — no app switch, no typing, just j/k and a glance.
+
+      anxiety: >
+        "What if the parser misses some commits, or the emoji path breaks, and I silently see an incomplete list thinking it is complete?"
+
+      habit: >
+        Muscle memory: grep, git log per repo, and Obsidian scrolling. The new tool must feel at least as fast as typing a grep command.
+
+    job_map:
+      - step: define
+        goal: "Know which repos had activity in the last N days"
+        desired_outcome: "Minimize time to identify active repositories in the scan window"
+      - step: locate
+        goal: "Load commit data from Obsidian daily notes"
+        desired_outcome: "Minimize time to gather all commit rows across scan window files"
+      - step: prepare
+        goal: "Parse and normalize commit entries into browsable rows"
+        desired_outcome: "Minimize likelihood of silent parse failures or missing rows"
+      - step: confirm
+        goal: "Verify loaded data is complete and covers expected date range"
+        desired_outcome: "Minimize uncertainty about scan completeness"
+      - step: execute
+        goal: "Browse and scan the commit list"
+        desired_outcome: "Minimize time from launch to finding a specific commit"
+      - step: monitor
+        goal: "Track position while navigating a potentially long list"
+        desired_outcome: "Minimize disorientation when scrolling through many rows"
+      - step: modify
+        goal: "Narrow list by repo name or message content"
+        desired_outcome: "Minimize keystrokes to isolate relevant commits"
+      - step: conclude
+        goal: "Close the tool and resume work (or act on a URL)"
+        desired_outcome: "Minimize context-switch overhead when exiting"
+    opportunity_score: 15
+    priority: build-now
+    evidence:
+      - "rusty-commit-saver exists and runs as daily git hook — commitment signal"
+      - "workaround: grep -r across Obsidian vault — active pain"
+      - "workaround: manual Obsidian scroll — active pain"
+      - "workaround: git log per repo — active pain"
+  - id: job-find-commit
+    type: functional
+    tier: secondary
+    statement: >
+      When I vaguely remember a commit from a few days ago, I want to search across all repos by approximate message or date, so I can locate it without switching context or knowing which repo it was in.
+
+    dimensions:
+      functional: >
+        Full-text search across commit message and repo fields, activated inline from the browse view with /, returning to full list on Esc.
+
+      emotional: >
+        Relief — the thing I half-remember becomes findable in seconds rather than requiring a laborious multi-step grep-and-scroll.
+
+      social: N/A — sole-user tool.
+    four_forces:
+      push: "grep -r across the vault is accurate but breaks terminal flow and is slow to compose"
+      pull: "/ then a few letters, see matching rows narrow in real time"
+      anxiety: "What if search misses partial matches or is case-sensitive unexpectedly?"
+      habit: "grep pattern from the shell is the current reflex — / in TUI must be equally fast to invoke"
+    opportunity_score: 12
+    priority: build-next
+  - id: job-inspect-commit
+    type: functional
+    tier: secondary
+    statement: >
+      When I want to revisit the code or share a link from a commit I found, I want to open a detail view showing the full path and repository URL, so I can copy or open it without leaving the tool.
+
+    dimensions:
+      functional: >
+        Enter on a row opens a panel showing: full folder path, full repository URL, repo name, date/time, commit message. URL copyable (or opens browser).
+
+      emotional: >
+        Satisfaction — one keypress gets the full context; no manual note-browsing required.
+
+      social: N/A — sole-user tool.
+    four_forces:
+      push: "Copy-pasting URLs from Obsidian notes requires app switch and manual scroll"
+      pull: "Enter → see full detail, copy URL, done"
+      anxiety: "What if the URL is stale or the repo has moved?"
+      habit: "Opening Obsidian to get the URL is ingrained — the tool must be noticeably faster"
+    opportunity_score: 10
+    priority: build-next
+  - id: job-review-repo-activity
+    type: functional
+    tier: secondary
+    statement: >
+      When I do a weekly review or want to spot activity patterns, I want to see which repositories I have been most active in lately, so I can track where my focus has been without manual tallying.
+
+    dimensions:
+      functional: >
+        Browsable commit list grouped or filterable by repository name; row counts per repo visible in the default or filtered view.
+
+      emotional: "Curiosity satisfied — a quick pattern emerges without effort."
+      social: N/A — sole-user tool.
+    opportunity_score: 9
+    priority: build-next

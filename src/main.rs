@@ -1,18 +1,22 @@
+// SCAFFOLD: true
+// Composition root — wire adapters → probe → run TUI.
+// Real implementation replaces this body in DELIVER wave.
+//
+// CLI flags: --config <path>, --verbose, --date <YYYY-MM-DD>, --today, --daily-note <path>
+// Exit codes: 0 = success, 1 = runtime error, 2 = config/usage error, 130 = SIGINT
+
 use anyhow::Result;
 use clap::{Arg, Command};
-use rusty_commit_lister::RustyCommitLister;
 use tracing::info;
-fn main() -> Result<()> {
-    // Initialize tracing
-    tracing_subscriber::fmt::init();
 
+fn main() -> Result<()> {
+    tracing_subscriber::fmt::init();
     info!("Starting rusty-commit-lister");
-    // Load configuration
-    // let settings = Settings::new().context("Failed to load configuration")?;
+
     let matches = Command::new("rusty-commit-lister")
         .version(env!("CARGO_PKG_VERSION"))
-        .author(" <>")
-        .about("")
+        .author("franci")
+        .about("Browse commits from Obsidian daily notes in a terminal TUI")
         .arg(
             Arg::new("verbose")
                 .short('v')
@@ -25,44 +29,24 @@ fn main() -> Result<()> {
                 .short('c')
                 .long("config")
                 .value_name("FILE")
-                .help("Sets a custom config file"),
+                .help("Path to config.toml (overrides ~/.config/rusty-commit-lister/config.toml)"),
         )
         .get_matches();
 
     let verbosity = matches.get_count("verbose");
-
     if verbosity > 0 {
         info!("Verbose mode enabled (level: {})", verbosity);
     }
 
-    let rcl = RustyCommitLister::new();
+    // SCAFFOLD: true
+    // Real composition root:
+    //   1. Determine config_path from --config flag or default
+    //   2. TomlConfigAdapter::new(config_path).load() → AppConfig
+    //   3. WalkdirScanAdapter::new(config.vault_path).probe() → verify vault
+    //   4. ArboardClipboardAdapter::new().probe() → set clipboard_available (non-fatal)
+    //   5. VaultScanPort::scan(config.scan_days_back) → Vec<CommitRecord>
+    //   6. AppModel::new(config) + update(model, LoadComplete(records))
+    //   7. TuiEventLoop::new()?.run(model)
 
-    // Main application logic
-    run(rcl)?;
-
-    info!("rusty-commit-lister completed successfully");
-    Ok(())
+    panic!("Not yet implemented -- RED scaffold")
 }
-
-fn run(rusty_commit_lister: RustyCommitLister) -> Result<()> {
-    println!("🦀 Welcome to rusty-commit-lister!");
-    println!("This is a Rust binary created with DevBootstrapper");
-
-    // TODO: Implement your application logic here
-
-    match rusty_commit_lister.hello() {
-        Some(_msg) => Ok(()),
-        _ => panic!("not a string"),
-    }
-}
-
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//
-//     #[test]
-//     fn test_run() {
-//         let _run_ret = run();
-//         assert!(run(settings).is_ok());
-//     }
-// }
