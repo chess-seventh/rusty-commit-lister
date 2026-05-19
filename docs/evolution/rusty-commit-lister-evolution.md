@@ -71,3 +71,21 @@ handled this). 1 step TDD'd through RED→GREEN→COMMIT.
 `view_specifications.rs`, achieving 100% kill rate on view.rs (up from 0% for render functions).
 Closes the deferred gap from slices 02 and 03. TestBackend setup is 3 lines; the pattern is now
 established for future view tests in this codebase.
+
+## Slice-05: Clipboard Copy (2026-05-19)
+
+**Shipped**: `c` in Detail mode copies the repository URL to the system clipboard. Confirmation
+message appears in the detail overlay. If URL is absent, shows "Copy not available — no URL".
+If clipboard is unavailable (SSH/headless), shows "Copy not available — select text manually" with
+graceful degradation. `ArboardClipboardAdapter` probed non-fatally at startup; result sets
+`AppConfig.clipboard_available`. 2 steps TDD'd through RED→GREEN→COMMIT.
+
+**Key design choices**:
+- `AppModel.clipboard_pending: Option<String>` — pure domain signals the effect; event loop picks
+  it up and dispatches `ClipboardResult`. Zero I/O in the domain update function.
+- `ArboardClipboardAdapter::new()` created fresh inside each write/probe call — arboard::Clipboard
+  is not Send/Sync; no stored state, just a zero-size struct.
+- Clipboard probe is non-fatal: warn + degrade. Vault probe remains fatal.
+- Status bar in Detail mode updated to "c copy | Esc return".
+
+**Mutation**: 100% kill rate on domain/model.rs, domain/update.rs, tui/view.rs (70 caught, 7 unviable).

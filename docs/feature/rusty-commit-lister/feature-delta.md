@@ -945,3 +945,59 @@ Walking skeleton `tool_loads_commits_from_vault_and_exits_successfully` green.
 | Phase 3 — L1-L6 Refactor | PASS — code shipped clean; no separate refactor commit needed |
 | Phase 5 — Mutation Testing | PASS — 100% kill rate (commit `75db2b0` adds TestBackend tests) |
 | Phase 6 — DES Integrity | PASS — `des-verify-integrity` exit 0, 1/1 steps |
+
+---
+
+## Wave: DELIVER / [REF] Implementation Summary — Slice-05
+
+Slice-05 ships clipboard copy from the Detail panel (US-08). Pressing `c` in Detail mode copies
+the repository URL to the system clipboard and shows "URL copied to clipboard" in the overlay.
+If the URL field is absent, the panel shows "Copy not available — no URL". If the clipboard
+is inaccessible (SSH/headless), shows "Copy not available — select text manually" with no crash.
+
+`ArboardClipboardAdapter` (arboard crate) was created and probed non-fatally at startup. The
+clipboard effect follows the Elm/MVU pattern: domain sets `clipboard_pending`, the event loop
+executes the effect and dispatches `ClipboardResult`, domain clears pending and sets
+`status_message`. Status bar in Detail mode updated to "c copy | Esc return".
+
+## Wave: DELIVER / [REF] Files Modified — Slice-05
+
+**Production**
+- `src/domain/model.rs` — added `pub clipboard_pending: Option<String>` field
+- `src/domain/update.rs` — `c` key arm in `handle_detail_key`; `clipboard_pending = None` in `ClipboardResult` arms
+- `src/tui/view.rs` — `render_detail_overlay` shows `status_message`; status bar updated to "c copy | Esc return"
+- `src/adapters/arboard_clipboard.rs` — NEW: `ArboardClipboardAdapter` implementing `ClipboardPort + Probe`
+- `src/adapters/mod.rs` — added `pub mod arboard_clipboard`
+- `src/tui/event_loop.rs` — `run()` gains `clipboard_fn` param; dispatches `ClipboardResult` when `clipboard_pending` is set
+- `src/main.rs` — probes clipboard adapter (non-fatal); passes clipboard closure to `tui.run`
+- `Cargo.toml` — added `arboard = "3"`
+
+**Tests**
+- `tests/unit/update_specifications.rs` — 5 new tests: `c_key_*` and `clipboard_result_*`
+- `tests/unit/view_specifications.rs` — 2 new render tests: status_message in overlay + "c copy" hint
+
+## Wave: DELIVER / [REF] Scenarios Green — Slice-05
+
+42 of 42 active tests pass across all test suites (31 unit update + 11 view + 6 acceptance/parser + 1 walking skeleton).
+
+## Wave: DELIVER / [REF] DoD Check — Slice-05
+
+| DoD Item | Status |
+|---|---|
+| All active tests green | PASS — 42/42 pass |
+| Walking skeleton green | PASS — exits 0 |
+| No `panic!` in production | PASS |
+| `#![forbid(unsafe_code)]` enforced | PASS |
+| Domain layer has zero adapter/TUI imports | PASS |
+| L1-L6 RPP refactor complete | PASS — code shipped clean |
+| Mutation kill rate ≥ 80% | PASS — 100% (70 caught, 7 unviable, 0 missed) |
+| DES integrity verification passes | PASS — all 2 steps have complete traces |
+
+## Wave: DELIVER / [REF] Quality Gates — Slice-05
+
+| Phase | Outcome |
+|---|---|
+| Phase 2 — All Steps | PASS — commits `45dd490` (domain), `6b3d48d` (infra) |
+| Phase 3 — L1-L6 Refactor | PASS — code shipped clean; no separate refactor commit needed |
+| Phase 5 — Mutation Testing | PASS — 100% kill rate (domain/model.rs, domain/update.rs, tui/view.rs) |
+| Phase 6 — DES Integrity | PASS — `des-verify-integrity` exit 0, 2/2 steps |
