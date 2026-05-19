@@ -365,6 +365,87 @@ fn load_failed_event_sets_error_message() {
     );
 }
 
+// ─── Page navigation (PgDn / PgUp) ───────────────────────────────────────────
+
+fn make_model_with_rows(row_count: usize, page_size: usize, cursor: usize) -> AppModel {
+    let config = AppConfig::default();
+    let commits: Vec<CommitRecord> = (0..row_count)
+        .map(|i| make_commit(&format!("commit #{}", i), "https://github.com/franci/a"))
+        .collect();
+    let mut model = AppModel::new(config);
+    model.page_size = page_size;
+    let loaded = update(model, AppEvent::LoadComplete(commits));
+    // Navigate cursor to the desired starting position using j presses.
+    // We set it directly via a helper to avoid fragility.
+    let mut positioned = loaded;
+    positioned.cursor = cursor;
+    positioned
+}
+
+/// @US-03 @in-memory
+///
+/// Scenario: PageDown in Browse mode advances cursor by page_size
+///   Given Browse mode with 25 rows, page_size=10, cursor at 0
+///   When PageDown is pressed
+///   Then cursor is 10
+#[test]
+fn page_down_advances_cursor_by_page_size() {
+    let model = make_model_with_rows(25, 10, 0);
+    assert_eq!(model.cursor, 0, "precondition: cursor at 0");
+    assert_eq!(model.page_size, 10, "precondition: page_size is 10");
+    assert_eq!(
+        model.filtered_rows.len(),
+        25,
+        "precondition: 25 rows loaded"
+    );
+
+    let after = update(model, key_event(KeyCode::PageDown));
+
+    assert_eq!(
+        after.cursor, 10,
+        "cursor must advance by page_size (10) on PageDown"
+    );
+    assert_eq!(after.mode, AppMode::Browse, "mode must remain Browse");
+}
+
+/// @US-03 @in-memory
+///
+/// Scenario: PageDown clamps at last row — no wrap
+///   Given Browse mode with 25 rows, page_size=10, cursor at 18
+///   When PageDown is pressed
+///   Then cursor is 24 (last row), not 28 (which would exceed bounds)
+#[test]
+fn page_down_clamps_at_last_row() {
+    let model = make_model_with_rows(25, 10, 18);
+    assert_eq!(model.cursor, 18, "precondition: cursor at 18");
+
+    let after = update(model, key_event(KeyCode::PageDown));
+
+    assert_eq!(
+        after.cursor, 24,
+        "cursor must clamp at last row (24) — no wrap beyond last row"
+    );
+}
+
+/// @US-03 @in-memory
+///
+/// Scenario: PageUp clamps at row 0 — no wrap
+///   Given Browse mode with 25 rows, page_size=10, cursor at 3
+///   When PageUp is pressed
+///   Then cursor is 0, not negative (wrapped)
+#[test]
+fn page_up_clamps_at_zero() {
+    let model = make_model_with_rows(25, 10, 3);
+    assert_eq!(model.cursor, 3, "precondition: cursor at 3");
+
+    let after = update(model, key_event(KeyCode::PageUp));
+
+    assert_eq!(
+        after.cursor, 0,
+        "cursor must clamp at 0 — no wrap when page moves beyond top"
+    );
+}
+
 // ─── State machine PBT invariant (proptest — layer 1) ─────────────────────────
 
 #[cfg(test)]
@@ -387,16 +468,18 @@ mod property_tests {
             Just(key_event(KeyCode::Enter)),
             Just(key_event(KeyCode::Char('f'))),
             Just(key_event(KeyCode::Char('q'))),
+            Just(key_event(KeyCode::PageDown)),
+            Just(key_event(KeyCode::PageUp)),
             Just(AppEvent::Tick),
         ]
     }
 
-    /// @property @US-03 @US-06 @US-07 @US-09 @in-memory
-    ///
-    /// Property: any sequence of valid events from a valid model produces a valid model
-    ///
-    /// Validity invariant: cursor must not exceed filtered_rows.len() (or 0 if empty).
-    /// The model must never be in an inconsistent state after any event sequence.
+    //! @property @US-03 @US-06 @US-07 @US-09 @in-memory
+    //!
+    //! Property: any sequence of valid events from a valid model produces a valid model
+    //!
+    //! Validity invariant: cursor must not exceed filtered_rows.len() (or 0 if empty).
+    //! The model must never be in an inconsistent state after any event sequence.
     proptest! {
         #![proptest_config(proptest::test_runner::Config {
             cases: 300,
