@@ -6,6 +6,41 @@ use ratatui::widgets::{Block, Borders, Cell, Paragraph, Row, Table, TableState};
 
 use crate::domain::model::AppModel;
 
+/// Truncates a string to at most `max_chars` Unicode scalar values.
+///
+/// If the string's char count exceeds `max_chars`, returns the first
+/// `(max_chars - 3)` chars followed by `"..."`. Otherwise returns the
+/// string unchanged. Uses char-boundary-safe slicing via `char_indices`.
+///
+/// Pure function — no I/O, no mutation.
+fn truncate(s: &str, max_chars: usize) -> String {
+    let char_count = s.chars().count();
+    if char_count <= max_chars {
+        return s.to_string();
+    }
+    let keep = max_chars.saturating_sub(3);
+    let end_byte = s
+        .char_indices()
+        .nth(keep)
+        .map(|(byte_pos, _)| byte_pos)
+        .unwrap_or(0);
+    format!("{}...", &s[..end_byte])
+}
+
+/// Formats the status bar text based on row count and cursor position.
+///
+/// Returns `"Row 0/0 | q quit"` when total is 0.
+/// Returns `"Row {cursor}/Total | q quit"` otherwise (cursor is already 1-based).
+///
+/// Pure function — no I/O, no mutation.
+fn format_status_text(cursor_one_based: usize, total: usize) -> String {
+    if total == 0 {
+        "Row 0/0 | q quit".to_string()
+    } else {
+        format!("Row {}/{} | q quit", cursor_one_based, total)
+    }
+}
+
 /// Pure render function — Elm/MVU View.
 ///
 /// Takes a reference to the current AppModel and a mutable Frame reference.
@@ -56,8 +91,8 @@ fn render_commit_table(model: &AppModel, frame: &mut Frame, area: ratatui::layou
             Row::new(vec![
                 Cell::from(record.date.as_str()),
                 Cell::from(record.time.as_str()),
-                Cell::from(record.message.clone()),
-                Cell::from(record.folder.clone()),
+                Cell::from(truncate(&record.message, 40)),
+                Cell::from(truncate(&record.folder, 20)),
             ])
         })
         .collect();
@@ -81,7 +116,79 @@ fn render_commit_table(model: &AppModel, frame: &mut Frame, area: ratatui::layou
 }
 
 fn render_status_bar(model: &AppModel, frame: &mut Frame, area: ratatui::layout::Rect) {
-    let commit_count = model.filtered_rows.len();
-    let status_text = format!("{commit_count} commits | q quit");
+    let total = model.filtered_rows.len();
+    let cursor_one_based = if total == 0 { 0 } else { model.cursor + 1 };
+    let status_text = format_status_text(cursor_one_based, total);
     frame.render_widget(Paragraph::new(status_text), area);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::truncate;
+
+    /// Scenario: string shorter than max_chars is returned unchanged
+    ///   Given s = "hello" and max_chars = 10
+    ///   Then truncate returns "hello" (no ellipsis)
+    #[test]
+    fn truncate_returns_short_string_unchanged() {
+        assert_eq!(truncate("hello", 10), "hello");
+    }
+
+    /// Scenario: string exactly equal to max_chars is returned unchanged
+    ///   Given s = "1234567890" (10 chars) and max_chars = 10
+    ///   Then truncate returns the string unchanged
+    #[test]
+    fn truncate_returns_string_equal_to_max_unchanged() {
+        assert_eq!(truncate("1234567890", 10), "1234567890");
+    }
+
+    /// Scenario: string longer than max_chars is truncated with '...' suffix
+    ///   Given s = "hello world extra text" and max_chars = 10
+    ///   Then truncate returns a string of exactly 10 chars ending with "..."
+    #[test]
+    fn truncate_adds_ellipsis_when_string_exceeds_max_chars() {
+        let result = truncate("hello world extra text", 10);
+        assert_eq!(result, "hello w...", "truncated string must be 10 chars with '...' suffix");
+        assert_eq!(result.chars().count(), 10, "result length must equal max_chars");
+    }
+
+    /// Scenario: empty string is returned as empty string
+    ///   Given s = "" and max_chars = 10
+    ///   Then truncate returns ""
+    #[test]
+    fn truncate_empty_string_returns_empty() {
+        assert_eq!(truncate("", 10), "");
+    }
+
+    /// Scenario: max_chars = 3 (minimum meaningful truncation)
+    ///   Given s = "abcdef" and max_chars = 3
+    ///   Then truncate returns "..." (no content prefix, all 3 chars are ellipsis)
+    #[test]
+    fn truncate_with_max_equal_to_ellipsis_length_returns_only_ellipsis() {
+        let result = truncate("abcdef", 3);
+        assert_eq!(result, "...");
+        assert_eq!(result.chars().count(), 3);
+    }
+
+    /// Scenario: status bar shows "Row 0/0 | q quit" when filtered_rows is empty
+    ///
+    /// This test validates the format_status_text() helper directly (pure function).
+    /// Given filtered_rows is empty
+    /// Then status text = "Row 0/0 | q quit"
+    #[test]
+    fn status_text_is_row_zero_of_zero_when_no_rows() {
+        let text = format_status_text(0, 0);
+        assert_eq!(text, "Row 0/0 | q quit");
+    }
+
+    /// Scenario: status bar shows "Row N/Total | q quit" when rows are present
+    ///   Given cursor = 0 and total = 5
+    ///   Then status text = "Row 1/5 | q quit" (cursor+1 for 1-based display)
+    #[test]
+    fn status_text_shows_one_based_row_and_total() {
+        let text = format_status_text(1, 5);
+        assert_eq!(text, "Row 1/5 | q quit");
+    }
+
+    use super::format_status_text;
 }
