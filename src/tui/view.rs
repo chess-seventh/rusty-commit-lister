@@ -1,10 +1,10 @@
 // SCAFFOLD: false — implemented in DELIVER wave step 01-05.
 
+use ratatui::Frame;
 use ratatui::layout::{Constraint, Layout};
 use ratatui::style::{Style, Stylize};
 use ratatui::text::Text;
 use ratatui::widgets::{Block, Borders, Cell, Paragraph, Row, Table, TableState};
-use ratatui::Frame;
 
 use crate::domain::model::AppModel;
 
