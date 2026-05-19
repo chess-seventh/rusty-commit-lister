@@ -28,7 +28,6 @@ use rusty_commit_lister::ports::vault_port::VaultScanPort;
 ///   When TomlConfigAdapter::load() is called
 ///   Then it returns an AppConfig with the correct vault_path and scan_days_back
 #[test]
-#[ignore = "pending: TomlConfigAdapter::load() RED scaffold"]
 fn toml_config_adapter_reads_vault_path_and_scan_days_back_from_real_file() {
     let dir = TempDir::new().expect("tempdir");
     let vault_dir = TempDir::new().expect("vault tempdir");
@@ -57,7 +56,6 @@ fn toml_config_adapter_reads_vault_path_and_scan_days_back_from_real_file() {
 ///   When TomlConfigAdapter::load() is called
 ///   Then it returns an Err with a Config variant
 #[test]
-#[ignore = "pending: TomlConfigAdapter scan_days_back=0 validation RED scaffold"]
 fn toml_config_adapter_rejects_scan_days_back_zero() {
     let dir = TempDir::new().expect("tempdir");
     let vault_dir = TempDir::new().expect("vault tempdir");
@@ -92,7 +90,6 @@ fn toml_config_adapter_rejects_scan_days_back_zero() {
 ///   When TomlConfigAdapter::load() is called
 ///   Then it returns Ok(AppConfig) with scan_days_back = 7 (default)
 #[test]
-#[ignore = "pending: TomlConfigAdapter missing file fallback RED scaffold"]
 fn toml_config_adapter_returns_defaults_when_file_is_absent() {
     let dir = TempDir::new().expect("tempdir");
     let nonexistent = dir.path().join("not_here.toml");
