@@ -1,0 +1,44 @@
+{
+  "roadmap": {
+    "project_id": "rusty-commit-lister",
+    "slice": "04-detail-view",
+    "created_at": "2026-05-19T00:00:00Z",
+    "total_steps": 1
+  },
+  "phases": [
+    {
+      "id": "04",
+      "name": "Slice-04 Commit Detail View",
+      "steps": [
+        {
+          "id": "04-01",
+          "name": "TUI: Detail mode overlay rendering",
+          "criteria": [
+            "When model.mode == AppMode::Detail, view() renders a detail overlay instead of the commit table",
+            "Overlay shows full (un-truncated) date, time, message, folder, and URL of the selected commit",
+            "When URL is None, overlay shows '— not available —' for the URL line",
+            "Overlay uses a bordered Block with title 'Commit Detail'",
+            "Esc returns to Browse (already handled by domain; view only reads model.mode)",
+            "Selected row position (model.cursor) is preserved after returning from Detail (already handled by domain)",
+            "unit tests: detail_view_renders_full_message_without_truncation, detail_view_shows_not_available_when_url_is_none"
+          ],
+          "test_file": "tests/unit/view_specifications.rs",
+          "scenario_name": "detail_view_renders_full_message_without_truncation",
+          "files_to_modify": ["src/tui/view.rs"],
+          "implementation_notes": "In view.rs render_main_area(), add a branch: if model.mode == AppMode::Detail, call render_detail_overlay(model, frame, area). render_detail_overlay reads model.filtered_rows[model.cursor] (safe because Detail mode only entered when filtered_rows is non-empty), renders a Paragraph inside a bordered Block. Lines: 'Date: {date}', 'Time: {time}', 'Message: {message}', 'Folder: {folder}', 'URL: {url or — not available —}'. Status bar in Detail mode shows 'Esc to return' via render_status_bar (update format_status_text or add detail branch). Pure render — no state mutation."
+        }
+      ]
+    }
+  ],
+  "implementation_scope": {
+    "source_directories": ["src/"],
+    "test_directories": ["tests/unit/"],
+    "excluded_patterns": ["target/**", "*.lock"]
+  },
+  "validation": {
+    "status": "approved",
+    "reviewer": "orchestrator-direct",
+    "approved_at": "2026-05-19T00:00:00Z",
+    "note": "1-step scope for slice-04. Domain transitions (Enter→Detail, Esc→Browse) already shipped in slice-01. Remaining: Detail mode view rendering (04-01)."
+  }
+}

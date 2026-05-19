@@ -67,6 +67,10 @@ path = "tests/unit/parser_specifications.rs"
 name = "update_specifications"
 path = "tests/unit/update_specifications.rs"
 
+[[test]]
+name = "view_specifications"
+path = "tests/unit/view_specifications.rs"
+
 # Config for 'cargo dist'
 [workspace.metadata.dist]
 # The preferred cargo-dist version to use in CI (Cargo.toml SemVer syntax)

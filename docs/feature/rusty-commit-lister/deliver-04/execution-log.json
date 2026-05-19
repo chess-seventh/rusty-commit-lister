@@ -1,0 +1,41 @@
+{
+  "schema_version": "3.0",
+  "feature_id": "rusty-commit-lister",
+  "events": [
+    {
+      "sid": "04-01",
+      "p": "PREPARE",
+      "s": "SKIPPED",
+      "d": "NOT_APPLICABLE: legacy 5-phase phases not applicable under 3-phase ADR-025 canon",
+      "t": "2026-05-19T18:19:21Z"
+    },
+    {
+      "sid": "04-01",
+      "p": "RED_ACCEPTANCE",
+      "s": "SKIPPED",
+      "d": "NOT_APPLICABLE: legacy 5-phase phases not applicable under 3-phase ADR-025 canon",
+      "t": "2026-05-19T18:19:25Z"
+    },
+    {
+      "sid": "04-01",
+      "p": "RED_UNIT",
+      "s": "SKIPPED",
+      "d": "NOT_APPLICABLE: legacy 5-phase phases not applicable under 3-phase ADR-025 canon",
+      "t": "2026-05-19T18:19:25Z"
+    },
+    {
+      "sid": "04-01",
+      "p": "RED_UNIT",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-05-19T18:20:18Z"
+    },
+    {
+      "sid": "04-01",
+      "p": "GREEN",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-05-19T18:21:03Z"
+    }
+  ]
+}

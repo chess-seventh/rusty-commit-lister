@@ -4,7 +4,7 @@ use ratatui::style::{Style, Stylize};
 use ratatui::text::Text;
 use ratatui::widgets::{Block, Borders, Cell, Paragraph, Row, Table, TableState};
 
-use crate::domain::model::{AppModel, AppMode};
+use crate::domain::model::{AppModel, AppMode, CommitRecord};
 
 /// Truncates a string to at most `max_chars` Unicode scalar values.
 ///
@@ -88,6 +88,39 @@ pub fn view(model: &AppModel, frame: &mut Frame) {
     }
 }
 
+/// Builds the display lines for the Detail overlay from a CommitRecord.
+///
+/// Returns a Vec of exactly 5 formatted strings:
+///   0. "Date:    <date>"
+///   1. "Time:    <time>"
+///   2. "Message: <message>"   (full, NOT truncated)
+///   3. "Folder:  <folder>"    (full, NOT truncated)
+///   4. "URL:     <url>" or "URL:     — not available —" when url is None
+///
+/// Pure function — no I/O, no mutation. pub so integration test files can call it.
+pub fn detail_lines(record: &CommitRecord) -> Vec<String> {
+    vec![
+        format!("Date:    {}", record.date),
+        format!("Time:    {}", record.time),
+        format!("Message: {}", record.message),
+        format!("Folder:  {}", record.folder),
+        format!("URL:     {}", record.url.as_deref().unwrap_or("— not available —")),
+    ]
+}
+
+fn render_detail_overlay(model: &AppModel, frame: &mut Frame, area: ratatui::layout::Rect) {
+    // Safety: Detail mode is only entered from Browse when filtered_rows is non-empty
+    // (handle_browse_key guards this). The cursor is always a valid index.
+    let record = &model.filtered_rows[model.cursor];
+    let lines: Vec<ratatui::text::Line> = detail_lines(record)
+        .into_iter()
+        .map(ratatui::text::Line::from)
+        .collect();
+    let paragraph = Paragraph::new(lines)
+        .block(Block::default().borders(Borders::ALL).title("Commit Detail"));
+    frame.render_widget(paragraph, area);
+}
+
 fn render_main_area(model: &AppModel, frame: &mut Frame, area: ratatui::layout::Rect) {
     if model.loading {
         frame.render_widget(Paragraph::new("Loading..."), area);
@@ -101,6 +134,11 @@ fn render_main_area(model: &AppModel, frame: &mut Frame, area: ratatui::layout::
 
     if model.filtered_rows.is_empty() {
         frame.render_widget(Paragraph::new("No commits found in scan window"), area);
+        return;
+    }
+
+    if model.mode == AppMode::Detail {
+        render_detail_overlay(model, frame, area);
         return;
     }
 
@@ -156,12 +194,14 @@ fn render_search_bar(model: &AppModel, frame: &mut Frame, area: ratatui::layout:
 }
 
 fn render_status_bar(model: &AppModel, frame: &mut Frame, area: ratatui::layout::Rect) {
-    let status_text = if model.mode == AppMode::Search {
-        search_status_text(model.filtered_rows.len(), model.commit_rows.len())
-    } else {
-        let total = model.filtered_rows.len();
-        let cursor_one_based = if total == 0 { 0 } else { model.cursor + 1 };
-        format_status_text(cursor_one_based, total)
+    let status_text = match model.mode {
+        AppMode::Search => search_status_text(model.filtered_rows.len(), model.commit_rows.len()),
+        AppMode::Detail => "Esc to return".to_string(),
+        _ => {
+            let total = model.filtered_rows.len();
+            let cursor_one_based = if total == 0 { 0 } else { model.cursor + 1 };
+            format_status_text(cursor_one_based, total)
+        }
     };
     frame.render_widget(Paragraph::new(status_text), area);
 }
