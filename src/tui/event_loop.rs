@@ -1,38 +1,83 @@
-// SCAFFOLD: true
-// Bootstrapped by DISTILL wave 2026-05-18.
+// SCAFFOLD: false — implemented in DELIVER wave step 01-05.
+
+use std::io::Stdout;
 
 use anyhow::Result;
+use crossterm::event::Event;
 
+use crate::domain::events::AppEvent;
 use crate::domain::model::AppModel;
 
 /// The TUI event loop struct. Owns the terminal and drives the Elm update→view cycle.
 ///
 /// On creation: enters raw mode and alt screen via crossterm.
 /// On drop (or explicit `restore()`): exits raw mode and alt screen, restoring the terminal.
-/// SIGINT (Ctrl+C) is handled via a registered handler that calls restore() before exit.
-pub struct TuiEventLoop;
+pub struct TuiEventLoop {
+    terminal: ratatui::Terminal<ratatui::backend::CrosstermBackend<Stdout>>,
+    restored: bool,
+}
 
 impl TuiEventLoop {
-    // SCAFFOLD: true
+    /// Create a new TuiEventLoop, entering raw mode and the alternate screen.
     pub fn new() -> Result<Self> {
-        panic!("Not yet implemented -- RED scaffold")
+        crossterm::terminal::enable_raw_mode()?;
+        crossterm::execute!(std::io::stdout(), crossterm::terminal::EnterAlternateScreen)?;
+        let backend = ratatui::backend::CrosstermBackend::new(std::io::stdout());
+        let terminal = ratatui::Terminal::new(backend)?;
+        Ok(Self {
+            terminal,
+            restored: false,
+        })
     }
 
-    // SCAFFOLD: true
-    pub fn run(&mut self, _initial_model: AppModel) -> Result<()> {
-        panic!("Not yet implemented -- RED scaffold")
+    /// Drive the Elm update→view cycle until `model.quit` is true.
+    ///
+    /// Polls for crossterm events every 250ms. On each event, translates to an
+    /// AppEvent, calls `update()`, and re-renders via `view()`. On timeout, sends
+    /// a Tick event to allow spinner animation or deferred state refresh.
+    pub fn run(&mut self, initial_model: AppModel) -> Result<()> {
+        let mut model = initial_model;
+        loop {
+            self.terminal
+                .draw(|frame| crate::tui::view::view(&model, frame))?;
+            if crossterm::event::poll(std::time::Duration::from_millis(250))? {
+                let evt = crossterm::event::read()?;
+                let app_event = translate_event(evt);
+                model = crate::domain::update::update(model, app_event);
+                if model.quit {
+                    break;
+                }
+            } else {
+                model = crate::domain::update::update(model, crate::domain::events::AppEvent::Tick);
+            }
+        }
+        Ok(())
     }
 
-    // SCAFFOLD: true
+    /// Exit raw mode and the alternate screen, restoring the original terminal state.
+    ///
+    /// Safe to call multiple times — subsequent calls after the first are no-ops.
     pub fn restore(&mut self) -> Result<()> {
-        panic!("Not yet implemented -- RED scaffold")
+        if !self.restored {
+            crossterm::terminal::disable_raw_mode()?;
+            crossterm::execute!(std::io::stdout(), crossterm::terminal::LeaveAlternateScreen)?;
+            self.restored = true;
+        }
+        Ok(())
     }
 }
 
 impl Drop for TuiEventLoop {
+    /// Ensure terminal is always restored, even on panic.
     fn drop(&mut self) {
-        // Ensure terminal is always restored, even on panic.
-        // Real implementation calls crossterm::execute! to exit alt screen and raw mode.
-        // SCAFFOLD: no-op drop — real implementation required.
+        let _ = self.restore();
+    }
+}
+
+/// Translate a raw crossterm Event into an AppEvent for domain dispatch.
+fn translate_event(evt: Event) -> AppEvent {
+    match evt {
+        Event::Key(key_event) => AppEvent::KeyPress(key_event),
+        _ => AppEvent::Tick,
     }
 }

@@ -12,3 +12,4 @@ pub mod adapters;
 pub mod domain;
 pub mod parser;
 pub mod ports;
+pub mod tui;
