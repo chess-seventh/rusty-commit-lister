@@ -42,10 +42,15 @@ impl TuiEventLoop {
     /// in Browse mode), `reload_fn` is called synchronously to fetch fresh commit
     /// records, and a `LoadComplete` event is immediately dispatched before the
     /// next draw — completing the re-scan within the same iteration.
+    ///
+    /// When `model.clipboard_pending` is `Some(url)` after an update, `clipboard_fn`
+    /// is called with the URL string and a `ClipboardResult` event is dispatched
+    /// with the outcome. The domain `update()` then clears `clipboard_pending`.
     pub fn run(
         &mut self,
         initial_model: AppModel,
         mut reload_fn: impl FnMut() -> Vec<CommitRecord>,
+        mut clipboard_fn: impl FnMut(&str) -> std::result::Result<(), String>,
     ) -> Result<()> {
         let mut model = initial_model;
         loop {
@@ -60,6 +65,13 @@ impl TuiEventLoop {
                     model = crate::domain::update::update(
                         model,
                         AppEvent::LoadComplete(records),
+                    );
+                }
+                if let Some(ref url) = model.clipboard_pending.clone() {
+                    let result = clipboard_fn(url);
+                    model = crate::domain::update::update(
+                        model,
+                        AppEvent::ClipboardResult(result),
                     );
                 }
                 if model.quit {

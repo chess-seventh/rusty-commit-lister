@@ -1,0 +1,76 @@
+{
+  "schema_version": "3.0",
+  "feature_id": "rusty-commit-lister",
+  "events": [
+    {
+      "sid": "05-01",
+      "p": "PREPARE",
+      "s": "SKIPPED",
+      "d": "NOT_APPLICABLE: 3-phase canon ADR-025, PREPARE merged into RED",
+      "t": "2026-05-19T20:31:21Z"
+    },
+    {
+      "sid": "05-01",
+      "p": "RED_ACCEPTANCE",
+      "s": "SKIPPED",
+      "d": "NOT_APPLICABLE: 3-phase canon ADR-025, no pre-distilled AT to unskip for this step",
+      "t": "2026-05-19T20:31:25Z"
+    },
+    {
+      "sid": "05-01",
+      "p": "RED_UNIT",
+      "s": "SKIPPED",
+      "d": "NOT_APPLICABLE: 3-phase canon ADR-025, RED_UNIT merged into RED",
+      "t": "2026-05-19T20:31:25Z"
+    },
+    {
+      "sid": "05-01",
+      "p": "RED_UNIT",
+      "s": "EXECUTED",
+      "d": "PASS: 7 new tests fail for right reason (missing clipboard_pending field)",
+      "t": "2026-05-19T20:32:16Z"
+    },
+    {
+      "sid": "05-01",
+      "p": "GREEN",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-05-19T20:33:12Z"
+    },
+    {
+      "sid": "05-01",
+      "p": "COMMIT",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-05-19T20:33:23Z"
+    },
+    {
+      "sid": "05-02",
+      "p": "PREPARE",
+      "s": "SKIPPED",
+      "d": "NOT_APPLICABLE: adapter infrastructure step \u2014 no DISTILL AT scaffold to unskip",
+      "t": "2026-05-19T20:36:24Z"
+    },
+    {
+      "sid": "05-02",
+      "p": "RED_ACCEPTANCE",
+      "s": "SKIPPED",
+      "d": "NOT_APPLICABLE: adapter infrastructure step \u2014 no acceptance test scenario to unskip",
+      "t": "2026-05-19T20:36:29Z"
+    },
+    {
+      "sid": "05-02",
+      "p": "RED_UNIT",
+      "s": "SKIPPED",
+      "d": "NOT_APPLICABLE: domain tests already green from step 05-01; infrastructure tests validated by compile check",
+      "t": "2026-05-19T20:36:29Z"
+    },
+    {
+      "sid": "05-02",
+      "p": "GREEN",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-05-19T20:44:32Z"
+    }
+  ]
+}

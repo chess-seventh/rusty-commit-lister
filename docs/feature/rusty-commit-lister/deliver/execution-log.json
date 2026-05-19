@@ -491,6 +491,41 @@
       "s": "EXECUTED",
       "d": "PASS: commit 51eee7c \u2014 feat(tui): render commit detail overlay in Detail mode",
       "t": "2026-05-19T18:21:56Z"
+    },
+    {
+      "sid": "05-01",
+      "p": "PREPARE",
+      "s": "SKIPPED",
+      "d": "NOT_APPLICABLE: 3-phase ADR-025 canon",
+      "t": "2026-05-19T20:33:52Z"
+    },
+    {
+      "sid": "05-01",
+      "p": "RED_ACCEPTANCE",
+      "s": "SKIPPED",
+      "d": "NOT_APPLICABLE: no pre-authored acceptance test scaffold for step 05-01; unit tests drive RED directly",
+      "t": "2026-05-19T20:33:55Z"
+    },
+    {
+      "sid": "05-01",
+      "p": "RED_UNIT",
+      "s": "EXECUTED",
+      "d": "PASS: 7 new tests fail for right reason \u2014 E0609 no field clipboard_pending on AppModel (5 update tests + 2 view tests)",
+      "t": "2026-05-19T20:33:59Z"
+    },
+    {
+      "sid": "05-01",
+      "p": "GREEN",
+      "s": "EXECUTED",
+      "d": "PASS: 42 tests pass (31 update + 11 view); clipboard_pending field added to AppModel, handle_detail_key c-key arm implemented, ClipboardResult arms clear clipboard_pending, render_detail_overlay shows status_message, status bar updated to 'c copy | Esc return'",
+      "t": "2026-05-19T20:34:05Z"
+    },
+    {
+      "sid": "05-01",
+      "p": "COMMIT",
+      "s": "EXECUTED",
+      "d": "PASS: commit 45dd490 \u2014 feat(domain): clipboard_pending field and c key handler in Detail mode. 5 files changed, 238 insertions(+), 7 deletions(-)",
+      "t": "2026-05-19T20:34:08Z"
     }
   ]
 }

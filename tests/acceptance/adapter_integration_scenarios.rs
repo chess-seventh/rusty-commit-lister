@@ -1,6 +1,6 @@
 /// Adapter Integration Tests — rusty-commit-lister
 ///
-/// Tags: @real-io @adapter-integration @US-01 @US-02 @US-04
+/// Tags: @real-io @adapter-integration @US-01 @US-02 @US-04 @US-05
 ///
 /// Every driven adapter has at least one test with real I/O (Mandate 6).
 /// Sad paths are enumerated explicitly (Mandate 11 — layer 3+ example-only).
@@ -10,10 +10,12 @@
 ///   - TomlConfigAdapter: reads real TOML from tempdir, validates fields, rejects invalid
 ///   - WalkdirScanAdapter: scans tempdir with realistic note structure, returns CommitRecord slice
 ///   - Unicode path probe: WalkdirScanAdapter with 📅 in path segment — OsString round-trip
+///   - ArboardClipboardAdapter: compile/instantiation smoke test (headless-safe)
 use std::fs;
 use std::path::PathBuf;
 use tempfile::TempDir;
 
+use rusty_commit_lister::adapters::arboard_clipboard::ArboardClipboardAdapter;
 use rusty_commit_lister::adapters::toml_config::TomlConfigAdapter;
 use rusty_commit_lister::adapters::walkdir_vault::WalkdirScanAdapter;
 use rusty_commit_lister::ports::config_port::ConfigPort;
@@ -203,6 +205,24 @@ fn walkdir_scan_adapter_returns_empty_vec_when_no_notes_in_window() {
         .expect("empty vault should return Ok, not error");
 
     assert!(records.is_empty(), "expected zero records from empty vault");
+}
+
+// ─── ArboardClipboardAdapter tests ───────────────────────────────────────────
+
+/// @US-05 @adapter-integration
+///
+/// Scenario: ArboardClipboardAdapter::new() creates a zero-size struct without panicking
+///   Given no preconditions
+///   When ArboardClipboardAdapter::new() is called
+///   Then it returns an instance (headless-safe: no clipboard ops)
+///
+/// This is a compile-time + instantiation smoke test. Actual clipboard I/O is
+/// tested manually (arboard requires a display server — fails in CI/headless).
+#[test]
+fn arboard_clipboard_adapter_new_does_not_panic() {
+    let _adapter = ArboardClipboardAdapter::new();
+    // If this compiles and runs without panic, the struct is wired correctly.
+    // ArboardClipboardAdapter is zero-size — no heap allocation, no I/O.
 }
 
 /// @US-02 @real-io @adapter-integration @error

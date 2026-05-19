@@ -1,0 +1,65 @@
+{
+  "roadmap": {
+    "project_id": "rusty-commit-lister",
+    "slice": "05-clipboard-copy",
+    "created_at": "2026-05-19T00:00:00Z",
+    "total_steps": 2
+  },
+  "phases": [
+    {
+      "id": "05",
+      "name": "Slice-05 Clipboard Copy",
+      "steps": [
+        {
+          "id": "05-01",
+          "name": "Domain + View: c key triggers clipboard copy request; status_message shown in Detail overlay",
+          "criteria": [
+            "AppModel gains pub clipboard_pending: Option<String> field (None by default)",
+            "In handle_detail_key: KeyCode::Char('c') sets clipboard_pending = Some(url.clone()) when URL is Some and config.clipboard_available is true",
+            "In handle_detail_key: KeyCode::Char('c') when URL is None sets status_message = 'Copy not available — no URL'",
+            "In handle_detail_key: KeyCode::Char('c') when config.clipboard_available is false sets status_message = 'Copy not available — select text manually'",
+            "clipboard_pending is cleared (set to None) when AppEvent::ClipboardResult is processed",
+            "View: render_detail_overlay shows model.status_message below the 5 field lines when status_message is Some",
+            "Status bar in Detail mode shows 'c copy | Esc return' (updated from 'Esc to return')",
+            "unit tests: c_key_in_detail_mode_with_url_sets_clipboard_pending, c_key_in_detail_mode_without_url_sets_status_message, c_key_when_clipboard_unavailable_sets_status_message, clipboard_result_ok_clears_pending_and_sets_status, clipboard_result_err_sets_status_message"
+          ],
+          "test_file": "tests/unit/update_specifications.rs",
+          "scenario_name": "c_key_in_detail_mode_with_url_sets_clipboard_pending",
+          "files_to_modify": ["src/domain/model.rs", "src/domain/update.rs", "src/tui/view.rs"],
+          "implementation_notes": "Add clipboard_pending: Option<String> to AppModel (default None in AppModel::new). In handle_detail_key, match KeyCode::Char('c'): if model.filtered_rows is non-empty, get url from filtered_rows[cursor].url; if url is Some AND config.clipboard_available is true → set clipboard_pending = Some(url.to_string()); if url is None → status_message = Some('Copy not available — no URL'); if clipboard_available is false → status_message = Some('Copy not available — select text manually'). In update() ClipboardResult arm: set clipboard_pending = None (already sets status_message). In view.rs render_detail_overlay: after the 5 field lines, if model.status_message is Some, add an empty line then the status_message. Update status bar Detail arm from 'Esc to return' to 'c copy | Esc return'."
+        },
+        {
+          "id": "05-02",
+          "name": "Infrastructure: ArboardClipboardAdapter + event loop clipboard dispatch + main.rs wiring",
+          "criteria": [
+            "arboard = '3' added to Cargo.toml [dependencies]",
+            "src/adapters/arboard_clipboard.rs created implementing ClipboardPort + Probe",
+            "ArboardClipboardAdapter::new() takes no arguments; uses arboard::Clipboard internally",
+            "probe() writes sentinel 'rcl-probe-sentinel' and reads it back; returns Ok(()) on success, Err on failure",
+            "write(text) copies text to clipboard via arboard; returns ClipboardUnavailable error on failure",
+            "adapters/mod.rs exports arboard_clipboard module",
+            "event_loop.rs TuiEventLoop::run gains a clipboard_fn: impl FnMut(&str) -> Result<(), String> parameter",
+            "After each update() call, if model.clipboard_pending is Some(url), clipboard_fn is called with &url, result dispatched as ClipboardResult event, clipboard_pending consumed",
+            "main.rs wires ArboardClipboardAdapter: probe (non-fatal — sets config.clipboard_available), passes closure to tui.run",
+            "cargo build passes; cargo test passes"
+          ],
+          "test_file": "tests/unit/update_specifications.rs",
+          "scenario_name": "c_key_in_detail_mode_with_url_sets_clipboard_pending",
+          "files_to_modify": ["Cargo.toml", "src/adapters/arboard_clipboard.rs", "src/adapters/mod.rs", "src/tui/event_loop.rs", "src/main.rs"],
+          "implementation_notes": "1) Add arboard = '3' to [dependencies] in Cargo.toml. 2) Create src/adapters/arboard_clipboard.rs with ArboardClipboardAdapter struct. probe() uses arboard::Clipboard::new(), writes 'rcl-probe-sentinel', reads back; returns Err if any step fails. write(text) creates arboard::Clipboard::new() each call (arboard Clipboard is not Send/Sync), calls set_text(text), returns mapped error. 3) Add pub mod arboard_clipboard to src/adapters/mod.rs. 4) In event_loop.rs, change run signature to: pub fn run(&mut self, initial_model: AppModel, mut reload_fn: impl FnMut() -> Vec<CommitRecord>, mut clipboard_fn: impl FnMut(&str) -> Result<(), String>) -> Result<()>. After model = update(model, event): if let Some(url) = model.clipboard_pending.take() { ... } — but AppModel is not mutable in this way; instead: if model.clipboard_pending.is_some() { let url = model.clipboard_pending.clone().unwrap(); let result = clipboard_fn(&url); model = update(model, AppEvent::ClipboardResult(result.map_err(|e| e))); }. 5) In main.rs: after vault.probe(), add clipboard adapter probe. If probe fails, warn and set config.clipboard_available = false. Pass clipboard closure to tui.run. Note: arboard::Clipboard is !Send so it must be created inside the closure each call, OR held as a field but only accessed from main thread."
+        }
+      ]
+    }
+  ],
+  "implementation_scope": {
+    "source_directories": ["src/"],
+    "test_directories": ["tests/unit/"],
+    "excluded_patterns": ["target/**", "*.lock"]
+  },
+  "validation": {
+    "status": "approved",
+    "reviewer": "orchestrator-direct",
+    "approved_at": "2026-05-19T00:00:00Z",
+    "note": "2-step scope for slice-05. ClipboardPort + FakeClipboard already exist. Domain ClipboardResult handling already wired. Steps: domain c-key + view (05-01), then adapter + infrastructure wiring (05-02)."
+  }
+}
