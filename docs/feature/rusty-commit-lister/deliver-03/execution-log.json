@@ -1,0 +1,69 @@
+{
+  "schema_version": "3.0",
+  "feature_id": "rusty-commit-lister",
+  "events": [
+    {
+      "sid": "03-01",
+      "p": "PREPARE",
+      "s": "SKIPPED",
+      "d": "NOT_APPLICABLE: 3-phase canon ADR-025",
+      "t": "2026-05-19T17:45:32Z"
+    },
+    {
+      "sid": "03-01",
+      "p": "RED_ACCEPTANCE",
+      "s": "SKIPPED",
+      "d": "NOT_APPLICABLE: no acceptance test scaffold for step 03-01",
+      "t": "2026-05-19T17:45:37Z"
+    },
+    {
+      "sid": "03-01",
+      "p": "RED_UNIT",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-05-19T17:45:39Z"
+    },
+    {
+      "sid": "03-01",
+      "p": "GREEN",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-05-19T17:45:42Z"
+    },
+    {
+      "sid": "03-01",
+      "p": "COMMIT",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-05-19T17:45:45Z"
+    },
+    {
+      "sid": "03-02",
+      "p": "PREPARE",
+      "s": "SKIPPED",
+      "d": "NOT_APPLICABLE: 3-phase canon ADR-025",
+      "t": "2026-05-19T17:48:27Z"
+    },
+    {
+      "sid": "03-02",
+      "p": "RED_ACCEPTANCE",
+      "s": "SKIPPED",
+      "d": "NOT_APPLICABLE: no acceptance scaffold for step 03-02",
+      "t": "2026-05-19T17:48:30Z"
+    },
+    {
+      "sid": "03-02",
+      "p": "RED_UNIT",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-05-19T17:48:33Z"
+    },
+    {
+      "sid": "03-02",
+      "p": "GREEN",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-05-19T17:48:36Z"
+    }
+  ]
+}

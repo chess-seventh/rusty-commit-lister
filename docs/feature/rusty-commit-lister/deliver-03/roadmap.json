@@ -1,0 +1,57 @@
+{
+  "roadmap": {
+    "project_id": "rusty-commit-lister",
+    "slice": "03-search",
+    "created_at": "2026-05-19T00:00:00Z",
+    "total_steps": 2
+  },
+  "phases": [
+    {
+      "id": "03",
+      "name": "Slice-03 Full-Text Search",
+      "steps": [
+        {
+          "id": "03-01",
+          "name": "Domain: Enter key confirms search and returns to Browse",
+          "criteria": [
+            "Enter in Search mode transitions mode back to Browse",
+            "search_query is preserved after Enter (filtered view stays active)",
+            "filtered_rows remains as-is (not reset to full commit_rows)",
+            "cursor resets to 0 on Enter (start of filtered result set)",
+            "unit test: enter_in_search_mode_confirms_and_returns_to_browse"
+          ],
+          "test_file": "tests/unit/update_specifications.rs",
+          "scenario_name": "enter_in_search_mode_confirms_and_returns_to_browse",
+          "files_to_modify": ["src/domain/update.rs"],
+          "implementation_notes": "In handle_search_key, add arm: KeyCode::Enter => { model.mode = AppMode::Browse; model.cursor = 0; } — search_query and filtered_rows are intentionally NOT reset. Esc already handles the 'cancel search' path (clears query + restores all rows). Enter is 'confirm search' — user wants to browse the filtered results. Update proptest valid_events() to include KeyCode::Enter in Search-mode context (it already includes Enter generically; confirm it doesn't break the invariant). Write 1 example test: enter_in_search_mode_confirms_and_returns_to_browse."
+        },
+        {
+          "id": "03-02",
+          "name": "TUI: Search mode rendering — search bar and match-count status bar",
+          "criteria": [
+            "When model.mode == AppMode::Search, view() renders a search input line showing '/ <query>' at the bottom of the main area",
+            "In Search mode, status bar shows 'N of M commits | Esc cancel' where N = filtered_rows.len(), M = commit_rows.len()",
+            "In Browse mode after confirmed search (non-empty search_query), status bar shows 'Row N/M | q quit' as before (no change to existing Browse status bar)",
+            "In Search mode with empty query, status bar shows '0 of M commits | Esc cancel' — wait, actually 'M of M commits | Esc cancel'",
+            "cargo build passes; no existing tests regress"
+          ],
+          "test_file": "",
+          "scenario_name": "",
+          "files_to_modify": ["src/tui/view.rs"],
+          "implementation_notes": "In view.rs, split the layout into 3 chunks when in Search mode: table area (Min(0)), search bar (Length(1)), status bar (Length(1)). In Browse mode keep the existing 2-chunk layout. Search bar line: render a Paragraph showing format!('/ {}', model.search_query) with a cursor indicator. Status bar in Search mode: format!('{}  of {} commits | Esc cancel', model.filtered_rows.len(), model.commit_rows.len()). Status bar in Browse mode: existing format_status_text logic unchanged. Add a pure helper fn search_status_text(filtered: usize, total: usize) -> String. No acceptance test for this step — validated by cargo build + visual inspection."
+        }
+      ]
+    }
+  ],
+  "implementation_scope": {
+    "source_directories": ["src/"],
+    "test_directories": ["tests/unit/"],
+    "excluded_patterns": ["target/**", "*.lock"]
+  },
+  "validation": {
+    "status": "approved",
+    "reviewer": "orchestrator-direct",
+    "approved_at": "2026-05-19T00:00:00Z",
+    "note": "2-step scope for slice-03. Domain (slash/Esc/filter) already shipped in slice-01. Remaining: Enter confirmation behavior (03-01) and Search mode view rendering (03-02)."
+  }
+}

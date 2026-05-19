@@ -1,10 +1,10 @@
 use ratatui::Frame;
-use ratatui::layout::{Constraint, Layout};
+use ratatui::layout::{Constraint, Direction, Layout};
 use ratatui::style::{Style, Stylize};
 use ratatui::text::Text;
 use ratatui::widgets::{Block, Borders, Cell, Paragraph, Row, Table, TableState};
 
-use crate::domain::model::AppModel;
+use crate::domain::model::{AppModel, AppMode};
 
 /// Truncates a string to at most `max_chars` Unicode scalar values.
 ///
@@ -41,20 +41,51 @@ fn format_status_text(cursor_one_based: usize, total: usize) -> String {
     }
 }
 
+/// Formats the search mode status bar text showing filtered vs total commit count.
+///
+/// Returns `"{filtered} of {total} commits | Esc cancel"`.
+///
+/// Pure function — no I/O, no mutation.
+fn search_status_text(filtered: usize, total: usize) -> String {
+    format!("{} of {} commits | Esc cancel", filtered, total)
+}
+
 /// Pure render function — Elm/MVU View.
 ///
 /// Takes a reference to the current AppModel and a mutable Frame reference.
 /// Does NOT mutate model state.
 /// Renders the appropriate widget tree for the current AppMode.
+///
+/// Layout: 2 vertical chunks in Browse/Detail/RepoPicker mode (table area + status bar).
+/// In Search mode: 3 vertical chunks (table area + search bar + status bar).
 pub fn view(model: &AppModel, frame: &mut Frame) {
-    let vertical_chunks =
-        Layout::vertical([Constraint::Min(0), Constraint::Length(1)]).split(frame.size());
+    if model.mode == AppMode::Search {
+        let vertical_chunks = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Min(0),
+                Constraint::Length(1),
+                Constraint::Length(1),
+            ])
+            .split(frame.size());
 
-    let main_area = vertical_chunks[0];
-    let status_area = vertical_chunks[1];
+        let main_area = vertical_chunks[0];
+        let search_bar_area = vertical_chunks[1];
+        let status_area = vertical_chunks[2];
 
-    render_main_area(model, frame, main_area);
-    render_status_bar(model, frame, status_area);
+        render_main_area(model, frame, main_area);
+        render_search_bar(model, frame, search_bar_area);
+        render_status_bar(model, frame, status_area);
+    } else {
+        let vertical_chunks =
+            Layout::vertical([Constraint::Min(0), Constraint::Length(1)]).split(frame.size());
+
+        let main_area = vertical_chunks[0];
+        let status_area = vertical_chunks[1];
+
+        render_main_area(model, frame, main_area);
+        render_status_bar(model, frame, status_area);
+    }
 }
 
 fn render_main_area(model: &AppModel, frame: &mut Frame, area: ratatui::layout::Rect) {
@@ -115,16 +146,29 @@ fn render_commit_table(model: &AppModel, frame: &mut Frame, area: ratatui::layou
     frame.render_stateful_widget(table, area, &mut table_state);
 }
 
+/// Renders the search input line showing the current search query with a cursor indicator.
+///
+/// Displays `"/ <query>_"` where the trailing underscore acts as a cursor indicator.
+/// Pure render — reads model, writes frame, no mutation.
+fn render_search_bar(model: &AppModel, frame: &mut Frame, area: ratatui::layout::Rect) {
+    let search_text = format!("/ {}_", model.search_query);
+    frame.render_widget(Paragraph::new(search_text), area);
+}
+
 fn render_status_bar(model: &AppModel, frame: &mut Frame, area: ratatui::layout::Rect) {
-    let total = model.filtered_rows.len();
-    let cursor_one_based = if total == 0 { 0 } else { model.cursor + 1 };
-    let status_text = format_status_text(cursor_one_based, total);
+    let status_text = if model.mode == AppMode::Search {
+        search_status_text(model.filtered_rows.len(), model.commit_rows.len())
+    } else {
+        let total = model.filtered_rows.len();
+        let cursor_one_based = if total == 0 { 0 } else { model.cursor + 1 };
+        format_status_text(cursor_one_based, total)
+    };
     frame.render_widget(Paragraph::new(status_text), area);
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{format_status_text, truncate};
+    use super::{format_status_text, search_status_text, truncate};
 
     /// Scenario: string shorter than max_chars is returned unchanged
     ///   Given s = "hello" and max_chars = 10
@@ -188,6 +232,30 @@ mod tests {
     fn status_text_shows_one_based_row_and_total() {
         let text = format_status_text(1, 5);
         assert_eq!(text, "Row 1/5 | q quit");
+    }
+
+    /// Scenario: search status bar shows "N of M commits | Esc cancel" with partial match
+    ///   Given filtered = 3, total = 10
+    ///   Then search_status_text returns "3 of 10 commits | Esc cancel"
+    #[test]
+    fn search_status_text_shows_filtered_count_of_total() {
+        assert_eq!(search_status_text(3, 10), "3 of 10 commits | Esc cancel");
+    }
+
+    /// Scenario: search status bar shows "0 of M commits | Esc cancel" when no match
+    ///   Given filtered = 0, total = 10
+    ///   Then search_status_text returns "0 of 10 commits | Esc cancel"
+    #[test]
+    fn search_status_text_shows_zero_when_no_match() {
+        assert_eq!(search_status_text(0, 10), "0 of 10 commits | Esc cancel");
+    }
+
+    /// Scenario: search status bar shows "M of M commits | Esc cancel" when all match
+    ///   Given filtered = 10, total = 10
+    ///   Then search_status_text returns "10 of 10 commits | Esc cancel"
+    #[test]
+    fn search_status_text_shows_full_count_when_all_match() {
+        assert_eq!(search_status_text(10, 10), "10 of 10 commits | Esc cancel");
     }
 
 }
