@@ -377,3 +377,19 @@ function does not change — only the adapter wiring changes.
 - Development paradigm: **Functional Programming** — direct `/nw-develop` to use `@nw-functional-software-crafter`.
 - No external integrations requiring contract tests (rusty-commit-saver communicates only via filesystem; no API boundary).
 - Probe gold tests must run in CI before acceptance tests.
+
+---
+
+### Component Inventory — Slice-01 Status (2026-05-19)
+
+| Component | File | Status |
+|---|---|---|
+| `parse_note()` | `src/parser/mod.rs` | **SHIPPED** — slice-01 |
+| `AppModel` / `update()` | `src/domain/model.rs`, `src/domain/update.rs` | **SHIPPED** — slice-01 |
+| `ConfigPort` / `TomlConfigAdapter` | `src/ports/config_port.rs`, `src/adapters/toml_config.rs` | **SHIPPED** — slice-01 |
+| `VaultScanPort` / `WalkdirScanAdapter` | `src/ports/vault_port.rs`, `src/adapters/walkdir_vault.rs` | **SHIPPED** — slice-01 |
+| `view()` / `TuiEventLoop` | `src/tui/view.rs`, `src/tui/event_loop.rs` | **SHIPPED** — slice-01 |
+| Composition root | `src/main.rs` | **SHIPPED** — slice-01 |
+| `ClipboardPort` / `ArboardClipboardAdapter` | `src/ports/clipboard_port.rs`, `src/adapters/arboard_clipboard.rs` | **DEFERRED** — slice-02 |
+| Detail view (US-06) | `src/tui/view.rs` | **DEFERRED** — slice-02 |
+| RepoPicker filter (US-07) | `src/tui/view.rs`, `src/domain/update.rs` | **DEFERRED** — slice-02 |
