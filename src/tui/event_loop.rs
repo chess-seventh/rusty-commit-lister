@@ -5,7 +5,7 @@ use anyhow::Result;
 use crossterm::event::Event;
 
 use crate::domain::events::AppEvent;
-use crate::domain::model::AppModel;
+use crate::domain::model::{AppModel, CommitRecord};
 
 /// Event poll interval — balances responsiveness with CPU usage.
 const POLL_INTERVAL: Duration = Duration::from_millis(250);
@@ -37,7 +37,16 @@ impl TuiEventLoop {
     /// Polls for crossterm events every 250ms. On each event, translates to an
     /// AppEvent, calls `update()`, and re-renders via `view()`. On timeout, sends
     /// a Tick event to allow spinner animation or deferred state refresh.
-    pub fn run(&mut self, initial_model: AppModel) -> Result<()> {
+    ///
+    /// When `model.loading` becomes true after an update (e.g. from pressing `r`
+    /// in Browse mode), `reload_fn` is called synchronously to fetch fresh commit
+    /// records, and a `LoadComplete` event is immediately dispatched before the
+    /// next draw — completing the re-scan within the same iteration.
+    pub fn run(
+        &mut self,
+        initial_model: AppModel,
+        mut reload_fn: impl FnMut() -> Vec<CommitRecord>,
+    ) -> Result<()> {
         let mut model = initial_model;
         loop {
             self.terminal
@@ -46,6 +55,13 @@ impl TuiEventLoop {
                 let evt = crossterm::event::read()?;
                 let app_event = translate_event(evt);
                 model = crate::domain::update::update(model, app_event);
+                if model.loading {
+                    let records = reload_fn();
+                    model = crate::domain::update::update(
+                        model,
+                        AppEvent::LoadComplete(records),
+                    );
+                }
                 if model.quit {
                     break;
                 }

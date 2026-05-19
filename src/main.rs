@@ -81,6 +81,7 @@ fn main() -> Result<()> {
     });
 
     // 5. Build model
+    let scan_days_back = config.scan_days_back;
     let initial_model = rusty_commit_lister::domain::model::AppModel::new(config);
     let model = rusty_commit_lister::domain::update::update(
         initial_model,
@@ -90,7 +91,14 @@ fn main() -> Result<()> {
     // 6. TTY detection and run
     if std::io::stdout().is_terminal() {
         let mut tui = rusty_commit_lister::tui::event_loop::TuiEventLoop::new()?;
-        tui.run(model)?;
+        tui.run(model, move || {
+            vault
+                .scan(scan_days_back)
+                .unwrap_or_else(|e| {
+                    tracing::warn!(%e, "reload failed");
+                    vec![]
+                })
+        })?;
     } else {
         println!("Found {} commits:", model.commit_rows.len());
         for r in &model.commit_rows {
