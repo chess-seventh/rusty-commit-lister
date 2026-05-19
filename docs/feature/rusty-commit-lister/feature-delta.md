@@ -842,3 +842,54 @@ Remaining 12 missed mutants are structurally untestable at unit level without a 
 - `view.rs`: view/render_* function bodies, render_status_bar arithmetic — TUI render requires terminal buffer
 
 These gaps are logged for future slice consideration (terminal mock or ratatui TestBackend integration).
+
+---
+
+## Wave: DELIVER / [REF] Implementation Summary — Slice-03 (Full-Text Search)
+
+Slice-03 completes the inline search experience: pressing Enter in Search mode now confirms
+the query and returns to Browse with the filtered view active (search_query preserved,
+cursor reset to 0). The view layer gained a three-chunk layout in Search mode — commit table
++ a "/ query_" search bar line + a match-count status bar showing "N of M commits | Esc cancel".
+Browse/Detail/RepoPicker modes are layout-unchanged.
+
+## Wave: DELIVER / [REF] Files Modified — Slice-03
+
+| File | Change |
+|---|---|
+| `src/domain/update.rs` | Added `KeyCode::Enter` arm to `handle_search_key` (confirms search, resets cursor) |
+| `src/tui/view.rs` | Added `search_status_text()` helper; added `render_search_bar()`; split layout to 3 chunks in Search mode; `render_status_bar()` dispatches on mode |
+| `tests/unit/update_specifications.rs` | Added `enter_in_search_mode_confirms_and_returns_to_browse` test |
+
+## Wave: DELIVER / [REF] Scenarios Green — Slice-03
+
+52 of 52 active tests pass (26 unit + 12 view + 7 adapter + 6 parser + 1 acceptance).
+Walking skeleton `tool_loads_commits_from_vault_and_exits_successfully` green.
+
+## Wave: DELIVER / [REF] DoD Check — Slice-03
+
+| DoD Item | Status |
+|---|---|
+| All active tests green | PASS — 52/52 pass |
+| Walking skeleton green | PASS — exits 0 |
+| No `panic!` in production | PASS |
+| `#![forbid(unsafe_code)]` enforced | PASS |
+| Domain layer has zero adapter/TUI imports | PASS |
+| L1-L6 RPP refactor complete | PASS — no refactoring needed; code shipped clean |
+| Mutation kill rate ≥ 80% | PASS — 83.9% (52/62 viable mutants caught) |
+| DES integrity verification passes | PASS — all 2 steps have complete traces |
+
+## Wave: DELIVER / [REF] Quality Gates — Slice-03
+
+| Phase | Outcome |
+|---|---|
+| Phase 2 — All Steps | PASS — commits `1664662`, `20b46f8` |
+| Phase 3 — L1-L6 Refactor | PASS — code shipped clean; no separate refactor commit needed |
+| Phase 5 — Mutation Testing | PASS — 83.9% kill rate (cargo-mutants 26.0.0) |
+| Phase 6 — DES Integrity | PASS — `des-verify-integrity` exit 0, 2/2 steps |
+
+## Wave: DELIVER / [REF] Mutation Gaps Logged — Slice-03
+
+Remaining 10 missed mutants are all in view.rs TUI render infrastructure (same category as slice-02):
+replace-with-() on render functions and `== / !=` arithmetic in render_status_bar.
+These require ratatui TestBackend integration to reach — deferred to slice-04 or later.

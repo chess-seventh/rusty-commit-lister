@@ -36,3 +36,21 @@
 - The PageDown `row_count > 0` guard was an equivalent mutant for empty-cursor-0 case; added `page_down_with_empty_filtered_rows_preserves_cursor` to discriminate cursor>0 case.
 
 **Deferred to slice-03**: ClipboardPort/ArboardClipboardAdapter (US-08), Detail view (US-06), RepoPicker filter logic (US-07), ratatui TestBackend integration for TUI render tests.
+
+## Slice-03: Full-Text Search (2026-05-19)
+
+**Shipped**: Enter key in Search mode confirms query and returns to Browse (filtered view preserved, cursor=0). Search mode renders a 3-chunk layout: table + "/ query_" search bar + "N of M commits | Esc cancel" status bar.
+
+**Steps**: 2 TDD steps (03-01, 03-02), all COMMIT/PASS.
+
+**Key decisions made during DELIVER**:
+- Enter = confirm (preserve filter, return to Browse); Esc = cancel (clear filter, restore all). Symmetric semantics: no ambiguity.
+- Cursor resets to 0 on Enter — user is navigating a new result set, prior position is irrelevant.
+- 3-chunk layout only activates in Search mode — Browse/Detail/RepoPicker keep the 2-chunk layout. No layout thrash on mode transitions.
+- "/ query_" with trailing underscore as cursor indicator — no block cursor positioning needed; simple and clear.
+- search_status_text() and format_status_text() are separate pure helpers — one for search context, one for browse context. No conditional formatting inside a single function.
+
+**Mutation gaps logged**:
+- view.rs render functions still untestable without terminal mock (same as slice-02). Deferred.
+
+**Deferred to slice-04**: Commit Detail Panel (US-07) — Enter in Browse opens detail overlay; full message/path/URL display; Esc returns to Browse with cursor preserved.
