@@ -40,9 +40,11 @@ pub fn update(mut model: AppModel, event: AppEvent) -> AppModel {
             model.loading = false;
         }
         AppEvent::ClipboardResult(Ok(())) => {
+            model.clipboard_pending = None;
             model.status_message = Some("URL copied to clipboard".to_string());
         }
         AppEvent::ClipboardResult(Err(msg)) => {
+            model.clipboard_pending = None;
             model.status_message = Some(msg);
         }
         AppEvent::Tick => {}
@@ -164,8 +166,28 @@ fn handle_search_key(mut model: AppModel, key: KeyEvent) -> AppModel {
 }
 
 fn handle_detail_key(mut model: AppModel, key: KeyEvent) -> AppModel {
-    if key.code == KeyCode::Esc {
-        model.mode = AppMode::Browse;
+    match key.code {
+        KeyCode::Esc => {
+            model.mode = AppMode::Browse;
+        }
+        KeyCode::Char('c') => {
+            if !model.filtered_rows.is_empty() {
+                let url = model.filtered_rows[model.cursor].url.clone();
+                if let Some(url_str) = url {
+                    if model.config.clipboard_available {
+                        model.clipboard_pending = Some(url_str);
+                    } else {
+                        model.status_message = Some(
+                            "Copy not available — select text manually".to_string(),
+                        );
+                    }
+                } else {
+                    model.status_message =
+                        Some("Copy not available — no URL".to_string());
+                }
+            }
+        }
+        _ => {}
     }
     model
 }

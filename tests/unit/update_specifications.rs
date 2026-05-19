@@ -705,6 +705,168 @@ fn active_repo_filter_excludes_non_matching_commits() {
     );
 }
 
+// ─── Clipboard: c key in Detail mode ─────────────────────────────────────────
+
+/// @US-05 @in-memory
+///
+/// Scenario: c key in Detail mode with URL sets clipboard_pending
+///   Given Detail mode with clipboard_available=true and a row with URL
+///   When c is pressed
+///   Then clipboard_pending = Some(url)
+///   And status_message is unchanged (None)
+#[test]
+fn c_key_in_detail_mode_with_url_sets_clipboard_pending() {
+    let mut config = AppConfig::default();
+    config.clipboard_available = true;
+    let commits = vec![CommitRecord {
+        folder: "/projects/repo".to_string(),
+        time: "10:00".to_string(),
+        message: "feat: clipboard test".to_string(),
+        url: Some("https://github.com/franci/test".to_string()),
+        date: "2026-05-19".to_string(),
+    }];
+    let model = update(AppModel::new(config), AppEvent::LoadComplete(commits));
+    let in_detail = update(model, key_event(KeyCode::Enter));
+    assert_eq!(in_detail.mode, AppMode::Detail, "precondition: Detail mode");
+
+    let after = update(in_detail, key_event(KeyCode::Char('c')));
+
+    assert_eq!(
+        after.clipboard_pending,
+        Some("https://github.com/franci/test".to_string()),
+        "clipboard_pending must be set to the URL when c is pressed with a URL"
+    );
+    assert!(
+        after.status_message.is_none(),
+        "status_message must remain None when clipboard_pending is set"
+    );
+}
+
+/// @US-05 @in-memory
+///
+/// Scenario: c key in Detail mode without URL sets status_message
+///   Given Detail mode with clipboard_available=true and a row with url=None
+///   When c is pressed
+///   Then status_message contains "no URL"
+///   And clipboard_pending remains None
+#[test]
+fn c_key_in_detail_mode_without_url_sets_status_message() {
+    let mut config = AppConfig::default();
+    config.clipboard_available = true;
+    let commits = vec![CommitRecord {
+        folder: "/projects/repo".to_string(),
+        time: "10:00".to_string(),
+        message: "fix: no url commit".to_string(),
+        url: None,
+        date: "2026-05-19".to_string(),
+    }];
+    let model = update(AppModel::new(config), AppEvent::LoadComplete(commits));
+    let in_detail = update(model, key_event(KeyCode::Enter));
+    assert_eq!(in_detail.mode, AppMode::Detail, "precondition: Detail mode");
+
+    let after = update(in_detail, key_event(KeyCode::Char('c')));
+
+    assert!(
+        after.status_message.as_deref().unwrap_or("").contains("no URL"),
+        "status_message must contain 'no URL' when row has no URL; got: {:?}",
+        after.status_message
+    );
+    assert!(
+        after.clipboard_pending.is_none(),
+        "clipboard_pending must remain None when no URL"
+    );
+}
+
+/// @US-05 @in-memory
+///
+/// Scenario: c key in Detail mode when clipboard unavailable sets status_message
+///   Given Detail mode with clipboard_available=false and a row with URL
+///   When c is pressed
+///   Then status_message contains "select text manually"
+///   And clipboard_pending remains None
+#[test]
+fn c_key_when_clipboard_unavailable_sets_status_message() {
+    let config = AppConfig::default(); // clipboard_available = false by default
+    let commits = vec![CommitRecord {
+        folder: "/projects/repo".to_string(),
+        time: "10:00".to_string(),
+        message: "feat: clipboard unavailable".to_string(),
+        url: Some("https://github.com/franci/test".to_string()),
+        date: "2026-05-19".to_string(),
+    }];
+    let model = update(AppModel::new(config), AppEvent::LoadComplete(commits));
+    let in_detail = update(model, key_event(KeyCode::Enter));
+    assert_eq!(in_detail.mode, AppMode::Detail, "precondition: Detail mode");
+    assert!(
+        !in_detail.config.clipboard_available,
+        "precondition: clipboard not available"
+    );
+
+    let after = update(in_detail, key_event(KeyCode::Char('c')));
+
+    assert!(
+        after.status_message.as_deref().unwrap_or("").contains("select text manually"),
+        "status_message must contain 'select text manually' when clipboard unavailable; got: {:?}",
+        after.status_message
+    );
+    assert!(
+        after.clipboard_pending.is_none(),
+        "clipboard_pending must remain None when clipboard unavailable"
+    );
+}
+
+/// @US-05 @in-memory
+///
+/// Scenario: ClipboardResult(Ok) clears clipboard_pending and sets confirmation status
+///   Given a model with clipboard_pending = Some("url")
+///   When ClipboardResult(Ok(())) is dispatched
+///   Then clipboard_pending is None
+///   And status_message = "URL copied to clipboard"
+#[test]
+fn clipboard_result_ok_clears_pending_and_sets_status() {
+    let config = AppConfig::default();
+    let mut model = AppModel::new(config);
+    model.clipboard_pending = Some("https://github.com/franci/test".to_string());
+
+    let after = update(model, AppEvent::ClipboardResult(Ok(())));
+
+    assert!(
+        after.clipboard_pending.is_none(),
+        "clipboard_pending must be None after ClipboardResult(Ok)"
+    );
+    assert_eq!(
+        after.status_message.as_deref(),
+        Some("URL copied to clipboard"),
+        "status_message must be 'URL copied to clipboard' after Ok result"
+    );
+}
+
+/// @US-05 @in-memory
+///
+/// Scenario: ClipboardResult(Err) clears clipboard_pending and sets error status
+///   Given a model with clipboard_pending = Some("url")
+///   When ClipboardResult(Err("failed")) is dispatched
+///   Then clipboard_pending is None
+///   And status_message = "failed"
+#[test]
+fn clipboard_result_err_sets_status_message() {
+    let config = AppConfig::default();
+    let mut model = AppModel::new(config);
+    model.clipboard_pending = Some("https://github.com/franci/test".to_string());
+
+    let after = update(model, AppEvent::ClipboardResult(Err("failed".to_string())));
+
+    assert!(
+        after.clipboard_pending.is_none(),
+        "clipboard_pending must be None after ClipboardResult(Err)"
+    );
+    assert_eq!(
+        after.status_message.as_deref(),
+        Some("failed"),
+        "status_message must contain the error message after Err result"
+    );
+}
+
 // ─── State machine PBT invariant (proptest — layer 1) ─────────────────────────
 
 #[cfg(test)]

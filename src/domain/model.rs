@@ -87,6 +87,9 @@ pub struct AppModel {
     pub error_message: Option<String>,
     /// Confirmation message to display briefly in the status bar.
     pub status_message: Option<String>,
+    /// URL pending clipboard write — set by 'c' in Detail mode, cleared by ClipboardResult.
+    /// The event loop picks this up to fire the actual clipboard write effect.
+    pub clipboard_pending: Option<String>,
     /// Whether the application should exit after the next event loop tick.
     pub quit: bool,
     /// Number of rows to scroll per PageDown / PageUp key press.
@@ -107,6 +110,7 @@ impl AppModel {
             loading: true,
             error_message: None,
             status_message: None,
+            clipboard_pending: None,
             quit: false,
             page_size: 10,
         }

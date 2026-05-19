@@ -178,14 +178,14 @@ fn view_renders_detail_fields() {
     assert!(out.contains("https://github.com/foo/bar"), "URL must appear in detail view");
 }
 
-/// Scenario: Status bar shows "Esc to return" in Detail mode
+/// Scenario: Status bar shows "c copy | Esc return" in Detail mode
 #[test]
 fn view_shows_esc_to_return_in_detail_mode() {
     let rows = render_to_rows(&make_detail_model());
     let last_row = rows.last().unwrap();
     assert!(
-        last_row.contains("Esc to return"),
-        "last row must show 'Esc to return' in Detail mode; got: {:?}",
+        last_row.contains("Esc return"),
+        "last row must show 'Esc return' in Detail mode; got: {:?}",
         last_row
     );
 }
@@ -235,6 +235,45 @@ fn view_shows_match_count_in_search_mode() {
     assert!(
         last_row.contains("commits | Esc cancel"),
         "Search mode status must contain 'commits | Esc cancel'; got: {:?}",
+        last_row
+    );
+}
+
+// ─── Render: Detail mode — clipboard / status_message ─────────────────────────
+
+/// Scenario: Detail mode renders status_message when Some
+///   Given Detail mode with status_message = Some("URL copied to clipboard")
+///   When the view is rendered
+///   Then the output contains "URL copied to clipboard"
+#[test]
+fn view_shows_status_message_in_detail_overlay() {
+    let mut model = make_detail_model();
+    model.status_message = Some("URL copied to clipboard".to_string());
+
+    let rows = render_to_rows(&model);
+    let out = joined(&rows);
+
+    assert!(
+        out.contains("URL copied to clipboard"),
+        "Detail overlay must show status_message when Some; got:\n{}",
+        out
+    );
+}
+
+/// Scenario: Status bar in Detail mode shows "c copy | Esc return"
+///   Given Detail mode (no status_message)
+///   When the view is rendered
+///   Then the last row contains "c copy"
+#[test]
+fn view_detail_status_bar_shows_copy_hint() {
+    let model = make_detail_model();
+
+    let rows = render_to_rows(&model);
+    let last_row = rows.last().unwrap();
+
+    assert!(
+        last_row.contains("c copy"),
+        "Detail mode status bar must contain 'c copy'; got: {:?}",
         last_row
     );
 }

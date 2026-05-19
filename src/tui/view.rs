@@ -112,10 +112,14 @@ fn render_detail_overlay(model: &AppModel, frame: &mut Frame, area: ratatui::lay
     // Safety: Detail mode is only entered from Browse when filtered_rows is non-empty
     // (handle_browse_key guards this). The cursor is always a valid index.
     let record = &model.filtered_rows[model.cursor];
-    let lines: Vec<ratatui::text::Line> = detail_lines(record)
+    let mut lines: Vec<ratatui::text::Line> = detail_lines(record)
         .into_iter()
         .map(ratatui::text::Line::from)
         .collect();
+    if let Some(status) = &model.status_message {
+        lines.push(ratatui::text::Line::from(""));
+        lines.push(ratatui::text::Line::from(status.clone()));
+    }
     let paragraph = Paragraph::new(lines)
         .block(Block::default().borders(Borders::ALL).title("Commit Detail"));
     frame.render_widget(paragraph, area);
@@ -196,7 +200,7 @@ fn render_search_bar(model: &AppModel, frame: &mut Frame, area: ratatui::layout:
 fn render_status_bar(model: &AppModel, frame: &mut Frame, area: ratatui::layout::Rect) {
     let status_text = match model.mode {
         AppMode::Search => search_status_text(model.filtered_rows.len(), model.commit_rows.len()),
-        AppMode::Detail => "Esc to return".to_string(),
+        AppMode::Detail => "c copy | Esc return".to_string(),
         _ => {
             let total = model.filtered_rows.len();
             let cursor_one_based = if total == 0 { 0 } else { model.cursor + 1 };
