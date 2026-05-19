@@ -281,6 +281,111 @@
       "s": "EXECUTED",
       "d": "PASS",
       "t": "2026-05-19T09:07:22Z"
+    },
+    {
+      "sid": "02-01",
+      "p": "PREPARE",
+      "s": "SKIPPED",
+      "d": "NOT_APPLICABLE: 3-phase ADR-025 canon",
+      "t": "2026-05-19T12:03:07Z"
+    },
+    {
+      "sid": "02-01",
+      "p": "RED_ACCEPTANCE",
+      "s": "SKIPPED",
+      "d": "NOT_APPLICABLE: domain unit tests only",
+      "t": "2026-05-19T12:03:10Z"
+    },
+    {
+      "sid": "02-01",
+      "p": "RED_UNIT",
+      "s": "EXECUTED",
+      "d": "PASS: 3 new tests fail for right reason \u2014 E0609 no field page_size on AppModel",
+      "t": "2026-05-19T12:03:14Z"
+    },
+    {
+      "sid": "02-01",
+      "p": "GREEN",
+      "s": "EXECUTED",
+      "d": "PASS: 15/15 update tests pass, no regressions in full suite",
+      "t": "2026-05-19T12:03:17Z"
+    },
+    {
+      "sid": "02-01",
+      "p": "COMMIT",
+      "s": "EXECUTED",
+      "d": "PASS: commit 30aa416 \u2014 page_size field added to AppModel, PageDown/PageUp arms in handle_browse_key, proptest strategy updated",
+      "t": "2026-05-19T12:03:25Z"
+    },
+    {
+      "sid": "02-02",
+      "p": "PREPARE",
+      "s": "SKIPPED",
+      "d": "NOT_APPLICABLE: 3-phase canon ADR-025",
+      "t": "2026-05-19T12:30:15Z"
+    },
+    {
+      "sid": "02-02",
+      "p": "RED_ACCEPTANCE",
+      "s": "SKIPPED",
+      "d": "NOT_APPLICABLE: no acceptance test scaffold for this step per roadmap",
+      "t": "2026-05-19T12:30:20Z"
+    },
+    {
+      "sid": "02-02",
+      "p": "RED_UNIT",
+      "s": "EXECUTED",
+      "d": "PASS: 9 new tests in src/tui/view.rs fail with E0432 unresolved imports for truncate and format_status_text",
+      "t": "2026-05-19T12:30:24Z"
+    },
+    {
+      "sid": "02-02",
+      "p": "GREEN",
+      "s": "EXECUTED",
+      "d": "PASS: 9 new view tests pass, 15 update_specifications pass, full suite green, cargo build clean",
+      "t": "2026-05-19T12:30:28Z"
+    },
+    {
+      "sid": "02-02",
+      "p": "COMMIT",
+      "s": "EXECUTED",
+      "d": "PASS: commit 1c25df9 \u2014 truncate() helper, format_status_text(), render_commit_table truncation, status bar row counter",
+      "t": "2026-05-19T12:30:32Z"
+    },
+    {
+      "sid": "02-03",
+      "p": "PREPARE",
+      "s": "SKIPPED",
+      "d": "NOT_APPLICABLE: 3-phase canon ADR-025",
+      "t": "2026-05-19T12:33:56Z"
+    },
+    {
+      "sid": "02-03",
+      "p": "RED_ACCEPTANCE",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-05-19T12:33:59Z"
+    },
+    {
+      "sid": "02-03",
+      "p": "RED_UNIT",
+      "s": "SKIPPED",
+      "d": "NOT_APPLICABLE: no unit-testable logic introduced; run loop integration validated by acceptance test",
+      "t": "2026-05-19T12:34:02Z"
+    },
+    {
+      "sid": "02-03",
+      "p": "GREEN",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-05-19T12:34:05Z"
+    },
+    {
+      "sid": "02-03",
+      "p": "COMMIT",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-05-19T12:34:08Z"
     }
   ]
 }

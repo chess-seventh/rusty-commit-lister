@@ -124,7 +124,7 @@ fn render_status_bar(model: &AppModel, frame: &mut Frame, area: ratatui::layout:
 
 #[cfg(test)]
 mod tests {
-    use super::truncate;
+    use super::{format_status_text, truncate};
 
     /// Scenario: string shorter than max_chars is returned unchanged
     ///   Given s = "hello" and max_chars = 10
@@ -190,5 +190,4 @@ mod tests {
         assert_eq!(text, "Row 1/5 | q quit");
     }
 
-    use super::format_status_text;
 }
