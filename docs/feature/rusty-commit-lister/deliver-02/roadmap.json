@@ -1,0 +1,73 @@
+{
+  "roadmap": {
+    "project_id": "rusty-commit-lister",
+    "slice": "02-full-browse",
+    "created_at": "2026-05-19T00:00:00Z",
+    "total_steps": 3
+  },
+  "phases": [
+    {
+      "id": "02",
+      "name": "Slice-02 Full Browse Experience",
+      "steps": [
+        {
+          "id": "02-01",
+          "name": "Domain: PgUp/PgDn navigation + page_size",
+          "criteria": [
+            "AppModel gains page_size: usize field (default 10, settable via AppModel::with_page_size)",
+            "PageDown in Browse advances cursor by page_size, clamped to last row (no wrap)",
+            "PageUp in Browse moves cursor back by page_size, clamped to 0 (no wrap)",
+            "j/k navigation unchanged",
+            "proptest: any valid event sequence including PageUp/PageDown keeps cursor in bounds",
+            "unit tests: PageDown from row 0 lands on row page_size-1; PageDown near end clamps; PageUp from row 0 stays 0"
+          ],
+          "test_file": "tests/unit/update_specifications.rs",
+          "scenario_name": "page_down_advances_cursor_by_page_size",
+          "files_to_modify": ["src/domain/model.rs", "src/domain/update.rs"],
+          "implementation_notes": "Add pub page_size: usize to AppModel. Default to 10 in AppModel::new(). Add with_page_size(n) builder method. In handle_browse_key: KeyCode::PageDown => cursor = min(cursor + page_size, row_count.saturating_sub(1)); KeyCode::PageUp => cursor = cursor.saturating_sub(page_size). No wrapping for page navigation — clamp at boundaries. Update proptest strategy to include PageUp/PageDown events. Write 3 example tests: page_down_advances_cursor_by_page_size, page_down_clamps_at_last_row, page_up_clamps_at_zero."
+        },
+        {
+          "id": "02-02",
+          "name": "TUI: message truncation and row counter in status bar",
+          "criteria": [
+            "view() truncates message column to available width with '...' suffix when content exceeds width",
+            "view() truncates folder column to 20 chars with '...' suffix",
+            "status bar renders 'Row N/Total | q quit' where N = cursor+1, Total = filtered_rows.len()",
+            "status bar shows 'Row 0/0 | q quit' when filtered_rows is empty",
+            "cargo build passes; no existing tests regress"
+          ],
+          "test_file": "",
+          "scenario_name": "",
+          "files_to_modify": ["src/tui/view.rs"],
+          "implementation_notes": "In view(), the Table rows: for message, pass model.filtered_rows[i].message as-is but set the Message column Constraint::Min(20) with Cell overflow handled by ratatui's built-in wrapping, OR manually truncate with a helper fn truncate(s: &str, max: usize) -> String that returns s[..max-3]+'...' if len>max else s.to_string(). Folder column: truncate to 20 chars. Status bar Paragraph: if filtered_rows.is_empty(), show 'Row 0/0 | q quit'; else show format!('Row {}/{} | q quit', model.cursor + 1, model.filtered_rows.len()). No acceptance tests for this step — validated by cargo build + visual inspection in step 02-03's integration."
+        },
+        {
+          "id": "02-03",
+          "name": "TUI: r-refresh wiring in run loop",
+          "criteria": [
+            "TuiEventLoop::run() accepts a reload_fn: impl FnMut() -> Vec<CommitRecord> closure",
+            "when model.loading becomes true after update(), run loop calls reload_fn() and fires LoadComplete(records) before next draw",
+            "main.rs passes a closure that calls vault.scan(config.scan_days_back).unwrap_or_else(|_| vec![])",
+            "pressing r in Browse mode triggers a vault re-scan and table refresh within the same run loop iteration",
+            "cargo test --test walking_skeleton_scenarios tool_loads_commits_from_vault_and_exits_successfully still passes"
+          ],
+          "test_file": "tests/acceptance/walking_skeleton_scenarios.rs",
+          "scenario_name": "tool_loads_commits_from_vault_and_exits_successfully",
+          "files_to_modify": ["src/tui/event_loop.rs", "src/main.rs"],
+          "implementation_notes": "Change TuiEventLoop::run signature to: pub fn run(&mut self, initial_model: AppModel, mut reload_fn: impl FnMut() -> Vec<CommitRecord>) -> Result<()>. In the run loop, after model = update(model, event): if model.loading { let records = reload_fn(); model = update(model, AppEvent::LoadComplete(records)); }. In main.rs, pass the closure: let vault_clone = vault; let config_clone = config.clone(); tui.run(model, move || vault_clone.scan(config_clone.scan_days_back).unwrap_or_else(|e| { tracing::warn!(%e, \"reload failed\"); vec![] }))?;. Also update the non-TTY text path: no change needed there. The walking skeleton test (non-TTY path) doesn't call run() so the signature change doesn't affect it. Confirm: cargo test --test walking_skeleton_scenarios still passes after the change."
+        }
+      ]
+    }
+  ],
+  "implementation_scope": {
+    "source_directories": ["src/"],
+    "test_directories": ["tests/unit/", "tests/acceptance/"],
+    "excluded_patterns": ["target/**", "*.lock"]
+  },
+  "validation": {
+    "status": "approved",
+    "reviewer": "orchestrator-direct",
+    "approved_at": "2026-05-19T00:00:00Z",
+    "note": "3-step scope matches slice-02 definition. US-04 (multi-day scan) already shipped in slice-01. US-05 steps: 02-01 navigation, 02-02 view polish, 02-03 refresh wiring."
+  }
+}

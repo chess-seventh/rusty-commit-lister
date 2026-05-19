@@ -386,6 +386,111 @@
       "s": "EXECUTED",
       "d": "PASS",
       "t": "2026-05-19T12:34:08Z"
+    },
+    {
+      "sid": "03-01",
+      "p": "PREPARE",
+      "s": "SKIPPED",
+      "d": "NOT_APPLICABLE: 3-phase ADR-025 canon",
+      "t": "2026-05-19T17:46:06Z"
+    },
+    {
+      "sid": "03-01",
+      "p": "RED_ACCEPTANCE",
+      "s": "SKIPPED",
+      "d": "NOT_APPLICABLE: no acceptance test scaffold for step 03-01",
+      "t": "2026-05-19T17:46:09Z"
+    },
+    {
+      "sid": "03-01",
+      "p": "RED_UNIT",
+      "s": "EXECUTED",
+      "d": "PASS: enter_in_search_mode_confirms_and_returns_to_browse fails left:Search right:Browse \u2014 Enter arm absent",
+      "t": "2026-05-19T17:46:12Z"
+    },
+    {
+      "sid": "03-01",
+      "p": "GREEN",
+      "s": "EXECUTED",
+      "d": "PASS: 26 unit tests pass, full suite green \u2014 KeyCode::Enter arm added to handle_search_key",
+      "t": "2026-05-19T17:46:16Z"
+    },
+    {
+      "sid": "03-01",
+      "p": "COMMIT",
+      "s": "EXECUTED",
+      "d": "PASS: commit 1664662 \u2014 Enter in Search mode confirms and returns to Browse",
+      "t": "2026-05-19T17:46:19Z"
+    },
+    {
+      "sid": "03-02",
+      "p": "PREPARE",
+      "s": "SKIPPED",
+      "d": "NOT_APPLICABLE: 3-phase canon ADR-025",
+      "t": "2026-05-19T17:49:19Z"
+    },
+    {
+      "sid": "03-02",
+      "p": "RED_ACCEPTANCE",
+      "s": "SKIPPED",
+      "d": "NOT_APPLICABLE: no acceptance scaffold for step 03-02",
+      "t": "2026-05-19T17:49:22Z"
+    },
+    {
+      "sid": "03-02",
+      "p": "RED_UNIT",
+      "s": "EXECUTED",
+      "d": "PASS: 3 new search_status_text() tests fail with E0432 unresolved import \u2014 function did not exist yet",
+      "t": "2026-05-19T17:49:26Z"
+    },
+    {
+      "sid": "03-02",
+      "p": "GREEN",
+      "s": "EXECUTED",
+      "d": "PASS: 12 unit tests pass including 3 new search_status_text() tests; full suite 56 tests green; cargo build clean",
+      "t": "2026-05-19T17:49:29Z"
+    },
+    {
+      "sid": "03-02",
+      "p": "COMMIT",
+      "s": "EXECUTED",
+      "d": "PASS: commit 20b46f8 \u2014 search_status_text(), render_search_bar(), 3-chunk layout in Search mode, status bar branches on AppMode::Search",
+      "t": "2026-05-19T17:49:32Z"
+    },
+    {
+      "sid": "04-01",
+      "p": "PREPARE",
+      "s": "SKIPPED",
+      "d": "NOT_APPLICABLE: 3-phase ADR-025 canon",
+      "t": "2026-05-19T18:21:39Z"
+    },
+    {
+      "sid": "04-01",
+      "p": "RED_ACCEPTANCE",
+      "s": "SKIPPED",
+      "d": "NOT_APPLICABLE: no pre-authored acceptance test scaffold for step 04-01; unit tests drive RED directly",
+      "t": "2026-05-19T18:21:42Z"
+    },
+    {
+      "sid": "04-01",
+      "p": "RED_UNIT",
+      "s": "EXECUTED",
+      "d": "PASS: 2 new tests in tests/unit/view_specifications.rs fail with E0432 unresolved import detail_lines \u2014 function did not exist yet",
+      "t": "2026-05-19T18:21:49Z"
+    },
+    {
+      "sid": "04-01",
+      "p": "GREEN",
+      "s": "EXECUTED",
+      "d": "PASS: 2 new view_specifications tests pass, full suite 53 tests green, cargo build clean \u2014 detail_lines() pure helper + render_detail_overlay() + Detail branch in render_main_area + Detail arm in render_status_bar",
+      "t": "2026-05-19T18:21:53Z"
+    },
+    {
+      "sid": "04-01",
+      "p": "COMMIT",
+      "s": "EXECUTED",
+      "d": "PASS: commit 51eee7c \u2014 feat(tui): render commit detail overlay in Detail mode",
+      "t": "2026-05-19T18:21:56Z"
     }
   ]
 }
