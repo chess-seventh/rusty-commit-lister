@@ -867,6 +867,240 @@ fn clipboard_result_err_sets_status_message() {
     );
 }
 
+// ─── distinct_repos helper ────────────────────────────────────────────────────
+
+/// @US-09 @in-memory
+///
+/// Scenario: distinct_repos groups commits by last URL path segment, sorted by count descending
+///   Given 3 commits — 2 with URL "…/dotfiles" and 1 with "…/notes"
+///   When distinct_repos is called
+///   Then it returns [("dotfiles", 2), ("notes", 1)]
+#[test]
+fn distinct_repos_groups_by_last_url_segment() {
+    use rusty_commit_lister::domain::update::distinct_repos;
+
+    let commits = vec![
+        CommitRecord {
+            folder: "/home/user/dotfiles".to_string(),
+            time: "10:00".to_string(),
+            message: "first".to_string(),
+            url: Some("https://github.com/user/dotfiles".to_string()),
+            date: "2026-05-18".to_string(),
+        },
+        CommitRecord {
+            folder: "/home/user/dotfiles".to_string(),
+            time: "11:00".to_string(),
+            message: "second".to_string(),
+            url: Some("https://github.com/user/dotfiles".to_string()),
+            date: "2026-05-18".to_string(),
+        },
+        CommitRecord {
+            folder: "/home/user/notes".to_string(),
+            time: "12:00".to_string(),
+            message: "third".to_string(),
+            url: Some("https://github.com/user/notes".to_string()),
+            date: "2026-05-18".to_string(),
+        },
+    ];
+
+    let result = distinct_repos(&commits);
+
+    assert_eq!(result.len(), 2, "must return exactly 2 distinct repos");
+    assert_eq!(result[0], ("dotfiles".to_string(), 2), "dotfiles must be first with count 2");
+    assert_eq!(result[1], ("notes".to_string(), 1), "notes must be second with count 1");
+}
+
+/// @US-09 @in-memory
+///
+/// Scenario: distinct_repos uses folder last segment when URL is None
+///   Given a commit with url=None and folder="/projects/my-tool"
+///   When distinct_repos is called
+///   Then it returns [("my-tool", 1)]
+#[test]
+fn distinct_repos_uses_folder_when_url_is_none() {
+    use rusty_commit_lister::domain::update::distinct_repos;
+
+    let commits = vec![CommitRecord {
+        folder: "/projects/my-tool".to_string(),
+        time: "10:00".to_string(),
+        message: "fix: something".to_string(),
+        url: None,
+        date: "2026-05-18".to_string(),
+    }];
+
+    let result = distinct_repos(&commits);
+
+    assert_eq!(result.len(), 1, "must return exactly 1 repo");
+    assert_eq!(result[0], ("my-tool".to_string(), 1), "repo name must be last folder segment");
+}
+
+// ─── RepoPicker navigation ────────────────────────────────────────────────────
+
+/// Helper: builds a model with commit_rows producing exactly 2 distinct repos:
+///   dotfiles (2 commits) and notes (1 commit), in RepoPicker mode.
+fn picker_model() -> AppModel {
+    let config = AppConfig::default();
+    let commits = vec![
+        CommitRecord {
+            folder: "/home/user/dotfiles".to_string(),
+            time: "10:00".to_string(),
+            message: "first dotfiles".to_string(),
+            url: Some("https://github.com/user/dotfiles".to_string()),
+            date: "2026-05-18".to_string(),
+        },
+        CommitRecord {
+            folder: "/home/user/dotfiles".to_string(),
+            time: "11:00".to_string(),
+            message: "second dotfiles".to_string(),
+            url: Some("https://github.com/user/dotfiles".to_string()),
+            date: "2026-05-18".to_string(),
+        },
+        CommitRecord {
+            folder: "/home/user/notes".to_string(),
+            time: "12:00".to_string(),
+            message: "notes commit".to_string(),
+            url: Some("https://github.com/user/notes".to_string()),
+            date: "2026-05-18".to_string(),
+        },
+    ];
+    let model = update(AppModel::new(config), AppEvent::LoadComplete(commits));
+    // Open RepoPicker via 'f'
+    update(model, key_event(KeyCode::Char('f')))
+}
+
+/// @US-09 @in-memory
+///
+/// Scenario: j key in RepoPicker advances picker_cursor by 1
+///   Given RepoPicker mode with picker_cursor=0 and 2 repos available
+///   When j is pressed
+///   Then picker_cursor = 1
+#[test]
+fn picker_j_advances_cursor() {
+    let model = picker_model();
+    assert_eq!(model.mode, AppMode::RepoPicker, "precondition: RepoPicker mode");
+    assert_eq!(model.picker_cursor, 0, "precondition: picker_cursor at 0");
+
+    let after = update(model, key_event(KeyCode::Char('j')));
+
+    assert_eq!(after.picker_cursor, 1, "picker_cursor must increment to 1 on j");
+    assert_eq!(after.mode, AppMode::RepoPicker, "mode must remain RepoPicker");
+}
+
+/// @US-09 @in-memory
+///
+/// Scenario: k key in RepoPicker at picker_cursor=0 wraps to last repo
+///   Given RepoPicker mode with picker_cursor=0 and 2 repos available
+///   When k is pressed
+///   Then picker_cursor wraps to repos.len()-1 (= 1)
+#[test]
+fn picker_k_wraps_to_last() {
+    let model = picker_model();
+    assert_eq!(model.picker_cursor, 0, "precondition: at top");
+
+    let after = update(model, key_event(KeyCode::Char('k')));
+
+    assert_eq!(after.picker_cursor, 1, "picker_cursor must wrap to repos.len()-1 on k at top");
+    assert_eq!(after.mode, AppMode::RepoPicker, "mode must remain RepoPicker");
+}
+
+/// @US-09 @in-memory
+///
+/// Scenario: Enter in RepoPicker sets active_repo_filter to selected repo and returns to Browse
+///   Given RepoPicker mode with picker_cursor=0 pointing at "dotfiles"
+///   When Enter is pressed
+///   Then active_repo_filter = Some("dotfiles")
+///   And mode = Browse
+///   And cursor = 0
+///   And filtered_rows contains only dotfiles commits (2 rows)
+#[test]
+fn picker_enter_sets_filter_and_returns_to_browse() {
+    let model = picker_model();
+    assert_eq!(model.picker_cursor, 0, "precondition: cursor at 0 (dotfiles)");
+    assert_eq!(model.mode, AppMode::RepoPicker, "precondition: RepoPicker mode");
+
+    let after = update(model, key_event(KeyCode::Enter));
+
+    assert_eq!(after.mode, AppMode::Browse, "Enter must return to Browse");
+    assert_eq!(
+        after.active_repo_filter,
+        Some("dotfiles".to_string()),
+        "active_repo_filter must be set to 'dotfiles'"
+    );
+    assert_eq!(after.cursor, 0, "cursor must reset to 0");
+    assert_eq!(
+        after.filtered_rows.len(),
+        2,
+        "filtered_rows must contain only the 2 dotfiles commits"
+    );
+}
+
+/// @US-09 @in-memory
+///
+/// Scenario: Esc in RepoPicker returns to Browse without changing active_repo_filter
+///   Given RepoPicker mode with an existing active_repo_filter = Some("x")
+///   When Esc is pressed
+///   Then mode = Browse
+///   And active_repo_filter remains Some("x") (unchanged)
+#[test]
+fn picker_esc_returns_without_changing_filter() {
+    let mut base = picker_model();
+    base.active_repo_filter = Some("x".to_string());
+    assert_eq!(base.mode, AppMode::RepoPicker, "precondition: RepoPicker mode");
+
+    let after = update(base, key_event(KeyCode::Esc));
+
+    assert_eq!(after.mode, AppMode::Browse, "Esc must return to Browse");
+    assert_eq!(
+        after.active_repo_filter,
+        Some("x".to_string()),
+        "active_repo_filter must remain unchanged on Esc"
+    );
+}
+
+/// @US-09 @in-memory
+///
+/// Scenario: f key in Browse mode when active_repo_filter is Some clears the filter
+///   Given Browse mode with active_repo_filter = Some("dotfiles")
+///   When f is pressed
+///   Then active_repo_filter = None
+///   And mode = Browse (not RepoPicker)
+///   And filtered_rows is recomputed (shows all commits)
+#[test]
+fn f_key_clears_active_filter_in_browse_mode() {
+    let config = AppConfig::default();
+    let commits = vec![
+        CommitRecord {
+            folder: "/home/user/dotfiles".to_string(),
+            time: "10:00".to_string(),
+            message: "first dotfiles".to_string(),
+            url: Some("https://github.com/user/dotfiles".to_string()),
+            date: "2026-05-18".to_string(),
+        },
+        CommitRecord {
+            folder: "/home/user/notes".to_string(),
+            time: "12:00".to_string(),
+            message: "notes commit".to_string(),
+            url: Some("https://github.com/user/notes".to_string()),
+            date: "2026-05-18".to_string(),
+        },
+    ];
+    let mut model = update(AppModel::new(config), AppEvent::LoadComplete(commits));
+    model.active_repo_filter = Some("dotfiles".to_string());
+    model.filtered_rows = model.commit_rows.iter()
+        .filter(|r| r.url.as_deref().unwrap_or("").contains("dotfiles"))
+        .cloned()
+        .collect();
+    assert_eq!(model.mode, AppMode::Browse, "precondition: Browse mode");
+    assert!(model.active_repo_filter.is_some(), "precondition: filter is active");
+    assert_eq!(model.filtered_rows.len(), 1, "precondition: filter narrows to 1 row");
+
+    let after = update(model, key_event(KeyCode::Char('f')));
+
+    assert!(after.active_repo_filter.is_none(), "f must clear active_repo_filter");
+    assert_eq!(after.mode, AppMode::Browse, "mode must remain Browse (not switch to RepoPicker)");
+    assert_eq!(after.filtered_rows.len(), 2, "filtered_rows must be recomputed to show all 2 commits");
+}
+
 // ─── State machine PBT invariant (proptest — layer 1) ─────────────────────────
 
 #[cfg(test)]

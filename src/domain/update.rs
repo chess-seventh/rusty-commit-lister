@@ -3,6 +3,39 @@ use crossterm::event::{KeyCode, KeyEvent};
 use crate::domain::events::AppEvent;
 use crate::domain::model::{AppMode, AppModel, CommitRecord};
 
+/// Returns the distinct repository names present in `commit_rows`, sorted by count descending.
+///
+/// The repo name is derived from the last path segment of the URL (e.g. `"dotfiles"` from
+/// `"https://github.com/user/dotfiles"`), or the last segment of `folder` when `url` is `None`.
+/// Entries with an empty derived name are ignored.
+///
+/// Ties in count are broken alphabetically (ascending) by repo name for deterministic ordering.
+///
+/// # Examples
+///
+/// ```
+/// // [("dotfiles", 2), ("notes", 1)]
+/// ```
+pub fn distinct_repos(commit_rows: &[CommitRecord]) -> Vec<(String, usize)> {
+    use std::collections::HashMap;
+    let mut counts: HashMap<String, usize> = HashMap::new();
+    for record in commit_rows {
+        let name = record
+            .url
+            .as_deref()
+            .and_then(|u| u.rsplit('/').next())
+            .map(str::to_string)
+            .or_else(|| record.folder.rsplit('/').next().map(str::to_string))
+            .unwrap_or_default();
+        if !name.is_empty() {
+            *counts.entry(name).or_insert(0) += 1;
+        }
+    }
+    let mut pairs: Vec<(String, usize)> = counts.into_iter().collect();
+    pairs.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
+    pairs
+}
+
 /// Pure state machine: given the current model and an event, return the next model.
 ///
 /// This is the Update function in the Elm/MVU architecture.
@@ -127,8 +160,13 @@ fn handle_browse_key(mut model: AppModel, key: KeyEvent) -> AppModel {
             }
         }
         KeyCode::Char('f') => {
-            model.mode = AppMode::RepoPicker;
-            model.picker_cursor = 0;
+            if model.active_repo_filter.is_some() {
+                model.active_repo_filter = None;
+                model.filtered_rows = recompute_filtered(&model);
+            } else {
+                model.mode = AppMode::RepoPicker;
+                model.picker_cursor = 0;
+            }
         }
         KeyCode::Char('r') => {
             model.loading = true;
@@ -193,8 +231,31 @@ fn handle_detail_key(mut model: AppModel, key: KeyEvent) -> AppModel {
 }
 
 fn handle_repo_picker_key(mut model: AppModel, key: KeyEvent) -> AppModel {
-    if key.code == KeyCode::Esc {
-        model.mode = AppMode::Browse;
+    let repos = distinct_repos(&model.commit_rows);
+    let len = repos.len();
+    match key.code {
+        KeyCode::Char('j') | KeyCode::Down => {
+            if len > 0 {
+                model.picker_cursor = (model.picker_cursor + 1) % len;
+            }
+        }
+        KeyCode::Char('k') | KeyCode::Up => {
+            if len > 0 {
+                model.picker_cursor = model.picker_cursor.checked_sub(1).unwrap_or(len - 1);
+            }
+        }
+        KeyCode::Enter => {
+            if len > 0 {
+                model.active_repo_filter = Some(repos[model.picker_cursor].0.clone());
+                model.filtered_rows = recompute_filtered(&model);
+                model.mode = AppMode::Browse;
+                model.cursor = 0;
+            }
+        }
+        KeyCode::Esc => {
+            model.mode = AppMode::Browse;
+        }
+        _ => {}
     }
     model
 }
