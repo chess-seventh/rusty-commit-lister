@@ -1,0 +1,60 @@
+{
+  "roadmap": {
+    "project_id": "rusty-commit-lister",
+    "slice": "06-repo-filter",
+    "created_at": "2026-05-20T00:00:00Z",
+    "total_steps": 2
+  },
+  "phases": [
+    {
+      "id": "06",
+      "name": "Slice-06 Repository Filter",
+      "steps": [
+        {
+          "id": "06-01",
+          "name": "Domain: distinct_repos helper + RepoPicker Enter/j/k navigation + f-key toggle",
+          "criteria": [
+            "pub fn distinct_repos(commit_rows: &[CommitRecord]) -> Vec<(String, usize)> added to update.rs; returns (repo_name, count) pairs sorted by count desc; repo_name is last URL path segment (rsplit('/').next()), or folder last segment if URL is None; records with same repo_name are grouped",
+            "handle_repo_picker_key handles KeyCode::Char('j') | KeyCode::Down: picker_cursor advances (wraps at end of distinct_repos list)",
+            "handle_repo_picker_key handles KeyCode::Char('k') | KeyCode::Up: picker_cursor retreats (wraps at start)",
+            "handle_repo_picker_key handles KeyCode::Enter: sets active_repo_filter = Some(repo_name at picker_cursor), recomputes filtered_rows, sets mode = Browse, resets cursor = 0",
+            "handle_repo_picker_key handles KeyCode::Esc: sets mode = Browse (active_repo_filter unchanged)",
+            "handle_browse_key: KeyCode::Char('f') when active_repo_filter is Some clears filter (sets to None), recomputes filtered_rows; when None opens picker as before",
+            "unit tests: picker_j_advances_cursor, picker_k_wraps_to_last, picker_enter_sets_filter_and_returns_to_browse, picker_esc_returns_without_changing_filter, f_key_clears_active_filter_in_browse_mode, distinct_repos_groups_by_last_url_segment, distinct_repos_uses_folder_when_url_is_none"
+          ],
+          "test_file": "tests/unit/update_specifications.rs",
+          "scenario_name": "picker_enter_sets_filter_and_returns_to_browse",
+          "files_to_modify": ["src/domain/update.rs"],
+          "implementation_notes": "distinct_repos(commit_rows: &[CommitRecord]) -> Vec<(String, usize)>: extract repo_name = url.as_deref().and_then(|u| u.rsplit('/').next()).map(str::to_string).or_else(|| folder.rsplit('/').next().map(str::to_string)).unwrap_or_default(); group by repo_name using BTreeMap or sort+dedup; return sorted by count descending. handle_repo_picker_key Enter: let repos = distinct_repos(&model.commit_rows); if repos is empty do nothing; else set active_repo_filter = Some(repos[model.picker_cursor].0.clone()); model.filtered_rows = recompute_filtered(&model); model.mode = AppMode::Browse; model.cursor = 0. j/k: repos.len() guard; wrap with modulo. handle_browse_key f: if model.active_repo_filter.is_some() { model.active_repo_filter = None; model.filtered_rows = recompute_filtered(&model); } else { model.mode = AppMode::RepoPicker; model.picker_cursor = 0; }"
+        },
+        {
+          "id": "06-02",
+          "name": "TUI: RepoPicker overlay rendering + status bar filter indicator",
+          "criteria": [
+            "When model.mode == AppMode::RepoPicker, render_main_area renders a RepoPicker overlay instead of the commit table",
+            "RepoPicker overlay shows a bordered Block titled 'Repo Filter' listing all distinct repos with counts: '{repo_name} ({count})'",
+            "Currently selected row (picker_cursor) is highlighted with reversed style",
+            "When active_repo_filter is Some in Browse mode, status bar shows '{repo_name} • {filtered} of {total} commits | f clear | q quit'",
+            "When active_repo_filter is None in Browse mode, status bar shows existing 'Row N/M | q quit' format (unchanged)",
+            "view_specifications tests: view_renders_repo_picker_overlay, view_highlights_selected_picker_row, view_status_bar_shows_active_filter"
+          ],
+          "test_file": "tests/unit/view_specifications.rs",
+          "scenario_name": "view_renders_repo_picker_overlay",
+          "files_to_modify": ["src/tui/view.rs"],
+          "implementation_notes": "In render_main_area, add branch before render_commit_table: if model.mode == AppMode::RepoPicker { render_repo_picker(model, frame, area); return; }. render_repo_picker: call distinct_repos(&model.commit_rows) to get (name, count) pairs; build Vec<Row> with Cell(format!('{name} ({count})')); use a Table or List widget inside a bordered Block titled 'Repo Filter'; highlight model.picker_cursor row with reversed style. Status bar: add arm for active_repo_filter when mode is Browse: if model.mode == AppMode::Browse && model.active_repo_filter.is_some() { let name = model.active_repo_filter.as_ref().unwrap(); format!('{name} • {}/{} commits | f clear | q quit', model.filtered_rows.len(), model.commit_rows.len()) }. Use pub fn distinct_repos from update.rs (import: use crate::domain::update::distinct_repos;). Also export distinct_repos as pub from update.rs."
+        }
+      ]
+    }
+  ],
+  "implementation_scope": {
+    "source_directories": ["src/"],
+    "test_directories": ["tests/unit/"],
+    "excluded_patterns": ["target/**", "*.lock"]
+  },
+  "validation": {
+    "status": "approved",
+    "reviewer": "orchestrator-direct",
+    "approved_at": "2026-05-20T00:00:00Z",
+    "note": "2-step scope for slice-06. AppMode::RepoPicker, active_repo_filter, and repo_filter_matches already exist. Steps: domain navigation + toggle logic (06-01), then picker overlay + status bar (06-02)."
+  }
+}

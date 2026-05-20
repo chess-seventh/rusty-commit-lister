@@ -561,6 +561,76 @@
       "s": "EXECUTED",
       "d": "PASS: commit 6b3d48d \u2014 feat(infra): ArboardClipboardAdapter and clipboard dispatch in event loop. 9 files changed, arboard=3 added, image pinned to 0.25.1 for MSRV 1.86 compatibility",
       "t": "2026-05-19T20:45:33Z"
+    },
+    {
+      "sid": "06-01",
+      "p": "PREPARE",
+      "s": "SKIPPED",
+      "d": "NOT_APPLICABLE: 3-phase canon ADR-025",
+      "t": "2026-05-20T05:27:14Z"
+    },
+    {
+      "sid": "06-01",
+      "p": "RED_ACCEPTANCE",
+      "s": "SKIPPED",
+      "d": "NOT_APPLICABLE: no pre-authored acceptance test scaffold for step 06-01; unit tests drive RED directly",
+      "t": "2026-05-20T05:27:17Z"
+    },
+    {
+      "sid": "06-01",
+      "p": "RED_UNIT",
+      "s": "EXECUTED",
+      "d": "PASS: 7 new tests in tests/unit/update_specifications.rs fail with E0432 unresolved import distinct_repos \u2014 function did not exist yet",
+      "t": "2026-05-20T05:27:21Z"
+    },
+    {
+      "sid": "06-01",
+      "p": "GREEN",
+      "s": "EXECUTED",
+      "d": "PASS: 38 update_specifications pass, full suite 75 tests green \u2014 distinct_repos, handle_repo_picker_key (j/k/Enter/Esc), handle_browse_key f-toggle implemented in src/domain/update.rs",
+      "t": "2026-05-20T05:27:26Z"
+    },
+    {
+      "sid": "06-01",
+      "p": "COMMIT",
+      "s": "EXECUTED",
+      "d": "PASS: commit 7810557 \u2014 feat(domain): distinct_repos helper and RepoPicker navigation. 2 files changed, 299 insertions(+), 4 deletions(-)",
+      "t": "2026-05-20T05:27:30Z"
+    },
+    {
+      "sid": "06-02",
+      "p": "PREPARE",
+      "s": "SKIPPED",
+      "d": "NOT_APPLICABLE: 3-phase canon ADR-025, no separate PREPARE phase",
+      "t": "2026-05-20T05:31:10Z"
+    },
+    {
+      "sid": "06-02",
+      "p": "RED_ACCEPTANCE",
+      "s": "SKIPPED",
+      "d": "NOT_APPLICABLE: no pre-authored acceptance test scaffold for step 06-02; unit tests drive RED directly",
+      "t": "2026-05-20T05:31:13Z"
+    },
+    {
+      "sid": "06-02",
+      "p": "RED_UNIT",
+      "s": "EXECUTED",
+      "d": "PASS: 5 new tests in tests/unit/view_specifications.rs fail with assertion panics for right business-logic reason \u2014 RepoPicker overlay, repo counts, highlighted row, filter status bar, RepoPicker hints",
+      "t": "2026-05-20T05:31:18Z"
+    },
+    {
+      "sid": "06-02",
+      "p": "GREEN",
+      "s": "EXECUTED",
+      "d": "PASS: 16 view_specifications pass, full suite 86 tests green \u2014 render_repo_picker with distinct_repos + highlighted row, RepoPicker branch in render_main_area, RepoPicker arm + filter-active Browse arm in render_status_bar",
+      "t": "2026-05-20T05:31:22Z"
+    },
+    {
+      "sid": "06-02",
+      "p": "COMMIT",
+      "s": "EXECUTED",
+      "d": "PASS: commit 0875066 \u2014 feat(tui): RepoPicker overlay and filter-active status bar. 2 files changed, 206 insertions(+), 5 deletions(-)",
+      "t": "2026-05-20T05:31:25Z"
     }
   ]
 }

@@ -89,3 +89,27 @@ graceful degradation. `ArboardClipboardAdapter` probed non-fatally at startup; r
 - Status bar in Detail mode updated to "c copy | Esc return".
 
 **Mutation**: 100% kill rate on domain/model.rs, domain/update.rs, tui/view.rs (70 caught, 7 unviable).
+
+## Slice-06: Repository Filter (2026-05-20)
+
+**Shipped**: `f` key in Browse mode opens a RepoPicker overlay listing distinct repositories by commit
+count. `j`/`k` navigate the list; Enter applies the filter; Esc cancels. When a filter is active, `f`
+clears it. Status bar shows `"{repo} • {filtered}/{total} commits | f clear | q quit"` when filtered.
+2 steps TDD'd through RED→GREEN→COMMIT.
+
+**Key design choices**:
+- `pub fn distinct_repos(&[CommitRecord]) -> Vec<(String, usize)>` in `update.rs` — shared by both
+  domain (Enter key sets filter) and view (picker list rendering). Single source of truth; no
+  divergence between what's displayed and what's selected.
+- Last URL path segment preferred; folder last segment is the fallback when `url` is `None`.
+  `unwrap_or_default()` silently skips records with no extractable name (rare edge).
+- `f` key in Browse mode is a toggle: `active_repo_filter.is_some()` → clear; else → open picker.
+  No dedicated "clear filter" key; single key covers both actions depending on state.
+- RepoPicker uses ratatui `List` widget + reversed style on `picker_cursor` row — same TestBackend
+  render test pattern established in slice-04.
+
+**Mutation gaps logged for future slice**:
+- `len > 0` → `len >= 0` in `handle_repo_picker_key` (3×, empty-picker guard) — no test covers empty `commit_rows` in picker
+- `i == picker_cursor` → `i != picker_cursor` in `render_repo_picker` — highlight test doesn't assert non-selected rows lack reversed style
+
+**Mutation**: 95.9% kill rate on domain/update.rs, tui/view.rs (93 caught, 7 unviable, 4 missed).

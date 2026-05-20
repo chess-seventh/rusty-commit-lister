@@ -1,0 +1,90 @@
+{
+  "schema_version": "3.0",
+  "feature_id": "rusty-commit-lister",
+  "events": [
+    {
+      "sid": "06-01",
+      "p": "PREPARE",
+      "s": "SKIPPED",
+      "d": "NOT_APPLICABLE: 3-phase canon ADR-025, PREPARE merged into RED",
+      "t": "2026-05-20T05:24:43Z"
+    },
+    {
+      "sid": "06-01",
+      "p": "RED_ACCEPTANCE",
+      "s": "SKIPPED",
+      "d": "NOT_APPLICABLE: 3-phase canon ADR-025, no distilled AT scaffold",
+      "t": "2026-05-20T05:24:44Z"
+    },
+    {
+      "sid": "06-01",
+      "p": "RED_UNIT",
+      "s": "SKIPPED",
+      "d": "NOT_APPLICABLE: 3-phase canon ADR-025, RED_UNIT merged into RED",
+      "t": "2026-05-20T05:24:44Z"
+    },
+    {
+      "sid": "06-01",
+      "p": "RED_UNIT",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-05-20T05:25:38Z"
+    },
+    {
+      "sid": "06-01",
+      "p": "GREEN",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-05-20T05:26:25Z"
+    },
+    {
+      "sid": "06-01",
+      "p": "COMMIT",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-05-20T05:26:41Z"
+    },
+    {
+      "sid": "06-02",
+      "p": "PREPARE",
+      "s": "SKIPPED",
+      "d": "NOT_APPLICABLE: 3-phase canon, no separate PREPARE phase",
+      "t": "2026-05-20T05:28:53Z"
+    },
+    {
+      "sid": "06-02",
+      "p": "RED_ACCEPTANCE",
+      "s": "SKIPPED",
+      "d": "NOT_APPLICABLE: 3-phase canon, merged into RED",
+      "t": "2026-05-20T05:28:53Z"
+    },
+    {
+      "sid": "06-02",
+      "p": "RED_UNIT",
+      "s": "SKIPPED",
+      "d": "NOT_APPLICABLE: 3-phase canon, merged into RED",
+      "t": "2026-05-20T05:28:53Z"
+    },
+    {
+      "sid": "06-02",
+      "p": "RED_UNIT",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-05-20T05:29:36Z"
+    },
+    {
+      "sid": "06-02",
+      "p": "GREEN",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-05-20T05:30:24Z"
+    },
+    {
+      "sid": "06-02",
+      "p": "COMMIT",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-05-20T05:30:36Z"
+    }
+  ]
+}

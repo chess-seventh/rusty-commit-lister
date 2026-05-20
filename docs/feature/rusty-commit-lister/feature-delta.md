@@ -1001,3 +1001,57 @@ executes the effect and dispatches `ClipboardResult`, domain clears pending and 
 | Phase 3 — L1-L6 Refactor | PASS — code shipped clean; no separate refactor commit needed |
 | Phase 5 — Mutation Testing | PASS — 100% kill rate (domain/model.rs, domain/update.rs, tui/view.rs) |
 | Phase 6 — DES Integrity | PASS — `des-verify-integrity` exit 0, 2/2 steps |
+
+## Wave: DELIVER / [REF] Implementation Summary — Slice-06
+
+Slice-06 ships the Repository Filter feature (US-07). Pressing `f` in Browse mode opens a RepoPicker
+overlay listing all distinct repositories (last URL path segment, or folder last segment) sorted by
+commit count descending. The picker supports `j`/`k` (or arrow keys) for navigation and `Enter` to
+apply the filter; `Esc` cancels without changing the active filter. When a filter is active, pressing
+`f` again clears it immediately. The status bar in Browse mode shows the filter name and
+filtered/total commit counts when a filter is active.
+
+Two pure helpers drive the feature: `distinct_repos(&[CommitRecord]) -> Vec<(String, usize)>` in
+`update.rs` (shared by domain and view) and `render_repo_picker` in `view.rs` using a ratatui `List`
+widget inside a bordered Block. The status bar gains two new arms: RepoPicker mode shows picker hints;
+Browse mode with active filter shows `"{name} • {filtered}/{total} commits | f clear | q quit"`.
+
+## Wave: DELIVER / [REF] Files Modified — Slice-06
+
+**Production**
+- `src/domain/update.rs` — `pub fn distinct_repos`; `handle_repo_picker_key` (j/k/Enter/Esc); `handle_browse_key` f-toggle
+- `src/tui/view.rs` — `fn render_repo_picker`; RepoPicker branch in `render_main_area`; updated `render_status_bar`
+
+**Tests**
+- `tests/unit/update_specifications.rs` — 7 new tests: `distinct_repos_*`, `picker_*`, `f_key_clears_active_filter_in_browse_mode`
+- `tests/unit/view_specifications.rs` — 4 new render tests: `view_renders_repo_picker_overlay`, `view_picker_shows_repo_names_with_counts`, `view_status_bar_shows_active_filter`, `view_status_bar_shows_repo_picker_hints`
+
+## Wave: DELIVER / [REF] Scenarios Green — Slice-06
+
+86 of 86 active tests pass across all test suites (38 unit update + 16 view + 6 acceptance/parser + 1 walking skeleton).
+
+## Wave: DELIVER / [REF] DoD Check — Slice-06
+
+| DoD Item | Status |
+|---|---|
+| All active tests green | PASS — 86/86 pass |
+| Walking skeleton green | PASS — exits 0 |
+| No `panic!` in production | PASS |
+| `#![forbid(unsafe_code)]` enforced | PASS |
+| Domain layer has zero adapter/TUI imports | PASS |
+| L1-L6 RPP refactor complete | PASS — code shipped clean |
+| Mutation kill rate ≥ 80% | PASS — 95.9% (93 caught, 7 unviable, 4 missed) |
+| DES integrity verification passes | PASS — all 2 steps have complete traces |
+
+**Mutation gaps logged for future slice**:
+- `len > 0` → `len >= 0` in `handle_repo_picker_key` (3×) — no test covers empty `commit_rows` in picker
+- `i == picker_cursor` → `i != picker_cursor` in `render_repo_picker` — test doesn't assert non-selected rows lack reversed style
+
+## Wave: DELIVER / [REF] Quality Gates — Slice-06
+
+| Phase | Outcome |
+|---|---|
+| Phase 2 — All Steps | PASS — commits `7810557` (domain), `0875066` (TUI) |
+| Phase 3 — L1-L6 Refactor | PASS — code shipped clean; no separate refactor commit needed |
+| Phase 5 — Mutation Testing | PASS — 95.9% kill rate (domain/update.rs, tui/view.rs) |
+| Phase 6 — DES Integrity | PASS — `des-verify-integrity` exit 0, 2/2 steps |
