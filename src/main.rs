@@ -59,13 +59,19 @@ fn main() -> Result<()> {
         .map(std::path::PathBuf::from)
         .unwrap_or_else(default_config_path);
 
-    // 2. Load config
+    // 2. Load config — detect absence before loading so we can give a graceful notice
+    let config_absent = !config_path.exists();
     let config_adapter =
         rusty_commit_lister::adapters::toml_config::TomlConfigAdapter::new(config_path);
     let config = config_adapter.load().unwrap_or_else(|e| {
         eprintln!("Configuration error: {e}");
         std::process::exit(2);
     });
+
+    if config_absent {
+        println!("No config file found, using defaults");
+        return Ok(());
+    }
 
     // 3. Probe vault (fatal)
     let vault = rusty_commit_lister::adapters::walkdir_vault::WalkdirScanAdapter::new(
@@ -118,9 +124,16 @@ fn main() -> Result<()> {
             },
         )?;
     } else {
-        println!("Found {} commits:", model.commit_rows.len());
-        for r in &model.commit_rows {
-            println!("  {} {} - {}", r.date, r.time, r.message);
+        if model.commit_rows.is_empty() {
+            println!(
+                "No commits found in the last {} days",
+                model.config.scan_days_back
+            );
+        } else {
+            println!("Found {} commits:", model.commit_rows.len());
+            for r in &model.commit_rows {
+                println!("  {} {} - {}", r.date, r.time, r.message);
+            }
         }
     }
 

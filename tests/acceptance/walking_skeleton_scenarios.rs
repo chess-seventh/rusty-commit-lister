@@ -81,7 +81,6 @@ fn tool_loads_commits_from_vault_and_exits_successfully() {
 ///   Then the process exits with code 2
 ///   And stderr contains an actionable error mentioning scan_days_back and the config path
 #[test]
-#[ignore = "pending: US-01 config validation RED scaffold"]
 fn invalid_scan_days_back_exits_with_code_2_and_actionable_error() {
     let config_dir = TempDir::new().expect("failed to create config tempdir");
     let vault_dir = TempDir::new().expect("failed to create vault tempdir");
@@ -105,7 +104,6 @@ fn invalid_scan_days_back_exits_with_code_2_and_actionable_error() {
 ///   Then the process exits with code 0
 ///   And stdout contains a notice about using defaults
 #[test]
-#[ignore = "pending: US-01 missing config fallback RED scaffold"]
 fn missing_config_uses_defaults_and_shows_notice() {
     let tmp = TempDir::new().expect("failed to create tempdir");
     let nonexistent = tmp.path().join("does_not_exist.toml");
@@ -128,7 +126,6 @@ fn missing_config_uses_defaults_and_shows_notice() {
 ///   Then the process exits with code 0
 ///   And commits from the emoji-named vault are found and displayed
 #[test]
-#[ignore = "pending: US-01 unicode path OsString RED scaffold"]
 fn vault_path_with_emoji_segment_is_resolved_correctly() {
     let base_dir = TempDir::new().expect("failed to create base tempdir");
     let config_dir = TempDir::new().expect("failed to create config tempdir");
@@ -161,7 +158,6 @@ fn vault_path_with_emoji_segment_is_resolved_correctly() {
 ///   Then exit code is 0
 ///   And no ANSI escape sequences remain in the terminal output
 #[test]
-#[ignore = "pending: US-03 TUI exit RED scaffold"]
 fn tool_exits_cleanly_with_code_0_when_q_pressed() {
     let config_dir = TempDir::new().expect("failed to create config tempdir");
     let vault_dir = TempDir::new().expect("failed to create vault tempdir");
@@ -186,7 +182,6 @@ fn tool_exits_cleanly_with_code_0_when_q_pressed() {
 ///   Then exit code is 0
 ///   And stdout contains text indicating no commits were found for the scan window
 #[test]
-#[ignore = "pending: US-03 empty state RED scaffold"]
 fn empty_vault_shows_informative_empty_state() {
     let config_dir = TempDir::new().expect("failed to create config tempdir");
     let vault_dir = TempDir::new().expect("failed to create vault tempdir");
