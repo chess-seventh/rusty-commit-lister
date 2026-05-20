@@ -28,7 +28,6 @@ fn write_config_file(dir: &std::path::Path, content: &str) -> std::path::PathBuf
 ///   Then no config warning or error message appears in stdout/stderr
 ///   And the binary proceeds to scan
 #[test]
-#[ignore = "pending: US-01 TomlConfigAdapter load RED scaffold"]
 fn valid_config_loads_silently_with_no_config_messages() {
     let config_dir = TempDir::new().expect("tempdir");
     let vault_dir = TempDir::new().expect("tempdir");
@@ -70,7 +69,6 @@ fn valid_config_loads_silently_with_no_config_messages() {
 ///   Then exit code is 0 (not an error)
 ///   And stdout contains a notice about using defaults including the expected config path
 #[test]
-#[ignore = "pending: US-01 default fallback notice RED scaffold"]
 fn missing_config_triggers_default_fallback_notice() {
     let tmp = TempDir::new().expect("tempdir");
     let nonexistent_config = tmp.path().join("not_here.toml");
@@ -93,7 +91,6 @@ fn missing_config_triggers_default_fallback_notice() {
 ///   Then all notes at the emoji path are found and parsed
 ///   And no silent data loss occurs from path encoding (exit 0, commits in output)
 #[test]
-#[ignore = "pending: US-01 unicode OsString path RED scaffold"]
 fn unicode_emoji_vault_path_resolves_correctly() {
     let base = TempDir::new().expect("tempdir");
     let config_dir = TempDir::new().expect("tempdir");
@@ -134,7 +131,6 @@ fn unicode_emoji_vault_path_resolves_correctly() {
 ///   Then exit code is 2
 ///   And stderr names the invalid field and the config file path to fix
 #[test]
-#[ignore = "pending: US-01 scan_days_back = 0 validation RED scaffold"]
 fn scan_days_back_zero_exits_code_2_with_actionable_error() {
     let config_dir = TempDir::new().expect("tempdir");
     let vault_dir = TempDir::new().expect("tempdir");
@@ -163,7 +159,6 @@ fn scan_days_back_zero_exits_code_2_with_actionable_error() {
 ///   Then exit code is 2
 ///   And the error message names the invalid value and the config file path
 #[test]
-#[ignore = "pending: US-01 scan_days_back negative validation RED scaffold"]
 fn scan_days_back_negative_exits_code_2_and_names_the_value() {
     let config_dir = TempDir::new().expect("tempdir");
     let vault_dir = TempDir::new().expect("tempdir");

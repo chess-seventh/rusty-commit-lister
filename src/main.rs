@@ -61,6 +61,7 @@ fn main() -> Result<()> {
 
     // 2. Load config — detect absence before loading so we can give a graceful notice
     let config_absent = !config_path.exists();
+    let config_path_display = config_path.display().to_string();
     let config_adapter =
         rusty_commit_lister::adapters::toml_config::TomlConfigAdapter::new(config_path);
     let config = config_adapter.load().unwrap_or_else(|e| {
@@ -69,7 +70,7 @@ fn main() -> Result<()> {
     });
 
     if config_absent {
-        println!("No config file found, using defaults");
+        println!("No config file found at {config_path_display}, using defaults");
         return Ok(());
     }
 
