@@ -2,9 +2,10 @@ use ratatui::Frame;
 use ratatui::layout::{Constraint, Direction, Layout};
 use ratatui::style::{Style, Stylize};
 use ratatui::text::Text;
-use ratatui::widgets::{Block, Borders, Cell, Paragraph, Row, Table, TableState};
+use ratatui::widgets::{Block, Borders, Cell, List, ListItem, Paragraph, Row, Table, TableState};
 
 use crate::domain::model::{AppModel, AppMode, CommitRecord};
+use crate::domain::update::distinct_repos;
 
 /// Truncates a string to at most `max_chars` Unicode scalar values.
 ///
@@ -125,6 +126,33 @@ fn render_detail_overlay(model: &AppModel, frame: &mut Frame, area: ratatui::lay
     frame.render_widget(paragraph, area);
 }
 
+/// Renders the repository picker overlay listing all distinct repos with their commit counts.
+///
+/// Each entry is formatted as "{repo_name} ({count})".
+/// The row at `model.picker_cursor` is highlighted with a reversed style.
+/// Repos are listed in the order returned by `distinct_repos`: count descending, name ascending.
+///
+/// Pure render — reads model, writes frame, no mutation.
+fn render_repo_picker(model: &AppModel, frame: &mut Frame, area: ratatui::layout::Rect) {
+    let repos = distinct_repos(&model.commit_rows);
+    let items: Vec<ListItem> = repos
+        .iter()
+        .enumerate()
+        .map(|(i, (name, count))| {
+            let text = format!("{name} ({count})");
+            let style = if i == model.picker_cursor {
+                Style::new().reversed()
+            } else {
+                Style::default()
+            };
+            ListItem::new(text).style(style)
+        })
+        .collect();
+    let list = List::new(items)
+        .block(Block::default().borders(Borders::ALL).title("Repo Filter"));
+    frame.render_widget(list, area);
+}
+
 fn render_main_area(model: &AppModel, frame: &mut Frame, area: ratatui::layout::Rect) {
     if model.loading {
         frame.render_widget(Paragraph::new("Loading..."), area);
@@ -143,6 +171,11 @@ fn render_main_area(model: &AppModel, frame: &mut Frame, area: ratatui::layout::
 
     if model.mode == AppMode::Detail {
         render_detail_overlay(model, frame, area);
+        return;
+    }
+
+    if model.mode == AppMode::RepoPicker {
+        render_repo_picker(model, frame, area);
         return;
     }
 
@@ -201,10 +234,19 @@ fn render_status_bar(model: &AppModel, frame: &mut Frame, area: ratatui::layout:
     let status_text = match model.mode {
         AppMode::Search => search_status_text(model.filtered_rows.len(), model.commit_rows.len()),
         AppMode::Detail => "c copy | Esc return".to_string(),
-        _ => {
-            let total = model.filtered_rows.len();
-            let cursor_one_based = if total == 0 { 0 } else { model.cursor + 1 };
-            format_status_text(cursor_one_based, total)
+        AppMode::RepoPicker => "j/k select | Enter confirm | Esc cancel".to_string(),
+        AppMode::Browse => {
+            if let Some(ref name) = model.active_repo_filter {
+                format!(
+                    "{name} \u{2022} {}/{} commits | f clear | q quit",
+                    model.filtered_rows.len(),
+                    model.commit_rows.len()
+                )
+            } else {
+                let total = model.filtered_rows.len();
+                let cursor_one_based = if total == 0 { 0 } else { model.cursor + 1 };
+                format_status_text(cursor_one_based, total)
+            }
         }
     };
     frame.render_widget(Paragraph::new(status_text), area);
