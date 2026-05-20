@@ -135,3 +135,20 @@ through RED→GREEN→COMMIT.
 **Mutation**: 28.6% (2/7) on main.rs composition root. The 2 caught mutants cover the new config_absent
 and empty-vault logic. The 5 missed are pre-existing boilerplate (default_config_path helper,
 verbosity counting, clipboard warning) not exercised by acceptance tests. Domain/view logic at ≥95.9%.
+
+## Slice-08: Config Acceptance Tests (2026-05-20)
+
+**Shipped**: All 5 deferred `config_scenarios.rs` acceptance tests activated. No ignored tests remain
+in `tests/acceptance/`. Four tests passed after unskipping (valid config silent load, unicode emoji
+path, scan_days_back=0 exit-2, scan_days_back=-1 TOML parse error). One required a fix: the missing-
+config notice now prints the config path so `missing_config_triggers_default_fallback_notice` can
+assert it. 1 step TDD'd through RED→GREEN→COMMIT.
+
+**Key design choice**:
+- `config_path_display = config_path.display().to_string()` captured before `config_path` is moved
+  into `TomlConfigAdapter::new()` — Rust ownership prevents using `config_path` after move; capturing
+  display string before the move is the idiomatic solution.
+- All 4 error-path tests (scan_days_back validation, TOML parse error) passed without code changes —
+  the `toml` 0.8 serde deserializer includes the field name in error messages for type mismatches.
+
+**Mutation**: 28.6% (2/7) on main.rs — same pre-existing composition-root gaps as slice-07 (default_config_path, verbosity count, clipboard warning). No new gaps introduced.

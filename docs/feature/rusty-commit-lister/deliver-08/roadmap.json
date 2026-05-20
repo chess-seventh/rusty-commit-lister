@@ -1,0 +1,45 @@
+{
+  "roadmap": {
+    "project_id": "rusty-commit-lister",
+    "slice": "08-config-acceptance-tests",
+    "created_at": "2026-05-20T00:00:00Z",
+    "total_steps": 1
+  },
+  "phases": [
+    {
+      "id": "08",
+      "name": "Slice-08 Config Acceptance Tests",
+      "steps": [
+        {
+          "id": "08-01",
+          "name": "Enable 5 deferred config acceptance tests + fix missing-config notice to include path",
+          "criteria": [
+            "Remove #[ignore] from all 5 tests in tests/acceptance/config_scenarios.rs: valid_config_loads_silently_with_no_config_messages, missing_config_triggers_default_fallback_notice, unicode_emoji_vault_path_resolves_correctly, scan_days_back_zero_exits_code_2_with_actionable_error, scan_days_back_negative_exits_code_2_and_names_the_value",
+            "valid_config_loads_silently_with_no_config_messages: exits 0, no config-error messages in stdout/stderr — no code change needed",
+            "unicode_emoji_vault_path_resolves_correctly: exits 0, stdout contains 'commit' or 'Commit' — no code change needed",
+            "scan_days_back_zero_exits_code_2_with_actionable_error: exits 2, stderr contains 'scan_days_back' and the config file path — no code change needed",
+            "scan_days_back_negative_exits_code_2_and_names_the_value: exits 2, stderr contains 'scan_days_back' and the config file path — no code change needed",
+            "missing_config_triggers_default_fallback_notice: exits 0, stdout contains 'defaults' AND the config file path — requires main.rs fix: change println! to include config_path in the notice",
+            "All 87 existing tests still pass after changes",
+            "All 5 previously-ignored tests now active and passing"
+          ],
+          "test_file": "tests/acceptance/config_scenarios.rs",
+          "scenario_name": "missing_config_triggers_default_fallback_notice",
+          "files_to_modify": ["src/main.rs", "tests/acceptance/config_scenarios.rs"],
+          "implementation_notes": "In src/main.rs, around line 71-74, the current code is: `if config_absent { println!(\"No config file found, using defaults\"); return Ok(()); }`. Change the println! to include the config path: `println!(\"No config file found at {}, using defaults\", config_path.display());`. Note: config_path is consumed by TomlConfigAdapter::new() before this block, so you must capture a display-able copy before that. Options: (a) capture `let config_path_display = config_path.display().to_string();` before passing config_path to TomlConfigAdapter::new(); or (b) clone config_path before passing it. Then use that string/clone in the println!. In tests/acceptance/config_scenarios.rs: remove the `#[ignore = \"pending: ...\"]` attribute line from all 5 test functions. Do NOT change test logic."
+        }
+      ]
+    }
+  ],
+  "implementation_scope": {
+    "source_directories": ["src/"],
+    "test_directories": ["tests/acceptance/"],
+    "excluded_patterns": ["target/**", "*.lock"]
+  },
+  "validation": {
+    "status": "approved",
+    "reviewer": "orchestrator-direct",
+    "approved_at": "2026-05-20T00:00:00Z",
+    "note": "1-step scope for slice-08. 4 of 5 tests pass after unskipping. Only missing_config_triggers_default_fallback_notice needs a code fix: include config_path in the notice println!."
+  }
+}

@@ -1106,3 +1106,49 @@ Walking skeleton suite: 6 of 6 active, 0 ignored.
 | Phase 3 — L1-L6 Refactor | PASS — minimal fix; no separate refactor commit needed |
 | Phase 5 — Mutation Testing | NOTE — 28.6% kill rate on main.rs (composition root); domain/view at ≥95.9% from prior slices |
 | Phase 6 — DES Integrity | PASS — `des-verify-integrity` exit 0, 1/1 steps |
+
+## Wave: DELIVER / [REF] Implementation Summary — Slice-08
+
+Slice-08 activates the 5 deferred acceptance test scaffolds in `config_scenarios.rs`. Four tests passed
+immediately after unskipping (valid config loads silently, unicode emoji path, `scan_days_back = 0`
+exit-code-2, `scan_days_back = -1` TOML parse error). One required a `src/main.rs` fix:
+`missing_config_triggers_default_fallback_notice` expected stdout to contain the config file path in
+addition to "defaults", but the existing notice was `"No config file found, using defaults"`. Fix:
+capture `config_path_display = config_path.display().to_string()` before moving `config_path` into
+`TomlConfigAdapter::new()`, then use it in `println!("No config file found at {config_path_display}, using defaults")`.
+
+All 5 `config_scenarios.rs` tests are now active and green. No ignored tests remain in `tests/acceptance/`.
+
+## Wave: DELIVER / [REF] Files Modified — Slice-08
+
+**Production**
+- `src/main.rs` — capture `config_path_display` before config_path move; include path in missing-config notice
+
+**Tests**
+- `tests/acceptance/config_scenarios.rs` — removed `#[ignore]` from all 5 deferred tests
+
+## Wave: DELIVER / [REF] Scenarios Green — Slice-08
+
+92 of 92 active tests pass. No ignored tests remain in the acceptance suite.
+
+## Wave: DELIVER / [REF] DoD Check — Slice-08
+
+| DoD Item | Status |
+|---|---|
+| All active tests green | PASS — 92/92 pass |
+| Walking skeleton green | PASS |
+| No `panic!` in production | PASS |
+| `#![forbid(unsafe_code)]` enforced | PASS |
+| Domain layer has zero adapter/TUI imports | PASS |
+| L1-L6 RPP refactor complete | PASS — minimal fix; no separate refactor commit needed |
+| Mutation kill rate ≥ 80% | NOTE — 28.6% (2/7) on main.rs composition root; same pre-existing gaps as slice-07 |
+| DES integrity verification passes | PASS — all 1 steps have complete traces |
+
+## Wave: DELIVER / [REF] Quality Gates — Slice-08
+
+| Phase | Outcome |
+|---|---|
+| Phase 2 — All Steps | PASS — commit `dacf6fe` |
+| Phase 3 — L1-L6 Refactor | PASS — minimal fix; no separate refactor commit needed |
+| Phase 5 — Mutation Testing | NOTE — 28.6% kill rate on main.rs (same composition-root gaps as slice-07) |
+| Phase 6 — DES Integrity | PASS — `des-verify-integrity` exit 0, 1/1 steps |

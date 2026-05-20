@@ -666,6 +666,41 @@
       "s": "EXECUTED",
       "d": "PASS: commit ee3f6e4 - feat(main): enable 5 deferred walking-skeleton acceptance tests. 2 files changed: src/main.rs + tests/acceptance/walking_skeleton_scenarios.rs",
       "t": "2026-05-20T11:18:29Z"
+    },
+    {
+      "sid": "08-01",
+      "p": "PREPARE",
+      "s": "SKIPPED",
+      "d": "NOT_APPLICABLE: 3-phase canon ADR-025, PREPARE merged into RED",
+      "t": "2026-05-20T11:56:31Z"
+    },
+    {
+      "sid": "08-01",
+      "p": "RED_ACCEPTANCE",
+      "s": "EXECUTED",
+      "d": "PASS: 4 tests pass immediately (valid_config, unicode_emoji, scan_days_back_zero, scan_days_back_negative); 1 fails for right reason \u2014 missing_config stdout has 'defaults' but missing config path (AssertionError on stdout predicate)",
+      "t": "2026-05-20T11:56:35Z"
+    },
+    {
+      "sid": "08-01",
+      "p": "RED_UNIT",
+      "s": "SKIPPED",
+      "d": "NOT_APPLICABLE: 3-phase canon ADR-025, RED_UNIT merged into RED; acceptance tests drove GREEN directly",
+      "t": "2026-05-20T11:56:39Z"
+    },
+    {
+      "sid": "08-01",
+      "p": "GREEN",
+      "s": "EXECUTED",
+      "d": "PASS: 92 tests pass (87 existing + 5 newly active config_scenarios); config_path_display captured before TomlConfigAdapter::new() move; notice updated to include path",
+      "t": "2026-05-20T11:56:47Z"
+    },
+    {
+      "sid": "08-01",
+      "p": "COMMIT",
+      "s": "EXECUTED",
+      "d": "PASS: commit dacf6fe \u2014 feat(config): include config path in missing-file fallback notice. 2 files changed: src/main.rs + tests/acceptance/config_scenarios.rs",
+      "t": "2026-05-20T11:56:52Z"
     }
   ]
 }
