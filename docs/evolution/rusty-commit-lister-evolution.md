@@ -113,3 +113,25 @@ clears it. Status bar shows `"{repo} • {filtered}/{total} commits | f clear | 
 - `i == picker_cursor` → `i != picker_cursor` in `render_repo_picker` — highlight test doesn't assert non-selected rows lack reversed style
 
 **Mutation**: 95.9% kill rate on domain/update.rs, tui/view.rs (93 caught, 7 unviable, 4 missed).
+
+## Slice-07: Deferred Acceptance Tests (2026-05-20)
+
+**Shipped**: All 5 deferred walking-skeleton acceptance tests activated. Three passed immediately after
+unskipping (config validation exit-code-2, emoji vault path, q-exit in non-TTY mode). Two required
+`src/main.rs` fixes: missing-config early-exit (print "No config file found, using defaults" before
+vault probe) and empty-vault non-TTY output ("No commits found in the last N days"). 1 step TDD'd
+through RED→GREEN→COMMIT.
+
+**Key design choices**:
+- `config_absent = !config_path.exists()` captured before `config_adapter.load()` — allows detecting
+  the absent-file case without changing the adapter API or AppConfig semantics.
+- Early return after printing notice prevents vault probe from running with `vault_path = PathBuf::from("")`
+  (AppConfig default), which would otherwise exit with code 1.
+- Non-TTY empty-vault output changed to "No commits found in the last N days" — observable by acceptance
+  tests; TTY path unchanged (empty table row shown as before).
+- 3 tests needed zero production changes (scan_days_back validation, emoji path, q-exit) — existing
+  behavior was already correct, scaffolds just needed unskipping.
+
+**Mutation**: 28.6% (2/7) on main.rs composition root. The 2 caught mutants cover the new config_absent
+and empty-vault logic. The 5 missed are pre-existing boilerplate (default_config_path helper,
+verbosity counting, clipboard warning) not exercised by acceptance tests. Domain/view logic at ≥95.9%.

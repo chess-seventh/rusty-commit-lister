@@ -1,0 +1,48 @@
+{
+  "schema_version": "3.0",
+  "feature_id": "rusty-commit-lister",
+  "events": [
+    {
+      "sid": "07-01",
+      "p": "PREPARE",
+      "s": "SKIPPED",
+      "d": "NOT_APPLICABLE: 3-phase canon ADR-025, PREPARE merged into RED",
+      "t": "2026-05-20T11:16:16Z"
+    },
+    {
+      "sid": "07-01",
+      "p": "RED_ACCEPTANCE",
+      "s": "SKIPPED",
+      "d": "NOT_APPLICABLE: 3-phase canon ADR-025, no pre-distilled AT scaffold separate from RED for this step",
+      "t": "2026-05-20T11:16:20Z"
+    },
+    {
+      "sid": "07-01",
+      "p": "RED_UNIT",
+      "s": "SKIPPED",
+      "d": "NOT_APPLICABLE: 3-phase canon ADR-025, RED_UNIT merged into RED",
+      "t": "2026-05-20T11:16:25Z"
+    },
+    {
+      "sid": "07-01",
+      "p": "RED_ACCEPTANCE",
+      "s": "EXECUTED",
+      "d": "PASS: 5 ignore annotations removed; 3 tests pass immediately; 2 fail for right business reason (missing_config exits code 1 not 0; empty_vault prints Found 0 commits not No commits)",
+      "t": "2026-05-20T11:16:32Z"
+    },
+    {
+      "sid": "07-01",
+      "p": "GREEN",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-05-20T11:17:22Z"
+    },
+    {
+      "sid": "07-01",
+      "p": "COMMIT",
+      "s": "EXECUTED",
+      "d": "PASS",
+      "t": "2026-05-20T11:17:43Z"
+    }
+  ]
+}

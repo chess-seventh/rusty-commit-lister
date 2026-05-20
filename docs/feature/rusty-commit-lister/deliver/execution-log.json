@@ -631,6 +631,41 @@
       "s": "EXECUTED",
       "d": "PASS: commit 0875066 \u2014 feat(tui): RepoPicker overlay and filter-active status bar. 2 files changed, 206 insertions(+), 5 deletions(-)",
       "t": "2026-05-20T05:31:25Z"
+    },
+    {
+      "sid": "07-01",
+      "p": "PREPARE",
+      "s": "SKIPPED",
+      "d": "NOT_APPLICABLE: 3-phase canon ADR-025, PREPARE merged into RED",
+      "t": "2026-05-20T11:18:13Z"
+    },
+    {
+      "sid": "07-01",
+      "p": "RED_ACCEPTANCE",
+      "s": "EXECUTED",
+      "d": "PASS: 5 ignore annotations removed; 3 tests pass immediately (invalid_scan_days_back, emoji_path, q_pressed); 2 fail for right business reason (missing_config exits code 1 not 0; empty_vault prints Found 0 commits not No commits)",
+      "t": "2026-05-20T11:18:17Z"
+    },
+    {
+      "sid": "07-01",
+      "p": "RED_UNIT",
+      "s": "SKIPPED",
+      "d": "NOT_APPLICABLE: 3-phase canon ADR-025, RED_UNIT merged into RED; acceptance tests drove GREEN directly",
+      "t": "2026-05-20T11:18:20Z"
+    },
+    {
+      "sid": "07-01",
+      "p": "GREEN",
+      "s": "EXECUTED",
+      "d": "PASS: 87 tests pass (5 previously-ignored walking skeleton tests now active); config_absent early-exit with defaults notice added to main.rs; non-TTY empty-vault branch now prints No commits found in the last N days",
+      "t": "2026-05-20T11:18:25Z"
+    },
+    {
+      "sid": "07-01",
+      "p": "COMMIT",
+      "s": "EXECUTED",
+      "d": "PASS: commit ee3f6e4 - feat(main): enable 5 deferred walking-skeleton acceptance tests. 2 files changed: src/main.rs + tests/acceptance/walking_skeleton_scenarios.rs",
+      "t": "2026-05-20T11:18:29Z"
     }
   ]
 }
