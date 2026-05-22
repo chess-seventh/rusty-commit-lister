@@ -3,27 +3,24 @@ name = "rusty_commit_lister"
 path = "src/main.rs"
 
 [dependencies]
-clap = {version = "4.5.53", features = ["derive", "env"]}
-tokio = {version = "1.48.0", features = ["full"]}
+clap = {version = "4.6.1", features = ["derive", "env"]}
 serde = {version = "1.0.228", features = ["derive"]}
-anyhow = "1.0.100"
-thiserror = "2.0.17"
-tracing = "0.1.43"
-tracing-subscriber = {version = "0.3", features = ["env-filter"]}
-ratatui = "0.26"
-crossterm = "0.27"
-chrono = {version = "0.4", features = ["serde"]}
-walkdir = "2"
-toml = "0.8"
-arboard = "3"
+anyhow = "1.0.102"
+thiserror = "2.0.18"
+tracing = "0.1.44"
+tracing-subscriber = {version = "0.3.23", features = ["env-filter"]}
+ratatui = "0.30.0"
+crossterm = "0.29.0"
+chrono = {version = "0.4.44", features = ["serde"]}
+walkdir = "2.5.0"
+toml = "0.8.23"
+arboard = "3.6.1"
 
 [dev-dependencies]
-tokio-test = "0.4"
-tempfile = "3.23.0"
-assert_cmd = "2.1.1"
-predicates = "3.1.3"
-criterion = {version = "0.5", features = ["html_reports"]}
-proptest = "1.4"
+tempfile = "3.27.0"
+assert_cmd = "2.2.2"
+predicates = "3.1.4"
+proptest = "1.11.0"
 
 [features]
 default = []
@@ -32,9 +29,9 @@ default = []
 name = "rusty_commit_lister"
 version = "0.1.0"
 edition = "2021"
-authors = [" <>"]
-license = ""
-description = ""
+authors = ["Chess Seventh <chess7th@pm.me>"]
+license = "MIT"
+description = "Commit Lister from my Obsidian Vault"
 homepage = "https://github.com//rusty-commit-lister"
 repository = "https://github.com//rusty-commit-lister"
 documentation = "https://docs.rs/rusty_commit_lister"
