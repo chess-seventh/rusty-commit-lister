@@ -7,7 +7,7 @@ use crate::domain::model::CommitRecord;
 
 /// All events that can drive state transitions in the Elm/MVU update function.
 ///
-/// The TUI event loop translates crossterm keyboard events into AppEvent variants
+/// The TUI event loop translates crossterm keyboard events into `AppEvent` variants
 /// and dispatches them to `update(model, event) -> AppModel`.
 #[derive(Debug, Clone)]
 pub enum AppEvent {

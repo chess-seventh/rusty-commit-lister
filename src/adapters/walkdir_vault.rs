@@ -11,7 +11,7 @@ use crate::ports::config_port::Probe;
 use crate::ports::vault_port::VaultScanPort;
 
 /// Maximum directory depth to walk when scanning the vault.
-/// Prevents accidental full-filesystem traversal if vault_path is misconfigured.
+/// Prevents accidental full-filesystem traversal if `vault_path` is misconfigured.
 const VAULT_SCAN_MAX_DEPTH: usize = 10;
 
 /// Adapter that walks the Obsidian vault directory using `walkdir 2`,
@@ -19,8 +19,8 @@ const VAULT_SCAN_MAX_DEPTH: usize = 10;
 /// `parse_note()` on each discovered file.
 ///
 /// Unicode path handling: `vault_path` may contain emoji (e.g. `📅 Diaries`).
-/// The adapter relies on `PathBuf` / `OsString` for all path operations — no
-/// manual string manipulation of paths. WalkDir handles OsStr natively; OQ-1
+/// The adapter relies on `PathBuf` / `OsString` for all path operations - no
+/// manual string manipulation of paths. `WalkDir` handles `OsStr` natively; OQ-1
 /// is resolved.
 ///
 /// Probe contract: verify `vault_path` exists and is a directory.
@@ -42,7 +42,7 @@ impl Probe for WalkdirScanAdapter {
         } else {
             Err(RustyCommitListerError::vault(format!(
                 "vault path {:?} does not exist or is not a directory",
-                self.vault_path
+                self.vault_path.display()
             )))
         }
     }
@@ -51,12 +51,12 @@ impl Probe for WalkdirScanAdapter {
 impl VaultScanPort for WalkdirScanAdapter {
     fn scan(&self, days_back: u32) -> Result<Vec<CommitRecord>> {
         let today = Local::now().date_naive();
-        let window_start = today - chrono::Duration::days(days_back as i64);
+        let window_start = today - chrono::Duration::days(i64::from(days_back));
 
         let mut records: Vec<CommitRecord> = WalkDir::new(&self.vault_path)
             .max_depth(VAULT_SCAN_MAX_DEPTH)
             .into_iter()
-            .filter_map(|entry_result| entry_result.ok())
+            .filter_map(std::result::Result::ok)
             .filter(|entry| entry.path().extension() == Some(OsStr::new("md")))
             .filter_map(|entry| {
                 let stem = entry.path().file_stem().and_then(|s| s.to_str())?;

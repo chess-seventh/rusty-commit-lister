@@ -1,20 +1,21 @@
-/// Update Function Unit Tests — rusty-commit-lister
+#![allow(clippy::redundant_closure)]
+/// Update Function Unit Tests - rusty-commit-lister
 ///
 /// Tags: @US-03 @US-06 @US-07 @US-09 @in-memory
 ///
 /// Tests for `update(model: AppModel, event: AppEvent) -> AppModel`.
-/// Layer: unit — pure function, no subprocess, no I/O.
+/// Layer: unit - pure function, no subprocess, no I/O.
 ///
 /// PBT layer (Mandate 9): proptest used for state machine invariant (layer 1-2).
-/// State-delta (Mandate 8): assert on port-exposed AppModel fields only.
-/// Universe entries are observable AppModel fields (cursor, mode, search_query, etc.)
-/// — never internal struct layout details.
+/// State-delta (Mandate 8): assert on port-exposed `AppModel` fields only.
+/// Universe entries are observable `AppModel` fields (`cursor`, `mode`, `search_query`, etc.)
+/// - never internal struct layout details.
 ///
 /// Chained narrative (Pillar 2):
 ///   - Browse mode scenarios build on the initial Browse state (S0)
 ///   - Search scenarios reuse the result of the "/" transition (S1)
 ///   - Detail scenarios reuse the result of Enter on a loaded model (S2)
-///   - RepoPicker scenarios reuse S0 with loaded data
+///   - `RepoPicker` scenarios reuse S0 with loaded data
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 use rusty_commit_lister::domain::events::AppEvent;
@@ -119,7 +120,7 @@ fn j_key_at_last_row_wraps_cursor_to_zero() {
 ///   Given Browse mode with commits loaded
 ///   When the "/" key is pressed
 ///   Then mode becomes Search
-///   And search_query is empty
+///   And `search_query` is empty
 ///   And cursor is unchanged
 #[test]
 fn slash_key_transitions_browse_to_search_mode() {
@@ -142,11 +143,11 @@ fn slash_key_transitions_browse_to_search_mode() {
 /// @US-06 @in-memory
 ///
 /// Scenario: Esc in Search mode restores Browse mode and clears the query
-///   Given Search mode with search_query = "rusty"
+///   Given Search mode with `search_query` = "rusty"
 ///   When Esc is pressed
 ///   Then mode becomes Browse
-///   And search_query is empty
-///   And filtered_rows equals commit_rows (all rows visible)
+///   And `search_query` is empty
+///   And `filtered_rows` equals `commit_rows` (all rows visible)
 #[test]
 fn esc_in_search_mode_restores_browse_and_clears_query() {
     let model = loaded_browse_model();
@@ -181,11 +182,11 @@ fn esc_in_search_mode_restores_browse_and_clears_query() {
 /// @US-06 @in-memory
 ///
 /// Scenario: Enter in Search mode confirms search and returns to Browse
-///   Given Search mode with search_query = "feat" and 1 filtered row
+///   Given Search mode with `search_query` = "feat" and 1 filtered row
 ///   When Enter is pressed
 ///   Then mode returns to Browse
-///   And search_query is preserved ("feat" — confirm, not cancel)
-///   And filtered_rows remains as-is (1 row — not reset to all rows)
+///   And `search_query` is preserved ("feat" - confirm, not cancel)
+///   And `filtered_rows` remains as-is (1 row - not reset to all rows)
 ///   And cursor resets to 0 (start of filtered result set)
 #[test]
 fn enter_in_search_mode_confirms_and_returns_to_browse() {
@@ -199,15 +200,33 @@ fn enter_in_search_mode_confirms_and_returns_to_browse() {
             AppEvent::KeyPress(KeyEvent::new(KeyCode::Char(ch), KeyModifiers::NONE)),
         )
     });
-    assert_eq!(with_query.search_query, "feat", "precondition: query is 'feat'");
-    assert_eq!(with_query.filtered_rows.len(), 1, "precondition: 1 filtered row");
-    assert_eq!(with_query.mode, AppMode::Search, "precondition: Search mode");
+    assert_eq!(
+        with_query.search_query, "feat",
+        "precondition: query is 'feat'"
+    );
+    assert_eq!(
+        with_query.filtered_rows.len(),
+        1,
+        "precondition: 1 filtered row"
+    );
+    assert_eq!(
+        with_query.mode,
+        AppMode::Search,
+        "precondition: Search mode"
+    );
 
     let after = update(with_query, key_event(KeyCode::Enter));
 
     assert_eq!(after.mode, AppMode::Browse, "Enter must return to Browse");
-    assert_eq!(after.search_query, "feat", "search_query must be preserved (confirm, not cancel)");
-    assert_eq!(after.filtered_rows.len(), 1, "filtered_rows must remain filtered (not reset)");
+    assert_eq!(
+        after.search_query, "feat",
+        "search_query must be preserved (confirm, not cancel)"
+    );
+    assert_eq!(
+        after.filtered_rows.len(),
+        1,
+        "filtered_rows must remain filtered (not reset)"
+    );
     assert_eq!(after.cursor, 0, "cursor must reset to 0 on Enter");
 }
 
@@ -266,11 +285,11 @@ fn esc_in_detail_mode_returns_to_browse_preserving_cursor() {
 
 /// @US-09 @in-memory
 ///
-/// Scenario: "f" key in Browse mode transitions to RepoPicker mode
+/// Scenario: "f" key in Browse mode transitions to `RepoPicker` mode
 ///   Given Browse mode with commits loaded
 ///   When the f key is pressed
-///   Then mode becomes RepoPicker
-///   And picker_cursor is 0
+///   Then mode becomes `RepoPicker`
+///   And `picker_cursor` is 0
 #[test]
 fn f_key_in_browse_mode_transitions_to_repo_picker() {
     let model = loaded_browse_model();
@@ -289,14 +308,14 @@ fn f_key_in_browse_mode_transitions_to_repo_picker() {
 
 /// @US-06 @in-memory
 ///
-/// Scenario: SearchInput event with "feat" narrows filtered_rows to matching commits
+/// Scenario: `SearchInput` event with "feat" narrows `filtered_rows` to matching commits
 ///   Given 3 commits loaded (one with "feat", two without)
 ///   And Search mode is active
-///   When a char 'f', 'e', 'a', 't' is typed (SearchInput event sequence)
-///   Then filtered_rows contains only the commit with "feat" in the message
+///   When a char 'f', 'e', 'a', 't' is typed (`SearchInput` event sequence)
+///   Then `filtered_rows` contains only the commit with "feat" in the message
 ///   And the status shows "1 of 3 commits"
 ///
-/// Note: this tests the filtering logic via successive KeyPress events in Search mode.
+/// Note: this tests the filtering logic via successive `KeyPress` events in Search mode.
 #[test]
 fn search_input_event_narrows_filtered_rows_to_matching_commits() {
     let model = loaded_browse_model();
@@ -329,11 +348,11 @@ fn search_input_event_narrows_filtered_rows_to_matching_commits() {
 
 /// @US-03 @in-memory
 ///
-/// Scenario: LoadComplete event populates commit_rows and filtered_rows
-///   Given an initial model with empty commit_rows
-///   When LoadComplete([c1, c2, c3]) is dispatched
-///   Then commit_rows has 3 items
-///   And filtered_rows has 3 items (no filter active)
+/// Scenario: `LoadComplete` event populates `commit_rows` and `filtered_rows`
+///   Given an initial model with empty `commit_rows`
+///   When `LoadComplete([c1, c2, c3])` is dispatched
+///   Then `commit_rows` has 3 items
+///   And `filtered_rows` has 3 items (no filter active)
 ///   And loading is false
 #[test]
 fn load_complete_event_populates_commit_rows() {
@@ -366,12 +385,12 @@ fn load_complete_event_populates_commit_rows() {
 
 /// @US-03 @in-memory @error
 ///
-/// Scenario: LoadFailed event sets error_message and clears loading
+/// Scenario: `LoadFailed` event sets `error_message` and clears loading
 ///   Given an initial model
-///   When LoadFailed("vault not found") is dispatched
-///   Then error_message is set to the failure message
+///   When `LoadFailed("vault not found")` is dispatched
+///   Then `error_message` is set to the failure message
 ///   And loading is false
-///   And commit_rows remains empty
+///   And `commit_rows` remains empty
 #[test]
 fn load_failed_event_sets_error_message() {
     let config = AppConfig::default();
@@ -403,7 +422,7 @@ fn load_failed_event_sets_error_message() {
 fn make_model_with_rows(row_count: usize, page_size: usize, cursor: usize) -> AppModel {
     let config = AppConfig::default();
     let commits: Vec<CommitRecord> = (0..row_count)
-        .map(|i| make_commit(&format!("commit #{}", i), "https://github.com/franci/a"))
+        .map(|i| make_commit(&format!("commit #{i}"), "https://github.com/franci/a"))
         .collect();
     let mut model = AppModel::new(config);
     model.page_size = page_size;
@@ -417,9 +436,9 @@ fn make_model_with_rows(row_count: usize, page_size: usize, cursor: usize) -> Ap
 
 /// @US-03 @in-memory
 ///
-/// Scenario: PageDown in Browse mode advances cursor by page_size
-///   Given Browse mode with 25 rows, page_size=10, cursor at 0
-///   When PageDown is pressed
+/// Scenario: `PageDown` in Browse mode advances cursor by `page_size`
+///   Given Browse mode with 25 rows, `page_size=10`, cursor at 0
+///   When `PageDown` is pressed
 ///   Then cursor is 10
 #[test]
 fn page_down_advances_cursor_by_page_size() {
@@ -443,9 +462,9 @@ fn page_down_advances_cursor_by_page_size() {
 
 /// @US-03 @in-memory
 ///
-/// Scenario: PageDown clamps at last row — no wrap
-///   Given Browse mode with 25 rows, page_size=10, cursor at 18
-///   When PageDown is pressed
+/// Scenario: `PageDown` clamps at last row - no wrap
+///   Given Browse mode with 25 rows, `page_size=10`, cursor at 18
+///   When `PageDown` is pressed
 ///   Then cursor is 24 (last row), not 28 (which would exceed bounds)
 #[test]
 fn page_down_clamps_at_last_row() {
@@ -456,15 +475,15 @@ fn page_down_clamps_at_last_row() {
 
     assert_eq!(
         after.cursor, 24,
-        "cursor must clamp at last row (24) — no wrap beyond last row"
+        "cursor must clamp at last row (24) - no wrap beyond last row"
     );
 }
 
 /// @US-03 @in-memory
 ///
-/// Scenario: PageUp clamps at row 0 — no wrap
-///   Given Browse mode with 25 rows, page_size=10, cursor at 3
-///   When PageUp is pressed
+/// Scenario: `PageUp` clamps at row 0 - no wrap
+///   Given Browse mode with 25 rows, `page_size`=10, cursor at 3
+///   When `PageUp` is pressed
 ///   Then cursor is 0, not negative (wrapped)
 #[test]
 fn page_up_clamps_at_zero() {
@@ -475,15 +494,15 @@ fn page_up_clamps_at_zero() {
 
     assert_eq!(
         after.cursor, 0,
-        "cursor must clamp at 0 — no wrap when page moves beyond top"
+        "cursor must clamp at 0 - no wrap when page moves beyond top"
     );
 }
 
-// ─── Browse mode — quit and reload keys ──────────────────────────────────────
+// ─── Browse mode - quit and reload keys ──────────────────────────────────────
 
 /// @US-03 @in-memory
 ///
-/// Scenario: 'r' key in Browse mode triggers reload by setting loading = true
+/// Scenario: 'r' key in Browse mode triggers reload by setting `loading` = true
 ///   Given Browse mode with commits loaded
 ///   When 'r' is pressed
 ///   Then loading is true
@@ -494,7 +513,10 @@ fn r_key_in_browse_mode_sets_loading_true() {
 
     let after = update(model, key_event(KeyCode::Char('r')));
 
-    assert!(after.loading, "loading must be true after 'r' to signal reload");
+    assert!(
+        after.loading,
+        "loading must be true after 'r' to signal reload"
+    );
     assert_eq!(after.mode, AppMode::Browse, "mode must remain Browse");
 }
 
@@ -514,12 +536,12 @@ fn q_key_in_browse_mode_sets_quit_true() {
     assert!(after.quit, "quit must be true after 'q'");
 }
 
-// ─── Browse mode — empty rows guard ──────────────────────────────────────────
+// ─── Browse mode - empty rows guard ──────────────────────────────────────────
 
 /// @US-03 @in-memory
 ///
-/// Scenario: j key with empty filtered_rows is a no-op
-///   Given Browse mode with no commits (empty filtered_rows)
+/// Scenario: j key with empty `filtered_rows` is a no-op
+///   Given Browse mode with no commits (empty `filtered_rows`)
 ///   When j is pressed
 ///   Then cursor remains at 0 (no panic, no wrap)
 #[test]
@@ -536,8 +558,8 @@ fn j_key_with_empty_rows_is_noop() {
 
 /// @US-03 @in-memory
 ///
-/// Scenario: k key with empty filtered_rows is a no-op
-///   Given Browse mode with no commits (empty filtered_rows)
+/// Scenario: k key with empty `filtered_rows` is a no-op
+///   Given Browse mode with no commits (empty `filtered_rows`)
 ///   When k is pressed
 ///   Then cursor remains at 0 (no panic, no underflow)
 #[test]
@@ -554,9 +576,9 @@ fn k_key_with_empty_rows_is_noop() {
 
 /// @US-03 @in-memory
 ///
-/// Scenario: PageDown with empty filtered_rows is a no-op
+/// Scenario: `PageDown` with empty `filtered_rows` is a no-op
 ///   Given Browse mode with no commits
-///   When PageDown is pressed
+///   When `PageDown` is pressed
 ///   Then cursor remains at 0
 #[test]
 fn page_down_with_empty_rows_is_noop() {
@@ -571,13 +593,13 @@ fn page_down_with_empty_rows_is_noop() {
 
 /// @US-03 @in-memory
 ///
-/// Scenario: PageDown preserves cursor when search filter empties filtered_rows
-///   Given Browse mode with cursor at row 2 and active_repo_filter filtering out all rows
-///   When PageDown is pressed
+/// Scenario: `PageDown` preserves cursor when search filter empties `filtered_rows`
+///   Given Browse mode with cursor at row 2 and `active_repo_filter` filtering out all rows
+///   When `PageDown` is pressed
 ///   Then cursor stays at 2 (no navigation into empty list)
 ///
 /// This distinguishes `row_count > 0` from `row_count >= 0` (always true for usize):
-/// with >= the body would execute and .min(0) would drag cursor from 2 to 0.
+/// with >= the body would execute and `.min(0)` would drag cursor from 2 to 0.
 #[test]
 fn page_down_with_empty_filtered_rows_preserves_cursor() {
     let config = AppConfig::default();
@@ -596,22 +618,28 @@ fn page_down_with_empty_filtered_rows_preserves_cursor() {
     at_row_2.active_repo_filter = Some("no-such-repo".to_string());
     let empty_filtered = update(at_row_2, AppEvent::LoadComplete(commits));
 
-    assert!(empty_filtered.filtered_rows.is_empty(), "precondition: filter empties rows");
+    assert!(
+        empty_filtered.filtered_rows.is_empty(),
+        "precondition: filter empties rows"
+    );
     assert_eq!(empty_filtered.cursor, 2, "precondition: cursor is 2");
 
     let after = update(empty_filtered, key_event(KeyCode::PageDown));
 
-    assert_eq!(after.cursor, 2, "PageDown must not move cursor when filtered_rows is empty");
+    assert_eq!(
+        after.cursor, 2,
+        "PageDown must not move cursor when filtered_rows is empty"
+    );
 }
 
-// ─── Search mode — backspace and control chars ────────────────────────────────
+// ─── Search mode - backspace and control chars ────────────────────────────────
 
 /// @US-06 @in-memory
 ///
-/// Scenario: Backspace in Search mode removes the last character from search_query
+/// Scenario: `Backspace` in Search mode removes the last character from `search_query`
 ///   Given Search mode with query "feat"
-///   When Backspace is pressed
-///   Then search_query is "fea"
+///   When `Backspace` is pressed
+///   Then `search_query` is "fea"
 #[test]
 fn backspace_in_search_mode_removes_last_char() {
     let model = loaded_browse_model();
@@ -626,29 +654,38 @@ fn backspace_in_search_mode_removes_last_char() {
         ),
         key_event(KeyCode::Char('t')),
     );
-    assert_eq!(with_query.search_query, "feat", "precondition: query is 'feat'");
+    assert_eq!(
+        with_query.search_query, "feat",
+        "precondition: query is 'feat'"
+    );
 
     let after = update(with_query, key_event(KeyCode::Backspace));
 
-    assert_eq!(after.search_query, "fea", "Backspace must remove the last char");
+    assert_eq!(
+        after.search_query, "fea",
+        "Backspace must remove the last char"
+    );
 }
 
 /// @US-06 @in-memory
 ///
-/// Scenario: Control character is not appended to search_query in Search mode
+/// Scenario: Control character is not appended to `search_query` in Search mode
 ///   Given Search mode with empty query
-///   When a control char (KeyCode::Null) is pressed as a Char event
-///   Then search_query remains empty
+///   When a control char (`KeyCode::Null`) is pressed as a `Char` event
+///   Then `search_query` remains empty
 #[test]
 fn control_char_not_appended_in_search_mode() {
     let model = loaded_browse_model();
     let in_search = update(model, key_event(KeyCode::Char('/')));
     assert_eq!(in_search.search_query, "", "precondition: empty query");
 
-    let after = update(in_search, AppEvent::KeyPress(crossterm::event::KeyEvent::new(
-        KeyCode::Char('\x01'),
-        crossterm::event::KeyModifiers::CONTROL,
-    )));
+    let after = update(
+        in_search,
+        AppEvent::KeyPress(crossterm::event::KeyEvent::new(
+            KeyCode::Char('\x01'),
+            crossterm::event::KeyModifiers::CONTROL,
+        )),
+    );
 
     assert_eq!(after.search_query, "", "control chars must not be appended");
 }
@@ -657,29 +694,37 @@ fn control_char_not_appended_in_search_mode() {
 
 /// @US-09 @in-memory
 ///
-/// Scenario: Esc in RepoPicker mode returns to Browse mode
-///   Given RepoPicker mode (entered via 'f')
-///   When Esc is pressed
+/// Scenario: `Esc` in `RepoPicker` mode returns to Browse mode
+///   Given `RepoPicker` mode (entered via 'f')
+///   When `Esc` is pressed
 ///   Then mode returns to Browse
 #[test]
 fn esc_in_repo_picker_returns_to_browse() {
     let model = loaded_browse_model();
     let in_picker = update(model, key_event(KeyCode::Char('f')));
-    assert_eq!(in_picker.mode, AppMode::RepoPicker, "precondition: RepoPicker mode");
+    assert_eq!(
+        in_picker.mode,
+        AppMode::RepoPicker,
+        "precondition: RepoPicker mode"
+    );
 
     let after = update(in_picker, key_event(KeyCode::Esc));
 
-    assert_eq!(after.mode, AppMode::Browse, "Esc must return to Browse from RepoPicker");
+    assert_eq!(
+        after.mode,
+        AppMode::Browse,
+        "Esc must return to Browse from RepoPicker"
+    );
 }
 
 // ─── Repository filter ────────────────────────────────────────────────────────
 
 /// @US-09 @in-memory
 ///
-/// Scenario: active_repo_filter hides commits whose URL does not match
-///   Given a model with active_repo_filter set to "franci/a"
-///   When LoadComplete fires with 3 commits (only 1 matches the filter)
-///   Then filtered_rows contains only the matching commit
+/// Scenario: `active_repo_filter` hides commits whose URL does not match
+///   Given a model with `active_repo_filter` set to "franci/a"
+///   When `LoadComplete` fires with 3 commits (only 1 matches the filter)
+///   Then `filtered_rows` contains only the matching commit
 #[test]
 fn active_repo_filter_excludes_non_matching_commits() {
     let config = AppConfig::default();
@@ -709,15 +754,17 @@ fn active_repo_filter_excludes_non_matching_commits() {
 
 /// @US-05 @in-memory
 ///
-/// Scenario: c key in Detail mode with URL sets clipboard_pending
-///   Given Detail mode with clipboard_available=true and a row with URL
+/// Scenario: c key in Detail mode with URL sets `clipboard_pending`
+///   Given Detail mode with `clipboard_available=true` and a row with URL
 ///   When c is pressed
-///   Then clipboard_pending = Some(url)
-///   And status_message is unchanged (None)
+///   Then `clipboard_pending = Some(url)`
+///   And `status_message` is unchanged (`None`)
 #[test]
 fn c_key_in_detail_mode_with_url_sets_clipboard_pending() {
-    let mut config = AppConfig::default();
-    config.clipboard_available = true;
+    let config = AppConfig {
+        clipboard_available: true,
+        ..Default::default()
+    };
     let commits = vec![CommitRecord {
         folder: "/projects/repo".to_string(),
         time: "10:00".to_string(),
@@ -744,15 +791,17 @@ fn c_key_in_detail_mode_with_url_sets_clipboard_pending() {
 
 /// @US-05 @in-memory
 ///
-/// Scenario: c key in Detail mode without URL sets status_message
-///   Given Detail mode with clipboard_available=true and a row with url=None
+/// Scenario: c key in Detail mode without URL sets `status_message`
+///   Given Detail mode with `clipboard_available=true` and a row with url=None
 ///   When c is pressed
-///   Then status_message contains "no URL"
-///   And clipboard_pending remains None
+///   Then `status_message` contains "no URL"
+///   And `clipboard_pending` remains None
 #[test]
 fn c_key_in_detail_mode_without_url_sets_status_message() {
-    let mut config = AppConfig::default();
-    config.clipboard_available = true;
+    let config = AppConfig {
+        clipboard_available: true,
+        ..Default::default()
+    };
     let commits = vec![CommitRecord {
         folder: "/projects/repo".to_string(),
         time: "10:00".to_string(),
@@ -767,7 +816,11 @@ fn c_key_in_detail_mode_without_url_sets_status_message() {
     let after = update(in_detail, key_event(KeyCode::Char('c')));
 
     assert!(
-        after.status_message.as_deref().unwrap_or("").contains("no URL"),
+        after
+            .status_message
+            .as_deref()
+            .unwrap_or("")
+            .contains("no URL"),
         "status_message must contain 'no URL' when row has no URL; got: {:?}",
         after.status_message
     );
@@ -779,11 +832,11 @@ fn c_key_in_detail_mode_without_url_sets_status_message() {
 
 /// @US-05 @in-memory
 ///
-/// Scenario: c key in Detail mode when clipboard unavailable sets status_message
-///   Given Detail mode with clipboard_available=false and a row with URL
+/// Scenario: c key in Detail mode when clipboard unavailable sets `status_message`
+///   Given Detail mode with `clipboard_available=false` and a row with URL
 ///   When c is pressed
-///   Then status_message contains "select text manually"
-///   And clipboard_pending remains None
+///   Then `status_message` contains "select text manually"
+///   And `clipboard_pending` remains `None`
 #[test]
 fn c_key_when_clipboard_unavailable_sets_status_message() {
     let config = AppConfig::default(); // clipboard_available = false by default
@@ -805,7 +858,11 @@ fn c_key_when_clipboard_unavailable_sets_status_message() {
     let after = update(in_detail, key_event(KeyCode::Char('c')));
 
     assert!(
-        after.status_message.as_deref().unwrap_or("").contains("select text manually"),
+        after
+            .status_message
+            .as_deref()
+            .unwrap_or("")
+            .contains("select text manually"),
         "status_message must contain 'select text manually' when clipboard unavailable; got: {:?}",
         after.status_message
     );
@@ -817,11 +874,11 @@ fn c_key_when_clipboard_unavailable_sets_status_message() {
 
 /// @US-05 @in-memory
 ///
-/// Scenario: ClipboardResult(Ok) clears clipboard_pending and sets confirmation status
-///   Given a model with clipboard_pending = Some("url")
-///   When ClipboardResult(Ok(())) is dispatched
-///   Then clipboard_pending is None
-///   And status_message = "URL copied to clipboard"
+/// Scenario: `ClipboardResult(Ok)` clears `clipboard_pending` and sets confirmation status
+///   Given a model with `clipboard_pending = Some("url")`
+///   When `ClipboardResult(Ok(()))` is dispatched
+///   Then `clipboard_pending` is `None`
+///   And `status_message` = "URL copied to clipboard"
 #[test]
 fn clipboard_result_ok_clears_pending_and_sets_status() {
     let config = AppConfig::default();
@@ -843,11 +900,11 @@ fn clipboard_result_ok_clears_pending_and_sets_status() {
 
 /// @US-05 @in-memory
 ///
-/// Scenario: ClipboardResult(Err) clears clipboard_pending and sets error status
-///   Given a model with clipboard_pending = Some("url")
-///   When ClipboardResult(Err("failed")) is dispatched
-///   Then clipboard_pending is None
-///   And status_message = "failed"
+/// Scenario: `ClipboardResult(Err)` clears `clipboard_pending` and sets error status
+///   Given a model with `clipboard_pending = Some("url")`
+///   When `ClipboardResult(Err("failed"))` is dispatched
+///   Then `clipboard_pending` is `None`
+///   And `status_message` = "failed"
 #[test]
 fn clipboard_result_err_sets_status_message() {
     let config = AppConfig::default();
@@ -871,9 +928,9 @@ fn clipboard_result_err_sets_status_message() {
 
 /// @US-09 @in-memory
 ///
-/// Scenario: distinct_repos groups commits by last URL path segment, sorted by count descending
-///   Given 3 commits — 2 with URL "…/dotfiles" and 1 with "…/notes"
-///   When distinct_repos is called
+/// Scenario: `distinct_repos` groups commits by last URL path segment, sorted by count descending
+///   Given 3 commits - 2 with URL "…/dotfiles" and 1 with "…/notes"
+///   When `distinct_repos` is called
 ///   Then it returns [("dotfiles", 2), ("notes", 1)]
 #[test]
 fn distinct_repos_groups_by_last_url_segment() {
@@ -906,15 +963,23 @@ fn distinct_repos_groups_by_last_url_segment() {
     let result = distinct_repos(&commits);
 
     assert_eq!(result.len(), 2, "must return exactly 2 distinct repos");
-    assert_eq!(result[0], ("dotfiles".to_string(), 2), "dotfiles must be first with count 2");
-    assert_eq!(result[1], ("notes".to_string(), 1), "notes must be second with count 1");
+    assert_eq!(
+        result[0],
+        ("dotfiles".to_string(), 2),
+        "dotfiles must be first with count 2"
+    );
+    assert_eq!(
+        result[1],
+        ("notes".to_string(), 1),
+        "notes must be second with count 1"
+    );
 }
 
 /// @US-09 @in-memory
 ///
-/// Scenario: distinct_repos uses folder last segment when URL is None
-///   Given a commit with url=None and folder="/projects/my-tool"
-///   When distinct_repos is called
+/// Scenario: `distinct_repos` uses folder last segment when URL is None
+///   Given a commit with `url=None` and folder="/projects/my-tool"
+///   When `distinct_repos` is called
 ///   Then it returns [("my-tool", 1)]
 #[test]
 fn distinct_repos_uses_folder_when_url_is_none() {
@@ -931,13 +996,17 @@ fn distinct_repos_uses_folder_when_url_is_none() {
     let result = distinct_repos(&commits);
 
     assert_eq!(result.len(), 1, "must return exactly 1 repo");
-    assert_eq!(result[0], ("my-tool".to_string(), 1), "repo name must be last folder segment");
+    assert_eq!(
+        result[0],
+        ("my-tool".to_string(), 1),
+        "repo name must be last folder segment"
+    );
 }
 
 // ─── RepoPicker navigation ────────────────────────────────────────────────────
 
-/// Helper: builds a model with commit_rows producing exactly 2 distinct repos:
-///   dotfiles (2 commits) and notes (1 commit), in RepoPicker mode.
+/// Helper: builds a model with `commit_rows` producing exactly 2 distinct repos:
+///   dotfiles (2 commits) and notes (1 commit), in `RepoPicker` mode.
 fn picker_model() -> AppModel {
     let config = AppConfig::default();
     let commits = vec![
@@ -970,28 +1039,39 @@ fn picker_model() -> AppModel {
 
 /// @US-09 @in-memory
 ///
-/// Scenario: j key in RepoPicker advances picker_cursor by 1
-///   Given RepoPicker mode with picker_cursor=0 and 2 repos available
+/// Scenario: j key in `RepoPicker` advances `picker_cursor` by 1
+///   Given `RepoPicker` mode with `picker_cursor=0` and 2 repos available
 ///   When j is pressed
-///   Then picker_cursor = 1
+///   Then `picker_cursor = 1`
 #[test]
 fn picker_j_advances_cursor() {
     let model = picker_model();
-    assert_eq!(model.mode, AppMode::RepoPicker, "precondition: RepoPicker mode");
+    assert_eq!(
+        model.mode,
+        AppMode::RepoPicker,
+        "precondition: RepoPicker mode"
+    );
     assert_eq!(model.picker_cursor, 0, "precondition: picker_cursor at 0");
 
     let after = update(model, key_event(KeyCode::Char('j')));
 
-    assert_eq!(after.picker_cursor, 1, "picker_cursor must increment to 1 on j");
-    assert_eq!(after.mode, AppMode::RepoPicker, "mode must remain RepoPicker");
+    assert_eq!(
+        after.picker_cursor, 1,
+        "picker_cursor must increment to 1 on j"
+    );
+    assert_eq!(
+        after.mode,
+        AppMode::RepoPicker,
+        "mode must remain RepoPicker"
+    );
 }
 
 /// @US-09 @in-memory
 ///
-/// Scenario: k key in RepoPicker at picker_cursor=0 wraps to last repo
-///   Given RepoPicker mode with picker_cursor=0 and 2 repos available
+/// Scenario: k key in `RepoPicker` at `picker_cursor=0` wraps to last repo
+///   Given `RepoPicker` mode with `picker_cursor=0` and 2 repos available
 ///   When k is pressed
-///   Then picker_cursor wraps to repos.len()-1 (= 1)
+///   Then `picker_cursor` wraps to `repos.len()-1 (= 1)`
 #[test]
 fn picker_k_wraps_to_last() {
     let model = picker_model();
@@ -999,24 +1079,38 @@ fn picker_k_wraps_to_last() {
 
     let after = update(model, key_event(KeyCode::Char('k')));
 
-    assert_eq!(after.picker_cursor, 1, "picker_cursor must wrap to repos.len()-1 on k at top");
-    assert_eq!(after.mode, AppMode::RepoPicker, "mode must remain RepoPicker");
+    assert_eq!(
+        after.picker_cursor, 1,
+        "picker_cursor must wrap to repos.len()-1 on k at top"
+    );
+    assert_eq!(
+        after.mode,
+        AppMode::RepoPicker,
+        "mode must remain RepoPicker"
+    );
 }
 
 /// @US-09 @in-memory
 ///
-/// Scenario: Enter in RepoPicker sets active_repo_filter to selected repo and returns to Browse
-///   Given RepoPicker mode with picker_cursor=0 pointing at "dotfiles"
-///   When Enter is pressed
-///   Then active_repo_filter = Some("dotfiles")
-///   And mode = Browse
+/// Scenario: Enter in `RepoPicker` sets `active_repo_filter` to selected repo and returns to `Browse`
+///   Given `RepoPicker` mode with `picker_cursor=0` pointing at "dotfiles"
+///   When `Enter` is pressed
+///   Then `active_repo_filter = Some("dotfiles")`
+///   And mode = `Browse`
 ///   And cursor = 0
-///   And filtered_rows contains only dotfiles commits (2 rows)
+///   And `filtered_rows` contains only dotfiles commits (2 rows)
 #[test]
 fn picker_enter_sets_filter_and_returns_to_browse() {
     let model = picker_model();
-    assert_eq!(model.picker_cursor, 0, "precondition: cursor at 0 (dotfiles)");
-    assert_eq!(model.mode, AppMode::RepoPicker, "precondition: RepoPicker mode");
+    assert_eq!(
+        model.picker_cursor, 0,
+        "precondition: cursor at 0 (dotfiles)"
+    );
+    assert_eq!(
+        model.mode,
+        AppMode::RepoPicker,
+        "precondition: RepoPicker mode"
+    );
 
     let after = update(model, key_event(KeyCode::Enter));
 
@@ -1036,16 +1130,20 @@ fn picker_enter_sets_filter_and_returns_to_browse() {
 
 /// @US-09 @in-memory
 ///
-/// Scenario: Esc in RepoPicker returns to Browse without changing active_repo_filter
-///   Given RepoPicker mode with an existing active_repo_filter = Some("x")
-///   When Esc is pressed
-///   Then mode = Browse
-///   And active_repo_filter remains Some("x") (unchanged)
+/// Scenario: `Esc` in `RepoPicker` returns to `Browse` without changing `active_repo_filter`
+///   Given `RepoPicker` mode with `an existing active_repo_filter = Some("x")`
+///   When `Esc` is pressed
+///   Then `mode = Browse`
+///   And `active_repo_filter` remains `Some("x")` (unchanged)
 #[test]
 fn picker_esc_returns_without_changing_filter() {
     let mut base = picker_model();
     base.active_repo_filter = Some("x".to_string());
-    assert_eq!(base.mode, AppMode::RepoPicker, "precondition: RepoPicker mode");
+    assert_eq!(
+        base.mode,
+        AppMode::RepoPicker,
+        "precondition: RepoPicker mode"
+    );
 
     let after = update(base, key_event(KeyCode::Esc));
 
@@ -1059,12 +1157,12 @@ fn picker_esc_returns_without_changing_filter() {
 
 /// @US-09 @in-memory
 ///
-/// Scenario: f key in Browse mode when active_repo_filter is Some clears the filter
-///   Given Browse mode with active_repo_filter = Some("dotfiles")
+/// Scenario: f key in `Browse` mode when `active_repo_filter` is `Some` clears the filter
+///   Given `Browse` mode with `active_repo_filter = Some("dotfiles")`
 ///   When f is pressed
-///   Then active_repo_filter = None
-///   And mode = Browse (not RepoPicker)
-///   And filtered_rows is recomputed (shows all commits)
+///   Then `active_repo_filter = None`
+///   And `mode = Browse` (not `RepoPicker`)
+///   And `filtered_rows` is recomputed (shows all commits)
 #[test]
 fn f_key_clears_active_filter_in_browse_mode() {
     let config = AppConfig::default();
@@ -1086,22 +1184,42 @@ fn f_key_clears_active_filter_in_browse_mode() {
     ];
     let mut model = update(AppModel::new(config), AppEvent::LoadComplete(commits));
     model.active_repo_filter = Some("dotfiles".to_string());
-    model.filtered_rows = model.commit_rows.iter()
+    model.filtered_rows = model
+        .commit_rows
+        .iter()
         .filter(|r| r.url.as_deref().unwrap_or("").contains("dotfiles"))
         .cloned()
         .collect();
     assert_eq!(model.mode, AppMode::Browse, "precondition: Browse mode");
-    assert!(model.active_repo_filter.is_some(), "precondition: filter is active");
-    assert_eq!(model.filtered_rows.len(), 1, "precondition: filter narrows to 1 row");
+    assert!(
+        model.active_repo_filter.is_some(),
+        "precondition: filter is active"
+    );
+    assert_eq!(
+        model.filtered_rows.len(),
+        1,
+        "precondition: filter narrows to 1 row"
+    );
 
     let after = update(model, key_event(KeyCode::Char('f')));
 
-    assert!(after.active_repo_filter.is_none(), "f must clear active_repo_filter");
-    assert_eq!(after.mode, AppMode::Browse, "mode must remain Browse (not switch to RepoPicker)");
-    assert_eq!(after.filtered_rows.len(), 2, "filtered_rows must be recomputed to show all 2 commits");
+    assert!(
+        after.active_repo_filter.is_none(),
+        "f must clear active_repo_filter"
+    );
+    assert_eq!(
+        after.mode,
+        AppMode::Browse,
+        "mode must remain Browse (not switch to RepoPicker)"
+    );
+    assert_eq!(
+        after.filtered_rows.len(),
+        2,
+        "filtered_rows must be recomputed to show all 2 commits"
+    );
 }
 
-// ─── State machine PBT invariant (proptest — layer 1) ─────────────────────────
+// ─── State machine PBT invariant (proptest - layer 1) ─────────────────────────
 
 #[cfg(test)]
 mod property_tests {

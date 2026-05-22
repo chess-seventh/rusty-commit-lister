@@ -7,7 +7,7 @@ use crate::error::{Result, RustyCommitListerError};
 use crate::ports::config_port::{ConfigPort, Probe};
 
 /// Private serde struct matching the TOML schema.
-/// All fields are optional so missing keys fall back to AppConfig defaults.
+/// All fields are optional so missing keys fall back to `AppConfig` defaults.
 #[derive(Deserialize)]
 struct TomlFileConfig {
     vault_path: Option<String>,
@@ -42,13 +42,13 @@ impl TomlConfigAdapter {
 
 impl Probe for TomlConfigAdapter {
     /// Verifies that the config file, if present, is readable.
-    /// Absent file is not an error — returns `Ok(())`.
+    /// Absent file is not an error - returns `Ok(())`.
     fn probe(&self) -> Result<()> {
         if self.config_path.exists() {
             std::fs::File::open(&self.config_path).map_err(|e| {
                 RustyCommitListerError::config(format!(
-                    "Cannot read config file {:?}: {}",
-                    self.config_path, e
+                    "Cannot read config file {0:?}: {e}",
+                    self.config_path.display()
                 ))
             })?;
         }
@@ -64,27 +64,30 @@ impl ConfigPort for TomlConfigAdapter {
 
         let content = std::fs::read_to_string(&self.config_path).map_err(|e| {
             RustyCommitListerError::config(format!(
-                "Failed to read config {:?}: {}",
-                self.config_path, e
+                "Failed to read config {:?}: {e}",
+                self.config_path.display()
             ))
         })?;
 
         let file_config: TomlFileConfig = toml::from_str(&content).map_err(|e| {
-            RustyCommitListerError::config(format!("Invalid TOML in {:?}: {}", self.config_path, e))
+            RustyCommitListerError::config(format!(
+                "Invalid TOML in {:?}: {e}",
+                self.config_path.display()
+            ))
         })?;
 
         let scan_days_back = file_config.scan_days_back.unwrap_or(DEFAULT_SCAN_DAYS_BACK);
         if scan_days_back == 0 {
             return Err(RustyCommitListerError::config(format!(
                 "scan_days_back must be > 0 in config file {:?}",
-                self.config_path
+                self.config_path.display()
             )));
         }
 
-        let vault_path = file_config
-            .vault_path
-            .map(|raw_path| PathBuf::from(expand_tilde(raw_path)))
-            .unwrap_or_else(|| AppConfig::default().vault_path);
+        let vault_path = file_config.vault_path.map_or_else(
+            || AppConfig::default().vault_path,
+            |raw_path| PathBuf::from(expand_tilde(raw_path)),
+        );
 
         Ok(AppConfig {
             vault_path,

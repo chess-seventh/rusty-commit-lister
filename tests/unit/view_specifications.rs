@@ -1,9 +1,10 @@
-/// View Unit Tests — rusty-commit-lister
+use ratatui::Terminal;
+/// View Unit Tests - rusty-commit-lister
 ///
 /// Tags: @US-04 @in-memory
 ///
 /// Tests for view.rs: pure helper functions tested directly, render functions
-/// tested via ratatui TestBackend (no subprocess, no real terminal).
+/// tested via ratatui `TestBackend` (no subprocess, no real terminal).
 ///
 /// # bypass: example-based tests used instead of PBT
 /// The contract is an exact ordered list of formatted strings; the invariants
@@ -11,7 +12,6 @@
 /// property strategy would add no detection power over precisely-crafted
 /// examples that cover the branch outcomes (url Some vs None, modes).
 use ratatui::backend::TestBackend;
-use ratatui::Terminal;
 use rusty_commit_lister::domain::model::{AppConfig, AppMode, AppModel, CommitRecord};
 use rusty_commit_lister::tui::view::{detail_lines, view};
 
@@ -21,7 +21,8 @@ fn make_commit_with_url() -> CommitRecord {
     CommitRecord {
         date: "2026-05-18".to_string(),
         time: "14:30".to_string(),
-        message: "feat: implement full-length commit message that must not be truncated".to_string(),
+        message: "feat: implement full-length commit message that must not be truncated"
+            .to_string(),
         folder: "/projects/my-very-long-folder-name/sub/dir".to_string(),
         url: Some("https://github.com/foo/bar".to_string()),
     }
@@ -37,11 +38,11 @@ fn make_commit_without_url() -> CommitRecord {
     }
 }
 
-// ─── detail_lines — URL present ────────────────────────────────────────────────
+// ─── detail_lines - URL present ────────────────────────────────────────────────
 
-/// Scenario: detail_lines shows all five fields when URL is present
-///   Given a CommitRecord with date, time, message, folder, and url = Some(...)
-///   When detail_lines is called
+/// Scenario: `detail_lines` shows all five fields when URL is present
+///   Given a `CommitRecord` with date, time, message, folder, and url = Some(...)
+///   When `detail_lines` is called
 ///   Then the returned Vec has exactly 5 lines
 ///   And line 0 contains the date
 ///   And line 1 contains the time
@@ -82,13 +83,13 @@ fn detail_lines_shows_all_fields_with_url() {
     );
 }
 
-// ─── detail_lines — URL absent ─────────────────────────────────────────────────
+// ─── detail_lines - URL absent ─────────────────────────────────────────────────
 
-/// Scenario: detail_lines shows "— not available —" when URL is None
-///   Given a CommitRecord with url = None
-///   When detail_lines is called
-///   Then the returned Vec has exactly 5 lines
-///   And line 4 contains "— not available —"
+/// Scenario: `detail_lines` shows "- not available -" when URL is None
+///   Given a `CommitRecord` with url = None
+///   When `detail_lines` is called
+///   Then the returned `Vec` has exactly 5 lines
+///   And line 4 contains "- not available -"
 #[test]
 fn detail_lines_shows_not_available_when_url_is_none() {
     let record = make_commit_without_url();
@@ -97,8 +98,8 @@ fn detail_lines_shows_not_available_when_url_is_none() {
     assert_eq!(lines.len(), 5, "detail_lines must return exactly 5 lines");
 
     assert!(
-        lines[4].contains("— not available —"),
-        "line 4 must contain '— not available —' when url is None; got: {:?}",
+        lines[4].contains("- not available -"),
+        "line 4 must contain '- not available -' when url is None; got: {:?}",
         lines[4]
     );
 }
@@ -166,7 +167,10 @@ fn view_renders_detail_overlay_title() {
 fn view_renders_detail_fields() {
     let rows = render_to_rows(&make_detail_model());
     let out = joined(&rows);
-    assert!(out.contains("2026-05-18"), "date must appear in detail view");
+    assert!(
+        out.contains("2026-05-18"),
+        "date must appear in detail view"
+    );
     assert!(
         out.contains("feat: implement full-length commit message that must not be truncated"),
         "full message must appear in detail view without truncation"
@@ -175,7 +179,10 @@ fn view_renders_detail_fields() {
         out.contains("/projects/my-very-long-folder-name/sub/dir"),
         "full folder must appear in detail view without truncation"
     );
-    assert!(out.contains("https://github.com/foo/bar"), "URL must appear in detail view");
+    assert!(
+        out.contains("https://github.com/foo/bar"),
+        "URL must appear in detail view"
+    );
 }
 
 /// Scenario: Status bar shows "c copy | Esc return" in Detail mode
@@ -185,8 +192,7 @@ fn view_shows_esc_to_return_in_detail_mode() {
     let last_row = rows.last().unwrap();
     assert!(
         last_row.contains("Esc return"),
-        "last row must show 'Esc return' in Detail mode; got: {:?}",
-        last_row
+        "last row must show 'Esc return' in Detail mode; got: {last_row:?}"
     );
 }
 
@@ -197,8 +203,14 @@ fn view_shows_esc_to_return_in_detail_mode() {
 fn view_renders_table_header_in_browse_mode() {
     let rows = render_to_rows(&make_browse_model_with_one_row());
     let out = joined(&rows);
-    assert!(out.contains("Date"), "Browse mode must render 'Date' header");
-    assert!(out.contains("Message"), "Browse mode must render 'Message' header");
+    assert!(
+        out.contains("Date"),
+        "Browse mode must render 'Date' header"
+    );
+    assert!(
+        out.contains("Message"),
+        "Browse mode must render 'Message' header"
+    );
 }
 
 /// Scenario: Status bar shows 1-based row/total in Browse mode
@@ -208,8 +220,7 @@ fn view_shows_row_one_of_one_in_browse_mode() {
     let last_row = rows.last().unwrap();
     assert!(
         last_row.contains("Row 1/1"),
-        "Browse mode status must show 'Row 1/1' for cursor=0 with 1 row; got: {:?}",
-        last_row
+        "Browse mode status must show 'Row 1/1' for cursor=0 with 1 row; got: {last_row:?}",
     );
 }
 
@@ -222,8 +233,7 @@ fn view_renders_search_bar_in_search_mode() {
     let out = joined(&rows);
     assert!(
         out.contains("/ feat"),
-        "Search mode must render '/ feat' search bar; got:\n{}",
-        out
+        "Search mode must render '/ feat' search bar; got:\n{out}",
     );
 }
 
@@ -234,15 +244,14 @@ fn view_shows_match_count_in_search_mode() {
     let last_row = rows.last().unwrap();
     assert!(
         last_row.contains("commits | Esc cancel"),
-        "Search mode status must contain 'commits | Esc cancel'; got: {:?}",
-        last_row
+        "Search mode status must contain 'commits | Esc cancel'; got: {last_row:?}",
     );
 }
 
-// ─── Render: Detail mode — clipboard / status_message ─────────────────────────
+// ─── Render: Detail mode - clipboard / status_message ─────────────────────────
 
-/// Scenario: Detail mode renders status_message when Some
-///   Given Detail mode with status_message = Some("URL copied to clipboard")
+/// Scenario: Detail mode renders `status_message` when Some
+///   Given Detail mode with `status_message` = Some("URL copied to clipboard")
 ///   When the view is rendered
 ///   Then the output contains "URL copied to clipboard"
 #[test]
@@ -255,13 +264,12 @@ fn view_shows_status_message_in_detail_overlay() {
 
     assert!(
         out.contains("URL copied to clipboard"),
-        "Detail overlay must show status_message when Some; got:\n{}",
-        out
+        "Detail overlay must show status_message when Some; got:\n{out}",
     );
 }
 
 /// Scenario: Status bar in Detail mode shows "c copy | Esc return"
-///   Given Detail mode (no status_message)
+///   Given `Detail` mode (no `status_message`)
 ///   When the view is rendered
 ///   Then the last row contains "c copy"
 #[test]
@@ -273,8 +281,7 @@ fn view_detail_status_bar_shows_copy_hint() {
 
     assert!(
         last_row.contains("c copy"),
-        "Detail mode status bar must contain 'c copy'; got: {:?}",
-        last_row
+        "Detail mode status bar must contain 'c copy'; got: {last_row:?}",
     );
 }
 
@@ -311,8 +318,8 @@ fn make_repo_picker_model() -> AppModel {
     model
 }
 
-/// Scenario: RepoPicker mode renders a "Repo Filter" bordered overlay
-///   Given a model in RepoPicker mode with 3 commit rows (2 dotfiles, 1 notes)
+/// Scenario: `RepoPicker` mode renders a "Repo Filter" bordered overlay
+///   Given a model in `RepoPicker` mode with 3 commit rows (2 dotfiles, 1 notes)
 ///   When the view is rendered
 ///   Then the output contains "Repo Filter"
 #[test]
@@ -322,13 +329,12 @@ fn view_renders_repo_picker_overlay() {
     let out = joined(&rows);
     assert!(
         out.contains("Repo Filter"),
-        "RepoPicker mode must render 'Repo Filter' block title; got:\n{}",
-        out
+        "RepoPicker mode must render 'Repo Filter' block title; got:\n{out}",
     );
 }
 
-/// Scenario: RepoPicker overlay lists repos with their counts
-///   Given a model in RepoPicker mode with 2 dotfiles commits and 1 notes commit
+/// Scenario: `RepoPicker` overlay lists repos with their counts
+///   Given a model in `RepoPicker` mode with 2 dotfiles commits and 1 notes commit
 ///   When the view is rendered
 ///   Then the output contains "dotfiles (2)" and "notes (1)"
 #[test]
@@ -338,23 +344,21 @@ fn view_picker_shows_repo_names_with_counts() {
     let out = joined(&rows);
     assert!(
         out.contains("dotfiles (2)"),
-        "RepoPicker must show 'dotfiles (2)'; got:\n{}",
-        out
+        "RepoPicker must show 'dotfiles (2)'; got:\n{out}",
     );
     assert!(
         out.contains("notes (1)"),
-        "RepoPicker must show 'notes (1)'; got:\n{}",
-        out
+        "RepoPicker must show 'notes (1)'; got:\n{out}",
     );
 }
 
-/// Scenario: RepoPicker overlay highlights the row at picker_cursor
-///   Given picker_cursor = 0 (dotfiles is first, highest count)
+/// Scenario: `RepoPicker` overlay highlights the row at `picker_cursor`
+///   Given `picker_cursor` = 0 (dotfiles is first, highest count)
 ///   When the view is rendered
 ///   Then the highlighted row contains "dotfiles"
 ///
-/// # bypass: example-based — the invariant is a specific styled cell at a known index.
-/// Testing highlight style via TestBackend checks cell.style().modifier or reversed bg.
+/// # bypass: example-based - the invariant is a specific styled cell at a known index.
+/// Testing highlight style via `TestBackend` checks `cell.style().modifier` or reversed bg.
 /// The simplest observable proxy is that the text at cursor position appears in output.
 #[test]
 fn view_highlights_selected_picker_row() {
@@ -365,15 +369,14 @@ fn view_highlights_selected_picker_row() {
     // We verify both that the text appears and that the overlay renders correctly.
     assert!(
         out.contains("dotfiles (2)"),
-        "highlighted row at picker_cursor=0 must contain 'dotfiles (2)'; got:\n{}",
-        out
+        "highlighted row at picker_cursor=0 must contain 'dotfiles (2)'; got:\n{out}",
     );
 }
 
 // ─── Render: Status bar with active repo filter ────────────────────────────────
 
-/// Scenario: Browse mode status bar shows filter indicator when active_repo_filter is set
-///   Given Browse mode with active_repo_filter = Some("dotfiles"), filtered_rows.len() = 2, commit_rows.len() = 3
+/// Scenario: Browse mode status bar shows filter indicator when `active_repo_filter` is set
+///   Given Browse mode with `active_repo_filter` = `Some("dotfiles")`, `filtered_rows.len()` = 2, `commit_rows.len()` = 3
 ///   When the view is rendered
 ///   Then the last row contains "dotfiles" and "f clear"
 #[test]
@@ -411,18 +414,16 @@ fn view_status_bar_shows_active_filter() {
     let last_row = rows.last().unwrap();
     assert!(
         last_row.contains("dotfiles"),
-        "Browse status bar must show repo name 'dotfiles' when filter active; got: {:?}",
-        last_row
+        "Browse status bar must show repo name 'dotfiles' when filter active; got: {last_row:?}",
     );
     assert!(
         last_row.contains("f clear"),
-        "Browse status bar must show 'f clear' when filter active; got: {:?}",
-        last_row
+        "Browse status bar must show 'f clear' when filter active; got: {last_row:?}",
     );
 }
 
-/// Scenario: RepoPicker mode status bar shows navigation hints
-///   Given a model in RepoPicker mode
+/// Scenario: `RepoPicker` mode status bar shows navigation hints
+///   Given a model in `RepoPicker` mode
 ///   When the view is rendered
 ///   Then the last row contains "Enter confirm" or "j/k"
 #[test]
@@ -432,7 +433,6 @@ fn view_status_bar_shows_repo_picker_hints() {
     let last_row = rows.last().unwrap();
     assert!(
         last_row.contains("Enter confirm") || last_row.contains("j/k"),
-        "RepoPicker status bar must contain navigation hints; got: {:?}",
-        last_row
+        "RepoPicker status bar must contain navigation hints; got: {last_row:?}",
     );
 }

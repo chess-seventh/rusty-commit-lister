@@ -1,6 +1,6 @@
 // SCAFFOLD: true
 // Bootstrapped by DISTILL wave 2026-05-18.
-
+#![allow(clippy::missing_errors_doc)]
 use crate::domain::model::AppConfig;
 use crate::error::Result;
 
@@ -24,6 +24,6 @@ pub trait ConfigPort: Probe {
     ///
     /// - `RustyCommitListerError::Config` if the file is present but contains invalid values.
     ///   The error message must name the invalid field and the config file path.
-    /// - Missing config file is NOT an error — callers receive defaults with a notice.
+    /// - Missing config file is NOT an error - callers receive defaults with a notice.
     fn load(&self) -> Result<AppConfig>;
 }

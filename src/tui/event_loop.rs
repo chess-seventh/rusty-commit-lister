@@ -1,3 +1,5 @@
+// #![allow(clippy::needless_pass_by_value)]
+#![allow(clippy::missing_errors_doc)]
 use std::io::Stdout;
 use std::time::Duration;
 
@@ -7,7 +9,7 @@ use crossterm::event::Event;
 use crate::domain::events::AppEvent;
 use crate::domain::model::{AppModel, CommitRecord};
 
-/// Event poll interval — balances responsiveness with CPU usage.
+/// Event poll interval - balances responsiveness with CPU usage.
 const POLL_INTERVAL: Duration = Duration::from_millis(250);
 
 /// The TUI event loop struct. Owns the terminal and drives the Elm update→view cycle.
@@ -20,7 +22,7 @@ pub struct TuiEventLoop {
 }
 
 impl TuiEventLoop {
-    /// Create a new TuiEventLoop, entering raw mode and the alternate screen.
+    /// Create a new `TuiEventLoop`, entering raw mode and the alternate screen.
     pub fn new() -> Result<Self> {
         crossterm::terminal::enable_raw_mode()?;
         crossterm::execute!(std::io::stdout(), crossterm::terminal::EnterAlternateScreen)?;
@@ -35,13 +37,13 @@ impl TuiEventLoop {
     /// Drive the Elm update→view cycle until `model.quit` is true.
     ///
     /// Polls for crossterm events every 250ms. On each event, translates to an
-    /// AppEvent, calls `update()`, and re-renders via `view()`. On timeout, sends
+    /// `AppEvent`, calls `update()`, and re-renders via `view()`. On timeout, sends
     /// a Tick event to allow spinner animation or deferred state refresh.
     ///
     /// When `model.loading` becomes true after an update (e.g. from pressing `r`
     /// in Browse mode), `reload_fn` is called synchronously to fetch fresh commit
     /// records, and a `LoadComplete` event is immediately dispatched before the
-    /// next draw — completing the re-scan within the same iteration.
+    /// next draw - completing the re-scan within the same iteration.
     ///
     /// When `model.clipboard_pending` is `Some(url)` after an update, `clipboard_fn`
     /// is called with the URL string and a `ClipboardResult` event is dispatched
@@ -58,21 +60,15 @@ impl TuiEventLoop {
                 .draw(|frame| crate::tui::view::view(&model, frame))?;
             if crossterm::event::poll(POLL_INTERVAL)? {
                 let evt = crossterm::event::read()?;
-                let app_event = translate_event(evt);
+                let app_event = translate_event(&evt);
                 model = crate::domain::update::update(model, app_event);
                 if model.loading {
                     let records = reload_fn();
-                    model = crate::domain::update::update(
-                        model,
-                        AppEvent::LoadComplete(records),
-                    );
+                    model = crate::domain::update::update(model, AppEvent::LoadComplete(records));
                 }
                 if let Some(ref url) = model.clipboard_pending.clone() {
                     let result = clipboard_fn(url);
-                    model = crate::domain::update::update(
-                        model,
-                        AppEvent::ClipboardResult(result),
-                    );
+                    model = crate::domain::update::update(model, AppEvent::ClipboardResult(result));
                 }
                 if model.quit {
                     break;
@@ -86,7 +82,7 @@ impl TuiEventLoop {
 
     /// Exit raw mode and the alternate screen, restoring the original terminal state.
     ///
-    /// Safe to call multiple times — subsequent calls after the first are no-ops.
+    /// Safe to call multiple times - subsequent calls after the first are no-ops.
     pub fn restore(&mut self) -> Result<()> {
         if !self.restored {
             crossterm::terminal::disable_raw_mode()?;
@@ -104,10 +100,10 @@ impl Drop for TuiEventLoop {
     }
 }
 
-/// Translate a raw crossterm Event into an AppEvent for domain dispatch.
-fn translate_event(evt: Event) -> AppEvent {
+/// Translate a raw crossterm Event into an `AppEvent` for domain dispatch.
+fn translate_event(evt: &Event) -> AppEvent {
     match evt {
-        Event::Key(key_event) => AppEvent::KeyPress(key_event),
+        Event::Key(key_event) => AppEvent::KeyPress(*key_event),
         _ => AppEvent::Tick,
     }
 }

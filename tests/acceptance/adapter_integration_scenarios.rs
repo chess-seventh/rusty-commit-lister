@@ -1,16 +1,16 @@
-/// Adapter Integration Tests — rusty-commit-lister
+/// Adapter Integration Tests - rusty-commit-lister
 ///
 /// Tags: @real-io @adapter-integration @US-01 @US-02 @US-04 @US-05
 ///
 /// Every driven adapter has at least one test with real I/O (Mandate 6).
-/// Sad paths are enumerated explicitly (Mandate 11 — layer 3+ example-only).
+/// Sad paths are enumerated explicitly (Mandate 11 - layer 3+ example-only).
 /// PBT machinery is NOT imported at this layer.
 ///
 /// Adapters covered:
-///   - TomlConfigAdapter: reads real TOML from tempdir, validates fields, rejects invalid
-///   - WalkdirScanAdapter: scans tempdir with realistic note structure, returns CommitRecord slice
-///   - Unicode path probe: WalkdirScanAdapter with 📅 in path segment — OsString round-trip
-///   - ArboardClipboardAdapter: compile/instantiation smoke test (headless-safe)
+///   - `TomlConfigAdapter`: reads real TOML from `tempdir`, validates fields, rejects invalid
+///   - `WalkdirScanAdapter`: scans tempdir with realistic note structure, returns `CommitRecord` slice
+///   - Unicode path probe: `WalkdirScanAdapter` with 📅 in path segment - `OsString` round-trip
+///   - `ArboardClipboardAdapter`: compile/instantiation smoke test (headless-safe)
 use std::fs;
 use std::path::PathBuf;
 use tempfile::TempDir;
@@ -25,10 +25,10 @@ use rusty_commit_lister::ports::vault_port::VaultScanPort;
 
 /// @US-01 @real-io @adapter-integration
 ///
-/// Scenario: TomlConfigAdapter reads vault_path and scan_days_back from real TOML file
-///   Given a valid config.toml written to a tempdir
-///   When TomlConfigAdapter::load() is called
-///   Then it returns an AppConfig with the correct vault_path and scan_days_back
+/// Scenario: `TomlConfigAdapter` reads `vault_path` and `scan_days_back` from real TOML file
+///   Given a valid `config.toml` written to a tempdir
+///   When `TomlConfigAdapter::load()` is called
+///   Then it returns an `AppConfig` with the correct `vault_path` and `scan_days_back`
 #[test]
 fn toml_config_adapter_reads_vault_path_and_scan_days_back_from_real_file() {
     let dir = TempDir::new().expect("tempdir");
@@ -53,10 +53,10 @@ fn toml_config_adapter_reads_vault_path_and_scan_days_back_from_real_file() {
 
 /// @US-01 @real-io @adapter-integration @error
 ///
-/// Scenario: TomlConfigAdapter returns config error when scan_days_back is 0
-///   Given a config.toml with scan_days_back = 0
-///   When TomlConfigAdapter::load() is called
-///   Then it returns an Err with a Config variant
+/// Scenario: `TomlConfigAdapter` returns config error when `scan_days_back` is 0
+///   Given a `config.toml` with `scan_days_back` = 0
+///   When `TomlConfigAdapter::load()` is called
+///   Then it returns an `Err` with a `Config` variant
 #[test]
 fn toml_config_adapter_rejects_scan_days_back_zero() {
     let dir = TempDir::new().expect("tempdir");
@@ -80,17 +80,16 @@ fn toml_config_adapter_rejects_scan_days_back_zero() {
     let err_str = err.to_string();
     assert!(
         err_str.contains("scan_days_back"),
-        "error message must name the invalid field, got: {}",
-        err_str
+        "error message must name the invalid field, got: {err_str}"
     );
 }
 
 /// @US-01 @real-io @adapter-integration
 ///
-/// Scenario: TomlConfigAdapter applies default scan_days_back when config file is absent
-///   Given no config file exists at the adapter's config_path
-///   When TomlConfigAdapter::load() is called
-///   Then it returns Ok(AppConfig) with scan_days_back = 7 (default)
+/// Scenario: `TomlConfigAdapter` applies default `scan_days_back` when config file is absent
+///   Given no config file exists at the adapter's `config_path`
+///   When `TomlConfigAdapter::load()` is called
+///   Then it returns `Ok(AppConfig)` with `scan_days_back` = 7 (default)
 #[test]
 fn toml_config_adapter_returns_defaults_when_file_is_absent() {
     let dir = TempDir::new().expect("tempdir");
@@ -109,10 +108,10 @@ fn toml_config_adapter_returns_defaults_when_file_is_absent() {
 
 /// @US-02 @US-04 @real-io @adapter-integration
 ///
-/// Scenario: WalkdirScanAdapter finds daily notes in vault and returns CommitRecord slice
+/// Scenario: `WalkdirScanAdapter` finds daily notes in vault and returns `CommitRecord` slice
 ///   Given a vault directory containing two daily notes with commit rows
-///   When WalkdirScanAdapter::scan(days_back=7) is called
-///   Then it returns a non-empty Vec<CommitRecord>
+///   When `WalkdirScanAdapter::scan(days_back=7)` is called
+///   Then it returns a non-empty `Vec<CommitRecord>`
 ///   And the records contain the expected folder and message values
 #[test]
 fn walkdir_scan_adapter_returns_commit_records_from_real_vault_directory() {
@@ -145,14 +144,14 @@ fn walkdir_scan_adapter_returns_commit_records_from_real_vault_directory() {
     );
 }
 
-/// @US-01 @real-io @adapter-integration (Unicode path — CRITICAL)
+/// @US-01 @real-io @adapter-integration (Unicode path - CRITICAL)
 ///
-/// Scenario: WalkdirScanAdapter handles vault path with emoji directory segment
+/// Scenario: `WalkdirScanAdapter` handles vault path with emoji directory segment
 ///   Given a vault path containing "📅 Diaries" in a segment
 ///   And a daily note exists at that path
-///   When WalkdirScanAdapter::scan(7) is called
+///   When `WalkdirScanAdapter::scan(7)` is called
 ///   Then the note is found and parsed without error
-///   And the OsString round-trip for the emoji segment succeeds (no silent data loss)
+///   And the `OsString` round-trip for the emoji segment succeeds (no silent data loss)
 #[test]
 fn walkdir_scan_adapter_handles_emoji_path_segment_without_data_loss() {
     let base = TempDir::new().expect("tempdir");
@@ -178,7 +177,7 @@ fn walkdir_scan_adapter_handles_emoji_path_segment_without_data_loss() {
 
     assert!(
         !records.is_empty(),
-        "emoji vault must yield at least one record — OsString round-trip succeeded"
+        "emoji vault must yield at least one record - OsString round-trip succeeded"
     );
     assert!(
         records
@@ -190,14 +189,14 @@ fn walkdir_scan_adapter_handles_emoji_path_segment_without_data_loss() {
 
 /// @US-04 @real-io @adapter-integration @error
 ///
-/// Scenario: WalkdirScanAdapter returns empty result (not error) when vault has no notes in window
+/// Scenario: `WalkdirScanAdapter` returns empty result (not error) when vault has no notes in window
 ///   Given a vault directory with no .md files matching the scan window dates
-///   When WalkdirScanAdapter::scan(3) is called
-///   Then it returns Ok(vec![]) — empty, not an error
+///   When `WalkdirScanAdapter::scan(3)` is called
+///   Then it returns `Ok(vec![])` - empty, not an error
 #[test]
 fn walkdir_scan_adapter_returns_empty_vec_when_no_notes_in_window() {
     let vault_dir = TempDir::new().expect("tempdir");
-    // No files written — empty vault
+    // No files written - empty vault
 
     let adapter = WalkdirScanAdapter::new(vault_dir.path().to_path_buf());
     let records = adapter
@@ -211,26 +210,26 @@ fn walkdir_scan_adapter_returns_empty_vec_when_no_notes_in_window() {
 
 /// @US-05 @adapter-integration
 ///
-/// Scenario: ArboardClipboardAdapter::new() creates a zero-size struct without panicking
+/// Scenario: `ArboardClipboardAdapter::new()` creates a zero-size struct without panicking
 ///   Given no preconditions
-///   When ArboardClipboardAdapter::new() is called
+///   When `ArboardClipboardAdapter::new()` is called
 ///   Then it returns an instance (headless-safe: no clipboard ops)
 ///
 /// This is a compile-time + instantiation smoke test. Actual clipboard I/O is
-/// tested manually (arboard requires a display server — fails in CI/headless).
+/// tested manually (arboard requires a display server - fails in CI/headless).
 #[test]
 fn arboard_clipboard_adapter_new_does_not_panic() {
     let _adapter = ArboardClipboardAdapter::new();
     // If this compiles and runs without panic, the struct is wired correctly.
-    // ArboardClipboardAdapter is zero-size — no heap allocation, no I/O.
+    // ArboardClipboardAdapter is zero-size - no heap allocation, no I/O.
 }
 
 /// @US-02 @real-io @adapter-integration @error
 ///
-/// Scenario: WalkdirScanAdapter silently skips daily note with no Commits section
+/// Scenario: `WalkdirScanAdapter` silently skips daily note with no Commits section
 ///   Given a vault with one note that has no "## Commits" heading
-///   When WalkdirScanAdapter::scan(7) is called
-///   Then it returns Ok(vec![]) — no error, no records
+///   When `WalkdirScanAdapter::scan(7)` is called
+///   Then it returns `Ok(vec![])` - no error, no records
 #[test]
 fn walkdir_scan_adapter_skips_note_with_no_commits_section() {
     let vault_dir = TempDir::new().expect("tempdir");

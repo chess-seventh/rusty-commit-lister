@@ -79,114 +79,107 @@
       language = "system";
       always_run = true;
     };
-  #
-  #   check-merge-conflicts = {
-  #     name = "🔒 Check Merge Conflicts";
-  #     enable = true;
-  #     stages = [ "pre-commit" ];
-  #   };
-  #
-  #   detect-aws-credentials = {
-  #     name = "💭 Detect AWS Credentials";
-  #     enable = true;
-  #     stages = [ "pre-commit" ];
-  #   };
-  #
-  #   detect-private-keys = {
-  #     name = "🔑 Detect Private Keys";
-  #     enable = true;
-  #     stages = [ "pre-commit" ];
-  #   };
-  #
-  #   end-of-file-fixer = {
-  #     name = "🔚 End of File Fixer";
-  #     enable = true;
-  #     stages = [ "pre-commit" ];
-  #   };
-  #
-  #   mixed-line-endings = {
-  #     name = "🔀 Mixed Line Endings";
-  #     enable = true;
-  #     stages = [ "pre-commit" ];
-  #   };
-  #
-  #   trim-trailing-whitespace = {
-  #     name = "✨ Trim Trailing Whitespace";
-  #     enable = true;
-  #     stages = [ "pre-commit" ];
-  #   };
-  #
-  #   shellcheck = {
-  #     name = "✨ Shell Check";
-  #     enable = true;
-  #     stages = [ "pre-commit" ];
-  #   };
-  #
-  #   mdsh = {
-  #     enable = true;
-  #     name = "✨ MDSH";
-  #     stages = [ "pre-commit" ];
-  #   };
-  #
-  #   treefmt = {
-  #     name = "🌲 TreeFMT";
-  #     enable = true;
-  #     settings.formatters = [
-  #       pkgs.nixfmt-classic
-  #       pkgs.deadnix
-  #       pkgs.yamlfmt
-  #       pkgs.rustfmt
-  #       pkgs.toml-sort
-  #     ];
-  #     stages = [ "pre-commit" ];
-  #   };
-  #
-  #   commitizen = {
-  #     name = "✨ Commitizen";
-  #     enable = true;
-  #     stages = [ "post-commit" ];
-  #   };
-  #
-  #   gptcommit = {
-  #     name = "🤖 GPT Commit";
-  #     enable = true;
-  #   };
-  #
-  #   gitlint = {
-  #     name = "✨ GitLint";
-  #     enable = true;
-  #     after = [ "gptcommit" ];
-  #   };
-  #
-  #   markdownlint = {
-  #     name = "✨ MarkdownLint";
-  #     enable = true;
-  #     stages = [ "pre-commit" ];
-  #     settings.configuration = {
-  #       MD033 = false;
-  #       MD013 = {
-  #         line_length = 120;
-  #         tables = false;
-  #         code_blocks = false;
-  #       };
-  #       MD041 = false;
-  #       MD060 = false;
-  #     };
-  #   };
-  #
-  #   # Rust-specific hooks
-  #   rustfmt = {
-  #     name = "🦀 Rust Format";
-  #     enable = true;
-  #     stages = [ "pre-commit" ];
-  #   };
-  #
-  #   clippy = {
-  #     name = "🦀 Clippy";
-  #     enable = true;
-  #     stages = [ "pre-commit" ];
-  #     args = [ "--" "-W" "clippy::pedantic" ];
-  #   };
+
+    check-merge-conflicts = {
+      name = "🔒 Check Merge Conflicts";
+      enable = true;
+      stages = [ "pre-commit" ];
+    };
+
+    detect-aws-credentials = {
+      name = "💭 Detect AWS Credentials";
+      enable = true;
+      stages = [ "pre-commit" ];
+    };
+
+    detect-private-keys = {
+      name = "🔑 Detect Private Keys";
+      enable = true;
+      stages = [ "pre-commit" ];
+    };
+
+    end-of-file-fixer = {
+      name = "🔚 End of File Fixer";
+      enable = true;
+      stages = [ "pre-commit" ];
+    };
+
+    mixed-line-endings = {
+      name = "🔀 Mixed Line Endings";
+      enable = true;
+      stages = [ "pre-commit" ];
+    };
+
+    trim-trailing-whitespace = {
+      name = "✨ Trim Trailing Whitespace";
+      enable = true;
+      stages = [ "pre-commit" ];
+    };
+
+    shellcheck = {
+      name = "✨ Shell Check";
+      enable = true;
+      stages = [ "pre-commit" ];
+    };
+
+    mdsh = {
+      enable = true;
+      name = "✨ MDSH";
+      stages = [ "pre-commit" ];
+    };
+
+    treefmt = {
+      name = "🌲 TreeFMT";
+      enable = true;
+      settings.formatters = [
+        pkgs.nixfmt-classic
+        pkgs.deadnix
+        pkgs.yamlfmt
+        pkgs.rustfmt
+        pkgs.toml-sort
+      ];
+      stages = [ "pre-commit" ];
+    };
+
+    commitizen = {
+      name = "✨ Commitizen";
+      enable = true;
+      stages = [ "post-commit" ];
+    };
+
+    gptcommit = {
+      name = "🤖 GPT Commit";
+      enable = true;
+    };
+
+    gitlint = {
+      name = "✨ GitLint";
+      enable = true;
+      after = [ "gptcommit" ];
+    };
+
+    markdownlint = {
+      name = "✨ MarkdownLint";
+      enable = true;
+      stages = [ "pre-commit" ];
+      settings.configuration = {
+        MD033 = false;
+        MD013 = {
+          line_length = 120;
+          tables = false;
+          code_blocks = false;
+        };
+        MD041 = false;
+        MD060 = false;
+      };
+    };
+
+    # Rust-specific hooks
+    clippy = {
+      name = "🦀 Clippy";
+      enable = true;
+      stages = [ "pre-commit" ];
+    };
   };
 
   # Development scripts
@@ -194,7 +187,7 @@
     hello = {
       description = "Welcome message for Rust project";
       exec = ''
-        figlet "rusty-commit-lister" -w 1000
+        figlet -w 1000 "rusty-commit-lister"
         echo "🦀 Welcome to your Rust development environment!"
         echo "   Project: rusty-commit-lister"
         echo "   Crate: rusty_commit_lister"
@@ -206,16 +199,16 @@
       '';
     };
 
-    # install_pre_hooks = {
-    #   description = "Install and configure pre-commit hooks";
-    #   exec = ''
-    #     #!/usr/bin/env bash
-    #     set -euxo pipefail
-    #     gptcommit install
-    #     gptcommit config set openai.model gpt-4o
-    #     gptcommit config set output.conventional_commit true
-    #   '';
-    # };
+    install_pre_hooks = {
+      description = "Install and configure pre-commit hooks";
+      exec = ''
+        #!/usr/bin/env bash
+        set -euxo pipefail
+        gptcommit install
+        gptcommit config set openai.model gpt-4o
+        gptcommit config set output.conventional_commit true
+      '';
+    };
 
     prepare_git_repo = {
       description = "One time script to bootstrap the github/gitlab repository";
@@ -394,7 +387,7 @@
   # Enter shell configuration
   enterShell = ''
     if [ -f ".env" ]; then
-      export $(cat .env | xargs)
+      eval "$(<.env)"
     fi
 
     # Set environment variables for Rust development

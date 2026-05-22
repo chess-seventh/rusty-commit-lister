@@ -1,8 +1,9 @@
-/// Walking Skeleton Acceptance Test — rusty-commit-lister
+#![allow(clippy::needless_raw_string_hashes)]
+/// Walking Skeleton Acceptance Test - rusty-commit-lister
 ///
-/// Tags: @walking_skeleton @driving_port @US-01 @US-02 @US-03 @real-io
+/// Tags: @`walking_skeleton` @`driving_port` @US-01 @US-02 @US-03 @real-io
 ///
-/// WS strategy: CLI binary via assert_cmd subprocess from tempdir.
+/// WS strategy: CLI binary via `assert_cmd` subprocess from tempdir.
 /// Port treatment: driving = real CLI subprocess; driven-internal = real tempdir filesystem.
 /// Driven-external (clipboard) is not exercised in the walking skeleton.
 ///
@@ -23,10 +24,7 @@ fn write_config(dir: &TempDir, vault_path: &str, scan_days_back: u32) -> std::pa
     let config_path = dir.path().join("config.toml");
     fs::write(
         &config_path,
-        format!(
-            "vault_path = {:?}\nscan_days_back = {}\n",
-            vault_path, scan_days_back
-        ),
+        format!("vault_path = {vault_path:?}\nscan_days_back = {scan_days_back}\n",),
     )
     .expect("failed to write config.toml");
     config_path
@@ -48,7 +46,7 @@ const SAMPLE_NOTE_CONTENT: &str = r#"# 2026-05-18
 | /Users/franci/projects/dotfiles/.config/nvim    | 09:22    | chore: update neovim config            | https://github.com/franci/dotfiles        |
 "#;
 
-/// @walking_skeleton @driving_port @US-01 @US-02 @US-03 @real-io
+/// @`walking_skeleton` @`driving_port` @US-01 @US-02 @US-03 @real-io
 ///
 /// Scenario: Tool loads commits from a vault directory and exits successfully
 ///   Given a valid config.toml pointing to a tempdir vault
@@ -65,7 +63,7 @@ fn tool_loads_commits_from_vault_and_exits_successfully() {
     let config_path = write_config(&config_dir, vault_dir.path().to_str().unwrap(), 7);
 
     Command::cargo_bin("rusty_commit_lister")
-        .expect("binary not found — run `cargo build` first")
+        .expect("binary not found - run `cargo build` first")
         .arg("--config")
         .arg(config_path.to_str().unwrap())
         .assert()
@@ -75,11 +73,11 @@ fn tool_loads_commits_from_vault_and_exits_successfully() {
 
 /// @US-01 @real-io @error
 ///
-/// Scenario: Tool exits with code 2 when scan_days_back is invalid
-///   Given a config.toml with scan_days_back = 0
+/// Scenario: Tool exits with code 2 when `scan_days_back` is invalid
+///   Given a config.toml with `scan_days_back` = 0
 ///   When the binary is invoked with that config
 ///   Then the process exits with code 2
-///   And stderr contains an actionable error mentioning scan_days_back and the config path
+///   And stderr contains an actionable error mentioning `scan_days_back` and the config path
 #[test]
 fn invalid_scan_days_back_exits_with_code_2_and_actionable_error() {
     let config_dir = TempDir::new().expect("failed to create config tempdir");
@@ -117,7 +115,7 @@ fn missing_config_uses_defaults_and_shows_notice() {
         .stdout(contains("defaults").or(contains("no config")));
 }
 
-/// @US-01 @real-io (Unicode path constraint — highest-risk per DESIGN)
+/// @US-01 @real-io (Unicode path constraint - highest-risk per DESIGN)
 ///
 /// Scenario: Tool resolves vault path containing emoji directory segment
 ///   Given a vault directory whose path includes the "📅" emoji segment
@@ -185,7 +183,7 @@ fn tool_exits_cleanly_with_code_0_when_q_pressed() {
 fn empty_vault_shows_informative_empty_state() {
     let config_dir = TempDir::new().expect("failed to create config tempdir");
     let vault_dir = TempDir::new().expect("failed to create vault tempdir");
-    // vault_dir is empty — no daily notes
+    // vault_dir is empty - no daily notes
     let config_path = write_config(&config_dir, vault_dir.path().to_str().unwrap(), 7);
 
     Command::cargo_bin("rusty_commit_lister")

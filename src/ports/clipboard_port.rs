@@ -8,7 +8,7 @@ use crate::ports::config_port::Probe;
 ///
 /// Probe contract: `probe()` writes sentinel string "rcl-probe-sentinel" and reads it back.
 /// On SSH/headless environments, `write()` returns `Err` (never panics).
-/// Clipboard probe failure is NON-FATAL — the composition root sets
+/// Clipboard probe failure is NON-FATAL - the composition root sets
 /// `AppConfig.clipboard_available = false` and the TUI degrades gracefully.
 pub trait ClipboardPort: Probe {
     /// Write `text` to the system clipboard.
@@ -24,7 +24,7 @@ pub trait ClipboardPort: Probe {
 ///
 /// `write()` captures to an internal Vec. `probe()` always returns Ok.
 /// Validates input contracts identically to `ArboardClipboardAdapter`
-/// (empty string is rejected — real clipboard would silently no-op but that hides wiring bugs).
+/// (empty string is rejected - real clipboard would silently no-op but that hides wiring bugs).
 #[cfg(test)]
 pub mod fake {
     use super::*;
@@ -33,6 +33,12 @@ pub mod fake {
 
     pub struct FakeClipboard {
         pub written: RefCell<Vec<String>>,
+    }
+
+    impl Default for FakeClipboard {
+        fn default() -> Self {
+            Self::new()
+        }
     }
 
     impl FakeClipboard {
@@ -57,7 +63,7 @@ pub mod fake {
         fn write(&self, text: &str) -> Result<()> {
             assert!(
                 !text.is_empty(),
-                "ClipboardPort::write called with empty string — contract violation"
+                "ClipboardPort::write called with empty string - contract violation"
             );
             self.written.borrow_mut().push(text.to_string());
             Ok(())

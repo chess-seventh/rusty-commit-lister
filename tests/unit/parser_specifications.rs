@@ -1,12 +1,13 @@
-/// Parser Unit Tests — rusty-commit-lister
+#![allow(clippy::needless_raw_string_hashes)]
+/// Parser Unit Tests - rusty-commit-lister
 ///
 /// Tags: @US-02 @in-memory
 ///
 /// Tests for `parse_note(path: &Path) -> Vec<CommitRecord>`.
-/// Layer: unit — pure function, no subprocess, no real filesystem access
+/// Layer: unit - pure function, no subprocess, no real filesystem access
 /// except the fixture file (which is pre-committed and part of the test suite).
 ///
-/// PBT layer (Mandate 9): `parse_note` is a pure function — proptest is used at
+/// PBT layer (Mandate 9): `parse_note` is a pure function - proptest is used at
 /// this layer for the no-panic invariant.
 ///
 /// State-delta (Mandate 8): pure function tests use return-value assertions.
@@ -19,10 +20,10 @@ use rusty_commit_lister::parser::parse_note;
 
 /// @US-02 @in-memory
 ///
-/// Scenario: Standard daily note with N commit rows produces N CommitRecord structs
-///   Given the sample_daily_note.md fixture with 5 commit rows
-///   When parse_note is called on that file
-///   Then it returns exactly 5 CommitRecord structs
+/// Scenario: Standard daily note with N commit rows produces N `CommitRecord` structs
+///   Given the `sample_daily_note.md` fixture with 5 commit rows
+///   When `parse_note` is called on that file
+///   Then it returns exactly 5 `CommitRecord` structs
 ///   And each record has folder, time, message, and url fields populated
 #[test]
 fn standard_note_with_five_rows_produces_five_commit_records() {
@@ -50,8 +51,8 @@ fn standard_note_with_five_rows_produces_five_commit_records() {
 ///
 /// Scenario: Note with no "## Commits" section produces zero rows with no error
 ///   Given a temp file containing no "## Commits" heading
-///   When parse_note is called on that file
-///   Then it returns an empty Vec<CommitRecord>
+///   When `parse_note` is called on that file
+///   Then it returns an empty `Vec<CommitRecord>`
 ///   And no panic or error occurs
 #[test]
 fn note_with_no_commits_section_produces_zero_rows() {
@@ -74,8 +75,8 @@ fn note_with_no_commits_section_produces_zero_rows() {
 ///
 /// Scenario: Note with one malformed row skips that row and parses the remaining rows
 ///   Given a note with 3 valid rows and 1 malformed row (missing REPOSITORY URL column)
-///   When parse_note is called
-///   Then 3 CommitRecord structs are returned (malformed row skipped)
+///   When `parse_note` is called
+///   Then 3 `CommitRecord` structs are returned (malformed row skipped)
 ///   And no panic or crash occurs
 #[test]
 fn malformed_row_is_skipped_and_remaining_rows_are_parsed() {
@@ -114,10 +115,10 @@ fn malformed_row_is_skipped_and_remaining_rows_are_parsed() {
 
 /// @US-02 @in-memory
 ///
-/// Scenario: Note with commit row missing REPOSITORY URL parses with url = None
+/// Scenario: Note with commit row missing REPOSITORY URL parses with `url` = None
 ///   Given a note where the REPOSITORY URL column is present but empty
-///   When parse_note is called
-///   Then the returned CommitRecord has url = None
+///   When `parse_note` is called
+///   Then the returned `CommitRecord` has `url` = None
 ///   And no panic or error occurs
 #[test]
 fn commit_row_with_empty_url_column_produces_record_with_url_none() {
@@ -147,16 +148,16 @@ fn commit_row_with_empty_url_column_produces_record_with_url_none() {
     );
 }
 
-// ─── Property-based tests (PBT full — layer 1, pure function) ─────────────────
+// ─── Property-based tests (PBT full - layer 1, pure function) ─────────────────
 
 /// @US-02 @in-memory @property
 ///
-/// Property: parse_note never panics on any arbitrary .md file content
+/// Property: `parse_note` never panics on any arbitrary .md file content
 ///
 /// This is a proptest invariant: for any String content written to a .md file,
-/// parse_note returns a result (empty or populated) without panicking.
+/// `parse_note` returns a result (empty or populated) without panicking.
 ///
-/// Strategy: proptest any::<String>() provides adversarial inputs including:
+/// Strategy: proptest `any::<String>()` provides adversarial inputs including:
 ///   - empty strings
 ///   - strings with invalid UTF-8 escape sequences
 ///   - binary-looking content
@@ -180,7 +181,7 @@ mod property_tests {
         #[test]
         fn parse_note_never_panics_on_any_markdown_content(content in ".*") {
             let mut note = NamedTempFile::new().expect("tempfile");
-            write!(note, "{}", content).expect("write");
+            write!(note, "{content}").expect("write");
             // The function must not panic; return value (empty or populated) is acceptable.
             let _ = parse_note(note.path());
         }

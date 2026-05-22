@@ -6,13 +6,13 @@ pub const DEFAULT_SCAN_DAYS_BACK: u32 = 7;
 /// The current interaction mode of the TUI.
 #[derive(Debug, Clone, PartialEq)]
 pub enum AppMode {
-    /// Main browse mode — j/k navigation, q/Esc to exit.
+    /// Main browse mode - j/k navigation, q/Esc to exit.
     Browse,
-    /// Inline search mode — / activates, Esc clears.
+    /// Inline search mode - / activates, Esc clears.
     Search,
-    /// Detail overlay mode — Enter opens, Esc closes.
+    /// Detail overlay mode - Enter opens, Esc closes.
     Detail,
-    /// Repository picker overlay mode — f opens, Esc closes.
+    /// Repository picker overlay mode - f opens, Esc closes.
     RepoPicker,
 }
 
@@ -45,7 +45,7 @@ pub struct AppConfig {
     pub scan_days_back: u32,
     /// Optional repository name pre-filter applied at load time.
     pub repo_filter: Option<String>,
-    /// Whether the system clipboard is available (set after probe()).
+    /// Whether the system clipboard is available (set after `probe()`).
     pub clipboard_available: bool,
 }
 
@@ -63,23 +63,23 @@ impl Default for AppConfig {
 /// The full application state. Owned by the TUI event loop.
 ///
 /// This is the Model in the Elm/MVU architecture.
-/// All mutations produce a new AppModel — no shared mutable state.
+/// All mutations produce a new `AppModel` - no shared mutable state.
 #[derive(Debug, Clone)]
 pub struct AppModel {
     pub config: AppConfig,
     /// All commit rows loaded from the vault scan (sorted newest-first).
     pub commit_rows: Vec<CommitRecord>,
-    /// Currently visible rows after applying search_query and repo_filter.
+    /// Currently visible rows after applying `search_query` and `repo_filter`.
     pub filtered_rows: Vec<CommitRecord>,
     /// Current TUI interaction mode.
     pub mode: AppMode,
-    /// Index of the selected row in filtered_rows.
+    /// Index of the selected row in `filtered_rows`.
     pub cursor: usize,
     /// Active inline search query (empty string = no filter).
     pub search_query: String,
     /// Active TUI-level repository filter (None = show all repos).
     pub active_repo_filter: Option<String>,
-    /// Index within the repo picker overlay (used in RepoPicker mode).
+    /// Index within the repo picker overlay (used in `RepoPicker` mode).
     pub picker_cursor: usize,
     /// Whether the tool is currently loading data.
     pub loading: bool,
@@ -87,12 +87,12 @@ pub struct AppModel {
     pub error_message: Option<String>,
     /// Confirmation message to display briefly in the status bar.
     pub status_message: Option<String>,
-    /// URL pending clipboard write — set by 'c' in Detail mode, cleared by ClipboardResult.
+    /// URL pending clipboard write - set by 'c' in Detail mode, cleared by `ClipboardResult`.
     /// The event loop picks this up to fire the actual clipboard write effect.
     pub clipboard_pending: Option<String>,
     /// Whether the application should exit after the next event loop tick.
     pub quit: bool,
-    /// Number of rows to scroll per PageDown / PageUp key press.
+    /// Number of rows to scroll per `PageDown` / `PageUp` key press.
     pub page_size: usize,
 }
 

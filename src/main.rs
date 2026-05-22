@@ -2,7 +2,6 @@
 //
 // CLI flags: --config <path>, --verbose
 // Exit codes: 0 = success, 1 = vault error, 2 = config/usage error, 130 = SIGINT
-
 use std::io::IsTerminal;
 
 use anyhow::Result;
@@ -56,8 +55,7 @@ fn main() -> Result<()> {
     // 1. Determine config_path from --config flag or default
     let config_path = matches
         .get_one::<String>("config")
-        .map(std::path::PathBuf::from)
-        .unwrap_or_else(default_config_path);
+        .map_or_else(default_config_path, std::path::PathBuf::from);
 
     // 2. Load config — detect absence before loading so we can give a graceful notice
     let config_absent = !config_path.exists();
@@ -111,12 +109,10 @@ fn main() -> Result<()> {
         tui.run(
             model,
             move || {
-                vault
-                    .scan(scan_days_back)
-                    .unwrap_or_else(|e| {
-                        tracing::warn!(%e, "reload failed");
-                        vec![]
-                    })
+                vault.scan(scan_days_back).unwrap_or_else(|e| {
+                    tracing::warn!(%e, "reload failed");
+                    vec![]
+                })
             },
             |url| {
                 ArboardClipboardAdapter::new()
@@ -124,17 +120,15 @@ fn main() -> Result<()> {
                     .map_err(|e| e.to_string())
             },
         )?;
+    } else if model.commit_rows.is_empty() {
+        println!(
+            "No commits found in the last {} days",
+            model.config.scan_days_back
+        );
     } else {
-        if model.commit_rows.is_empty() {
-            println!(
-                "No commits found in the last {} days",
-                model.config.scan_days_back
-            );
-        } else {
-            println!("Found {} commits:", model.commit_rows.len());
-            for r in &model.commit_rows {
-                println!("  {} {} - {}", r.date, r.time, r.message);
-            }
+        println!("Found {} commits:", model.commit_rows.len());
+        for r in &model.commit_rows {
+            println!("  {} {} - {}", r.date, r.time, r.message);
         }
     }
 

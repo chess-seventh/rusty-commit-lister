@@ -28,22 +28,27 @@ impl Default for ArboardClipboardAdapter {
 
 impl Probe for ArboardClipboardAdapter {
     fn probe(&self) -> Result<()> {
-        let mut cb = Clipboard::new()
-            .map_err(|e| crate::error::RustyCommitListerError::clipboard_unavailable(e.to_string()))?;
-        cb.set_text("rcl-probe-sentinel")
-            .map_err(|e| crate::error::RustyCommitListerError::clipboard_unavailable(e.to_string()))?;
-        cb.get_text()
-            .map_err(|e| crate::error::RustyCommitListerError::clipboard_unavailable(e.to_string()))?;
+        let mut cb = Clipboard::new().map_err(|e| {
+            crate::error::RustyCommitListerError::clipboard_unavailable(e.to_string())
+        })?;
+        cb.set_text("rcl-probe-sentinel").map_err(|e| {
+            crate::error::RustyCommitListerError::clipboard_unavailable(e.to_string())
+        })?;
+        cb.get_text().map_err(|e| {
+            crate::error::RustyCommitListerError::clipboard_unavailable(e.to_string())
+        })?;
         Ok(())
     }
 }
 
 impl ClipboardPort for ArboardClipboardAdapter {
     fn write(&self, text: &str) -> Result<()> {
-        let mut cb = Clipboard::new()
-            .map_err(|e| crate::error::RustyCommitListerError::clipboard_unavailable(e.to_string()))?;
-        cb.set_text(text)
-            .map_err(|e| crate::error::RustyCommitListerError::clipboard_unavailable(e.to_string()))?;
+        let mut cb = Clipboard::new().map_err(|e| {
+            crate::error::RustyCommitListerError::clipboard_unavailable(e.to_string())
+        })?;
+        cb.set_text(text).map_err(|e| {
+            crate::error::RustyCommitListerError::clipboard_unavailable(e.to_string())
+        })?;
         Ok(())
     }
 }

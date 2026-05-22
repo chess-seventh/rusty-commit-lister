@@ -1,12 +1,12 @@
-/// Config Acceptance Tests — rusty-commit-lister
+/// Config Acceptance Tests - rusty-commit-lister
 ///
 /// Tags: @US-01 @real-io @adapter-integration
 ///
-/// These tests exercise the TomlConfigAdapter via the CLI binary subprocess,
+/// These tests exercise the `TomlConfigAdapter` via the CLI binary subprocess,
 /// validating observable user-facing config behaviors.
 ///
 /// Port treatment: CLI binary subprocess (driving) + real tempdir filesystem (driven-internal).
-/// Sad paths are enumerated explicitly (Mandate 11 — layer 3+ example-only).
+/// Sad paths are enumerated explicitly (Mandate 11 - layer 3+ example-only).
 use assert_cmd::Command;
 use predicates::prelude::PredicateBooleanExt;
 use predicates::str::{contains, is_match};
@@ -22,7 +22,7 @@ fn write_config_file(dir: &std::path::Path, content: &str) -> std::path::PathBuf
 /// @US-01 @real-io
 ///
 /// Scenario: Valid config loads silently with no config messages in output
-///   Given a config.toml with valid vault_path and scan_days_back = 7
+///   Given a `config.toml` with valid `vault_path` and `scan_days_back` = 7
 ///   And the vault directory exists
 ///   When the binary loads config
 ///   Then no config warning or error message appears in stdout/stderr
@@ -82,10 +82,10 @@ fn missing_config_triggers_default_fallback_notice() {
         .stdout(contains("defaults").and(contains(nonexistent_config.to_str().unwrap())));
 }
 
-/// @US-01 @real-io (Unicode — CRITICAL, highest-risk per DESIGN)
+/// @US-01 @real-io (Unicode - CRITICAL, highest-risk per DESIGN)
 ///
 /// Scenario: Vault path with emoji directory segment resolves via walkdir without error
-///   Given a vault_path in config.toml that includes "📅 Diaries" as a path segment
+///   Given a `vault_path` in `config.toml` that includes "📅 Diaries" as a path segment
 ///   And a daily note exists at that path
 ///   When the binary scans the vault
 ///   Then all notes at the emoji path are found and parsed
@@ -119,14 +119,14 @@ fn unicode_emoji_vault_path_resolves_correctly() {
         .arg(config_path)
         .assert()
         .code(0)
-        // At least one commit found — not zero rows due to path failure
+        // At least one commit found - not zero rows due to path failure
         .stdout(contains("commit").or(contains("Commit")));
 }
 
 /// @US-01 @real-io @error
 ///
-/// Scenario: scan_days_back = 0 in config exits with code 2 and actionable error
-///   Given config.toml contains scan_days_back = 0
+/// Scenario: `scan_days_back` = 0 in config exits with code 2 and actionable error
+///   Given `config.toml` contains `scan_days_back` = 0
 ///   When the binary loads config
 ///   Then exit code is 2
 ///   And stderr names the invalid field and the config file path to fix
@@ -153,8 +153,8 @@ fn scan_days_back_zero_exits_code_2_with_actionable_error() {
 
 /// @US-01 @real-io @error
 ///
-/// Scenario: scan_days_back = -1 in config exits with code 2 and names the invalid value
-///   Given config.toml contains scan_days_back = -1
+/// Scenario: `scan_days_back` = -1 in config exits with code 2 and names the invalid value
+///   Given `config.toml` contains `scan_days_back` = -1
 ///   When the binary loads config
 ///   Then exit code is 2
 ///   And the error message names the invalid value and the config file path
@@ -163,7 +163,7 @@ fn scan_days_back_negative_exits_code_2_and_names_the_value() {
     let config_dir = TempDir::new().expect("tempdir");
     let vault_dir = TempDir::new().expect("tempdir");
 
-    // TOML doesn't allow negative for u32 — the config crate must catch this
+    // TOML doesn't allow negative for u32 - the config crate must catch this
     let config_path = write_config_file(
         config_dir.path(),
         &format!(

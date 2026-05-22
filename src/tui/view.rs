@@ -4,7 +4,7 @@ use ratatui::style::{Style, Stylize};
 use ratatui::text::Text;
 use ratatui::widgets::{Block, Borders, Cell, List, ListItem, Paragraph, Row, Table, TableState};
 
-use crate::domain::model::{AppModel, AppMode, CommitRecord};
+use crate::domain::model::{AppMode, AppModel, CommitRecord};
 use crate::domain::update::distinct_repos;
 
 /// Truncates a string to at most `max_chars` Unicode scalar values.
@@ -13,7 +13,7 @@ use crate::domain::update::distinct_repos;
 /// `(max_chars - 3)` chars followed by `"..."`. Otherwise returns the
 /// string unchanged. Uses char-boundary-safe slicing via `char_indices`.
 ///
-/// Pure function — no I/O, no mutation.
+/// Pure function - no I/O, no mutation.
 fn truncate(s: &str, max_chars: usize) -> String {
     let char_count = s.chars().count();
     if char_count <= max_chars {
@@ -23,8 +23,7 @@ fn truncate(s: &str, max_chars: usize) -> String {
     let end_byte = s
         .char_indices()
         .nth(keep)
-        .map(|(byte_pos, _)| byte_pos)
-        .unwrap_or(0);
+        .map_or(0, |(byte_pos, _)| byte_pos);
     format!("{}...", &s[..end_byte])
 }
 
@@ -33,12 +32,12 @@ fn truncate(s: &str, max_chars: usize) -> String {
 /// Returns `"Row 0/0 | q quit"` when total is 0.
 /// Returns `"Row {cursor}/Total | q quit"` otherwise (cursor is already 1-based).
 ///
-/// Pure function — no I/O, no mutation.
+/// Pure function - no I/O, no mutation.
 fn format_status_text(cursor_one_based: usize, total: usize) -> String {
     if total == 0 {
         "Row 0/0 | q quit".to_string()
     } else {
-        format!("Row {}/{} | q quit", cursor_one_based, total)
+        format!("Row {cursor_one_based}/{total} | q quit")
     }
 }
 
@@ -46,16 +45,16 @@ fn format_status_text(cursor_one_based: usize, total: usize) -> String {
 ///
 /// Returns `"{filtered} of {total} commits | Esc cancel"`.
 ///
-/// Pure function — no I/O, no mutation.
+/// Pure function - no I/O, no mutation.
 fn search_status_text(filtered: usize, total: usize) -> String {
-    format!("{} of {} commits | Esc cancel", filtered, total)
+    format!("{filtered} of {total} commits | Esc cancel")
 }
 
-/// Pure render function — Elm/MVU View.
+/// Pure render function - Elm/MVU View.
 ///
-/// Takes a reference to the current AppModel and a mutable Frame reference.
+/// Takes a reference to the current `AppModel` and a mutable Frame reference.
 /// Does NOT mutate model state.
-/// Renders the appropriate widget tree for the current AppMode.
+/// Renders the appropriate widget tree for the current `AppMode`.
 ///
 /// Layout: 2 vertical chunks in Browse/Detail/RepoPicker mode (table area + status bar).
 /// In Search mode: 3 vertical chunks (table area + search bar + status bar).
@@ -89,23 +88,26 @@ pub fn view(model: &AppModel, frame: &mut Frame) {
     }
 }
 
-/// Builds the display lines for the Detail overlay from a CommitRecord.
+/// Builds the display lines for the Detail overlay from a `CommitRecord`.
 ///
 /// Returns a Vec of exactly 5 formatted strings:
 ///   0. "Date:    <date>"
 ///   1. "Time:    <time>"
 ///   2. "Message: <message>"   (full, NOT truncated)
 ///   3. "Folder:  <folder>"    (full, NOT truncated)
-///   4. "URL:     <url>" or "URL:     — not available —" when url is None
+///   4. "URL:     <url>" or "URL:     - not available -" when url is None
 ///
-/// Pure function — no I/O, no mutation. pub so integration test files can call it.
+/// Pure function - no I/O, no mutation. pub so integration test files can call it.
 pub fn detail_lines(record: &CommitRecord) -> Vec<String> {
     vec![
         format!("Date:    {}", record.date),
         format!("Time:    {}", record.time),
         format!("Message: {}", record.message),
         format!("Folder:  {}", record.folder),
-        format!("URL:     {}", record.url.as_deref().unwrap_or("— not available —")),
+        format!(
+            "URL:     {}",
+            record.url.as_deref().unwrap_or("- not available -")
+        ),
     ]
 }
 
@@ -121,18 +123,21 @@ fn render_detail_overlay(model: &AppModel, frame: &mut Frame, area: ratatui::lay
         lines.push(ratatui::text::Line::from(""));
         lines.push(ratatui::text::Line::from(status.clone()));
     }
-    let paragraph = Paragraph::new(lines)
-        .block(Block::default().borders(Borders::ALL).title("Commit Detail"));
+    let paragraph = Paragraph::new(lines).block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title("Commit Detail"),
+    );
     frame.render_widget(paragraph, area);
 }
 
 /// Renders the repository picker overlay listing all distinct repos with their commit counts.
 ///
-/// Each entry is formatted as "{repo_name} ({count})".
+/// Each entry is formatted as "{`repo_name`} ({`count`})".
 /// The row at `model.picker_cursor` is highlighted with a reversed style.
 /// Repos are listed in the order returned by `distinct_repos`: count descending, name ascending.
 ///
-/// Pure render — reads model, writes frame, no mutation.
+/// Pure render - reads model, writes frame, no mutation.
 fn render_repo_picker(model: &AppModel, frame: &mut Frame, area: ratatui::layout::Rect) {
     let repos = distinct_repos(&model.commit_rows);
     let items: Vec<ListItem> = repos
@@ -148,8 +153,7 @@ fn render_repo_picker(model: &AppModel, frame: &mut Frame, area: ratatui::layout
             ListItem::new(text).style(style)
         })
         .collect();
-    let list = List::new(items)
-        .block(Block::default().borders(Borders::ALL).title("Repo Filter"));
+    let list = List::new(items).block(Block::default().borders(Borders::ALL).title("Repo Filter"));
     frame.render_widget(list, area);
 }
 
@@ -224,7 +228,7 @@ fn render_commit_table(model: &AppModel, frame: &mut Frame, area: ratatui::layou
 /// Renders the search input line showing the current search query with a cursor indicator.
 ///
 /// Displays `"/ <query>_"` where the trailing underscore acts as a cursor indicator.
-/// Pure render — reads model, writes frame, no mutation.
+/// Pure render - reads model, writes frame, no mutation.
 fn render_search_bar(model: &AppModel, frame: &mut Frame, area: ratatui::layout::Rect) {
     let search_text = format!("/ {}_", model.search_query);
     frame.render_widget(Paragraph::new(search_text), area);
@@ -256,42 +260,49 @@ fn render_status_bar(model: &AppModel, frame: &mut Frame, area: ratatui::layout:
 mod tests {
     use super::{format_status_text, search_status_text, truncate};
 
-    /// Scenario: string shorter than max_chars is returned unchanged
-    ///   Given s = "hello" and max_chars = 10
+    /// Scenario: string shorter than `max_chars` is returned unchanged
+    ///   Given s = "hello" and `max_chars` = 10
     ///   Then truncate returns "hello" (no ellipsis)
     #[test]
     fn truncate_returns_short_string_unchanged() {
         assert_eq!(truncate("hello", 10), "hello");
     }
 
-    /// Scenario: string exactly equal to max_chars is returned unchanged
-    ///   Given s = "1234567890" (10 chars) and max_chars = 10
+    /// Scenario: string exactly equal to `max_chars` is returned unchanged
+    ///   Given s = "1234567890" (10 chars) and `max_chars` = 10
     ///   Then truncate returns the string unchanged
     #[test]
     fn truncate_returns_string_equal_to_max_unchanged() {
         assert_eq!(truncate("1234567890", 10), "1234567890");
     }
 
-    /// Scenario: string longer than max_chars is truncated with '...' suffix
-    ///   Given s = "hello world extra text" and max_chars = 10
+    /// Scenario: string longer than `max_chars` is truncated with '...' suffix
+    ///   Given s = "hello world extra text" and `max_chars` = 10
     ///   Then truncate returns a string of exactly 10 chars ending with "..."
     #[test]
     fn truncate_adds_ellipsis_when_string_exceeds_max_chars() {
         let result = truncate("hello world extra text", 10);
-        assert_eq!(result, "hello w...", "truncated string must be 10 chars with '...' suffix");
-        assert_eq!(result.chars().count(), 10, "result length must equal max_chars");
+        assert_eq!(
+            result, "hello w...",
+            "truncated string must be 10 chars with '...' suffix"
+        );
+        assert_eq!(
+            result.chars().count(),
+            10,
+            "result length must equal max_chars"
+        );
     }
 
     /// Scenario: empty string is returned as empty string
-    ///   Given s = "" and max_chars = 10
+    ///   Given s = "" and `max_chars` = 10
     ///   Then truncate returns ""
     #[test]
     fn truncate_empty_string_returns_empty() {
         assert_eq!(truncate("", 10), "");
     }
 
-    /// Scenario: max_chars = 3 (minimum meaningful truncation)
-    ///   Given s = "abcdef" and max_chars = 3
+    /// Scenario: `max_chars` = 3 (minimum meaningful truncation)
+    ///   Given s = "abcdef" and `max_chars` = 3
     ///   Then truncate returns "..." (no content prefix, all 3 chars are ellipsis)
     #[test]
     fn truncate_with_max_equal_to_ellipsis_length_returns_only_ellipsis() {
@@ -300,10 +311,10 @@ mod tests {
         assert_eq!(result.chars().count(), 3);
     }
 
-    /// Scenario: status bar shows "Row 0/0 | q quit" when filtered_rows is empty
+    /// Scenario: status bar shows "Row 0/0 | q quit" when `filtered_rows` is empty
     ///
-    /// This test validates the format_status_text() helper directly (pure function).
-    /// Given filtered_rows is empty
+    /// This test validates the `format_status_text()` helper directly (pure function).
+    /// Given `filtered_rows` is empty
     /// Then status text = "Row 0/0 | q quit"
     #[test]
     fn status_text_is_row_zero_of_zero_when_no_rows() {
@@ -322,7 +333,7 @@ mod tests {
 
     /// Scenario: search status bar shows "N of M commits | Esc cancel" with partial match
     ///   Given filtered = 3, total = 10
-    ///   Then search_status_text returns "3 of 10 commits | Esc cancel"
+    ///   Then `search_status_text` returns "3 of 10 commits | Esc cancel"
     #[test]
     fn search_status_text_shows_filtered_count_of_total() {
         assert_eq!(search_status_text(3, 10), "3 of 10 commits | Esc cancel");
@@ -330,7 +341,7 @@ mod tests {
 
     /// Scenario: search status bar shows "0 of M commits | Esc cancel" when no match
     ///   Given filtered = 0, total = 10
-    ///   Then search_status_text returns "0 of 10 commits | Esc cancel"
+    ///   Then `search_status_text` returns "0 of 10 commits | Esc cancel"
     #[test]
     fn search_status_text_shows_zero_when_no_match() {
         assert_eq!(search_status_text(0, 10), "0 of 10 commits | Esc cancel");
@@ -338,10 +349,9 @@ mod tests {
 
     /// Scenario: search status bar shows "M of M commits | Esc cancel" when all match
     ///   Given filtered = 10, total = 10
-    ///   Then search_status_text returns "10 of 10 commits | Esc cancel"
+    ///   Then `search_status_text` returns "10 of 10 commits | Esc cancel"
     #[test]
     fn search_status_text_shows_full_count_when_all_match() {
         assert_eq!(search_status_text(10, 10), "10 of 10 commits | Esc cancel");
     }
-
 }

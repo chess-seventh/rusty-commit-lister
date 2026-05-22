@@ -7,7 +7,7 @@ use crate::ports::config_port::Probe;
 
 /// Driving port for scanning the Obsidian vault for commit records.
 ///
-/// The adapter (WalkdirScanAdapter) walks `vault_path` for files named `YYYY-MM-DD.md`
+/// The adapter (`WalkdirScanAdapter`) walks `vault_path` for files named `YYYY-MM-DD.md`
 /// within the `days_back` window, calls `parse_note()` on each, and merges results
 /// sorted newest-first.
 pub trait VaultScanPort: Probe {

@@ -112,5 +112,9 @@ fn is_separator_row(cols: &[&str]) -> bool {
 
 /// Returns `None` if the column value is empty, `Some(String)` otherwise.
 fn optional_column(value: &str) -> Option<String> {
-    if value.is_empty() { None } else { Some(value.to_string()) }
+    if value.is_empty() {
+        None
+    } else {
+        Some(value.to_string())
+    }
 }

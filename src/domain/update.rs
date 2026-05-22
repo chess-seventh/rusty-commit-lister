@@ -1,3 +1,4 @@
+#![allow(clippy::collapsible_match)]
 use crossterm::event::{KeyCode, KeyEvent};
 
 use crate::domain::events::AppEvent;
@@ -39,27 +40,27 @@ pub fn distinct_repos(commit_rows: &[CommitRecord]) -> Vec<(String, usize)> {
 /// Pure state machine: given the current model and an event, return the next model.
 ///
 /// This is the Update function in the Elm/MVU architecture.
-/// It has zero I/O, zero side effects. Every transition produces a new AppModel.
+/// It has zero I/O, zero side effects. Every transition produces a new `AppModel`.
 ///
 /// # Key state machine transitions
 ///
 /// - Browse + j → cursor += 1 (wraps at bottom)
 /// - Browse + k → cursor -= 1 (wraps at top)
-/// - Browse + `/` → mode = Search, search_query = ""
+/// - Browse + `/` → mode = Search, `search_query` = ""
 /// - Browse + Enter → mode = Detail
-/// - Browse + `f` → mode = RepoPicker
+/// - Browse + `f` → mode = `RepoPicker`
 /// - Browse + `r` → loading = true (triggers re-scan in event loop)
 /// - Browse + `q` / Esc → signal to quit (returns model with quit flag)
-/// - Search + char → search_query += char, filtered_rows recalculated
-/// - Search + Esc → mode = Browse, search_query = "", filtered_rows = commit_rows
+/// - Search + char → `search_query` += char, `filtered_rows` recalculated
+/// - Search + Esc → mode = Browse, `search_query` = "", `filtered_rows` = `commit_rows`
 /// - Detail + Esc → mode = Browse, cursor preserved
-/// - Detail + `c` → triggers clipboard write (ClipboardResult event follows)
-/// - RepoPicker + Enter → active_repo_filter = selected repo
-/// - RepoPicker + Esc → mode = Browse, active_repo_filter unchanged
-/// - LoadComplete → commit_rows set, filtered_rows computed, loading = false
-/// - LoadFailed → error_message set, loading = false
-/// - ClipboardResult(Ok) → status_message = "URL copied to clipboard"
-/// - ClipboardResult(Err) → status_message = "Copy not available — select text manually"
+/// - Detail + `c` → triggers clipboard write (`ClipboardResult` event follows)
+/// - `RepoPicker` + Enter → `active_repo_filter` = selected repo
+/// - `RepoPicker` + Esc → mode = Browse, `active_repo_filter` unchanged
+/// - `LoadComplete` → `commit_rows` set, `filtered_rows` computed, loading = false
+/// - `LoadFailed` → `error_message` set, loading = false
+/// - ClipboardResult(Ok) → `status_message` = "URL copied to clipboard"
+/// - ClipboardResult(Err) → `status_message` = "Copy not available — select text manually"
 pub fn update(mut model: AppModel, event: AppEvent) -> AppModel {
     match event {
         AppEvent::LoadComplete(records) => {
@@ -92,7 +93,13 @@ fn recompute_filtered(model: &AppModel) -> Vec<CommitRecord> {
     model
         .commit_rows
         .iter()
-        .filter(|record| record_matches_filters(record, &model.search_query, &model.active_repo_filter))
+        .filter(|record| {
+            record_matches_filters(
+                record,
+                &model.search_query,
+                model.active_repo_filter.clone().as_ref(),
+            )
+        })
         .cloned()
         .collect()
 }
@@ -100,14 +107,19 @@ fn recompute_filtered(model: &AppModel) -> Vec<CommitRecord> {
 fn record_matches_filters(
     record: &CommitRecord,
     search_query: &str,
-    active_repo_filter: &Option<String>,
+    active_repo_filter: Option<&String>,
 ) -> bool {
-    repo_filter_matches(record, active_repo_filter) && search_query_matches(record, search_query)
+    repo_filter_matches(record, active_repo_filter.cloned().as_ref())
+        && search_query_matches(record, search_query)
 }
 
-fn repo_filter_matches(record: &CommitRecord, active_repo_filter: &Option<String>) -> bool {
+fn repo_filter_matches(record: &CommitRecord, active_repo_filter: Option<&String>) -> bool {
     active_repo_filter.as_ref().map_or(true, |filter| {
-        record.url.as_deref().unwrap_or("").contains(filter.as_str())
+        record
+            .url
+            .as_deref()
+            .unwrap_or("")
+            .contains(filter.as_str())
     })
 }
 
@@ -117,7 +129,12 @@ fn search_query_matches(record: &CommitRecord, search_query: &str) -> bool {
     }
     let query = search_query.to_lowercase();
     record.message.to_lowercase().contains(&query)
-        || record.url.as_deref().unwrap_or("").to_lowercase().contains(&query)
+        || record
+            .url
+            .as_deref()
+            .unwrap_or("")
+            .to_lowercase()
+            .contains(&query)
 }
 
 fn handle_key(model: AppModel, key: KeyEvent) -> AppModel {
@@ -171,7 +188,7 @@ fn handle_browse_key(mut model: AppModel, key: KeyEvent) -> AppModel {
         KeyCode::Char('r') => {
             model.loading = true;
         }
-        KeyCode::Char('q') | KeyCode::Char('Q') | KeyCode::Esc => {
+        KeyCode::Char('q' | 'Q') | KeyCode::Esc => {
             model.quit = true;
         }
         _ => {}
@@ -215,13 +232,11 @@ fn handle_detail_key(mut model: AppModel, key: KeyEvent) -> AppModel {
                     if model.config.clipboard_available {
                         model.clipboard_pending = Some(url_str);
                     } else {
-                        model.status_message = Some(
-                            "Copy not available — select text manually".to_string(),
-                        );
+                        model.status_message =
+                            Some("Copy not available — select text manually".to_string());
                     }
                 } else {
-                    model.status_message =
-                        Some("Copy not available — no URL".to_string());
+                    model.status_message = Some("Copy not available — no URL".to_string());
                 }
             }
         }
