@@ -27,7 +27,7 @@ default = []
 
 [package]
 name = "rusty_commit_lister"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 authors = ["Chess Seventh <chess7th@pm.me>"]
 license = "MIT"
