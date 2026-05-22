@@ -106,6 +106,7 @@ fn detail_lines_shows_not_available_when_url_is_none() {
 
 // ─── Render helpers ────────────────────────────────────────────────────────────
 
+#[allow(deprecated)]
 fn render_to_rows(model: &AppModel) -> Vec<String> {
     let backend = TestBackend::new(120, 25);
     let mut terminal = Terminal::new(backend).unwrap();
