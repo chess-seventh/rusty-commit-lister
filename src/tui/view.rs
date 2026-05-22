@@ -1,6 +1,6 @@
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Direction, Layout};
-use ratatui::style::{Style, Stylize};
+use ratatui::style::Style;
 use ratatui::text::Text;
 use ratatui::widgets::{Block, Borders, Cell, List, ListItem, Paragraph, Row, Table, TableState};
 
@@ -67,7 +67,7 @@ pub fn view(model: &AppModel, frame: &mut Frame) {
                 Constraint::Length(1),
                 Constraint::Length(1),
             ])
-            .split(frame.size());
+            .split(frame.area());
 
         let main_area = vertical_chunks[0];
         let search_bar_area = vertical_chunks[1];
@@ -78,7 +78,7 @@ pub fn view(model: &AppModel, frame: &mut Frame) {
         render_status_bar(model, frame, status_area);
     } else {
         let vertical_chunks =
-            Layout::vertical([Constraint::Min(0), Constraint::Length(1)]).split(frame.size());
+            Layout::vertical([Constraint::Min(0), Constraint::Length(1)]).split(frame.area());
 
         let main_area = vertical_chunks[0];
         let status_area = vertical_chunks[1];
@@ -217,7 +217,7 @@ fn render_commit_table(model: &AppModel, frame: &mut Frame, area: ratatui::layou
     let table = Table::new(data_rows, column_widths)
         .header(header)
         .block(Block::new().borders(Borders::ALL))
-        .highlight_style(Style::new().reversed());
+        .row_highlight_style(Style::new().reversed());
 
     // render_commit_table is only called when filtered_rows is non-empty
     let mut table_state = TableState::default().with_selected(Some(model.cursor));
