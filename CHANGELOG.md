@@ -1,4 +1,12 @@
-# 0.2.0 (2026-05-22)
+## [0.2.2](https://github.com/chess-seventh/rusty-commit-lister/compare/v0.2.1...v0.2.2) (2026-05-22)
+
+
+
+## [0.2.1](https://github.com/chess-seventh/rusty-commit-lister/compare/v0.2.0...v0.2.1) (2026-05-22)
+
+
+
+# [0.2.0](https://github.com/chess-seventh/rusty-commit-lister/compare/2d80af6e7dae480857ab3e44e9611b4ed585b030...v0.2.0) (2026-05-22)
 
 
 ### Features

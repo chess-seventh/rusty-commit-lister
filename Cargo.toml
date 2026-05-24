@@ -13,7 +13,7 @@ ratatui = "0.30.0"
 crossterm = "0.29.0"
 chrono = {version = "0.4.44", features = ["serde"]}
 walkdir = "2.5.0"
-toml = "0.8.23"
+toml = "1.1.2"
 arboard = "3.6.1"
 
 [dev-dependencies]
@@ -27,7 +27,7 @@ default = []
 
 [package]
 name = "rusty_commit_lister"
-version = "0.2.0"
+version = "0.2.2"
 edition = "2021"
 authors = ["Chess Seventh <chess7th@pm.me>"]
 license = "MIT"
