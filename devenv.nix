@@ -1,4 +1,11 @@
-{ pkgs, config, inputs, lib, ... }: {
+{
+  pkgs,
+  config,
+  inputs,
+  lib,
+  ...
+}:
+{
 
   # Environment variables
   dotenv = {
@@ -71,10 +78,12 @@
       enable = true;
       name = "🦀 Rusty Commit Saver";
       stages = [ "post-commit" ];
-      after = [ "commitizen" "gitlint" "gptcommit" ];
-      entry = "${
-          inputs.rusty-commit-saver.packages.${pkgs.system}.default
-        }/bin/rusty-commit-saver";
+      after = [
+        "commitizen"
+        "gitlint"
+        "gptcommit"
+      ];
+      entry = "${inputs.rusty-commit-saver.packages.${pkgs.system}.default}/bin/rusty-commit-saver";
       pass_filenames = false;
       language = "system";
       always_run = true;
@@ -132,7 +141,7 @@
       name = "🌲 TreeFMT";
       enable = true;
       settings.formatters = [
-        pkgs.nixfmt-classic
+        pkgs.nixfmt
         pkgs.deadnix
         pkgs.yamlfmt
         pkgs.rustfmt
@@ -376,8 +385,7 @@
         echo 💡 Helper scripts for DevBootstrapper development:
         echo
         ${pkgs.gnused}/bin/sed -e 's| |••|g' -e 's|=| |' <<EOF | ${pkgs.util-linuxMinimal}/bin/column -t | ${pkgs.gnused}/bin/sed -e 's|^|• |' -e 's|••| |g'
-        ${lib.generators.toKeyValue { }
-        (lib.mapAttrs (_name: value: value.description) config.scripts)}
+        ${lib.generators.toKeyValue { } (lib.mapAttrs (_name: value: value.description) config.scripts)}
         EOF
         echo
       '';
@@ -415,8 +423,7 @@
     echo 💡 Helper scripts for Rust development:
     echo
     ${pkgs.gnused}/bin/sed -e 's| |••|g' -e 's|=| |' <<EOF | ${pkgs.util-linuxMinimal}/bin/column -t | ${pkgs.gnused}/bin/sed -e 's|^|• |' -e 's|••| |g'
-    ${lib.generators.toKeyValue { }
-    (lib.mapAttrs (_name: value: value.description) config.scripts)}
+    ${lib.generators.toKeyValue { } (lib.mapAttrs (_name: value: value.description) config.scripts)}
     EOF
     echo
   '';
