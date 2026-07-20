@@ -81,7 +81,6 @@
       after = [
         "commitizen"
         "gitlint"
-        "gptcommit"
       ];
       entry = "${inputs.rusty-commit-saver.packages.${pkgs.system}.default}/bin/rusty-commit-saver";
       pass_filenames = false;
@@ -156,15 +155,9 @@
       stages = [ "post-commit" ];
     };
 
-    gptcommit = {
-      name = "🤖 GPT Commit";
-      enable = true;
-    };
-
     gitlint = {
       name = "✨ GitLint";
       enable = true;
-      after = [ "gptcommit" ];
     };
 
     markdownlint = {
@@ -205,17 +198,6 @@
         rustc --version
         cargo --version
         echo ""
-      '';
-    };
-
-    install_pre_hooks = {
-      description = "Install and configure pre-commit hooks";
-      exec = ''
-        #!/usr/bin/env bash
-        set -euxo pipefail
-        gptcommit install
-        gptcommit config set openai.model gpt-4o
-        gptcommit config set output.conventional_commit true
       '';
     };
 
