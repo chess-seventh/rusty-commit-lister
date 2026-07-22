@@ -1,12 +1,12 @@
 name: "🔐 Security Audit"
 on:
   pull_request:
-    branches: ["master"]
+    branches: ["main"]
     paths:
       - "**/Cargo.toml"
       - "**/Cargo.lock"
   push:
-    branches: ["master"]
+    branches: ["main"]
     paths:
       - "**/Cargo.toml"
       - "**/Cargo.lock"

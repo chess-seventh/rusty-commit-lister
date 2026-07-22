@@ -1,14 +1,14 @@
 name: "🔒 CodeQL"
 on:
   push:
-    branches: ["master"]
+    branches: ["main"]
     paths:
       - "**.rs"
       - "Cargo.toml"
       - "Cargo.lock"
       - ".github/workflows/codeql.yml"
   pull_request:
-    branches: ["master"]
+    branches: ["main"]
     paths:
       - "**.rs"
       - "Cargo.toml"

@@ -3,7 +3,7 @@ on:
   workflow_run:
     workflows: ["🔍 CI - Quality & Coverage"]
     types: [completed]
-    branches: ["master"]
+    branches: ["main"]
 permissions:
   contents: write
   pull-requests: write
@@ -103,7 +103,7 @@ jobs:
             echo "No additional changes to commit"
           else
             git commit -m "chore(release): update flake.nix and Cargo.lock for ${{ steps.changelog.outputs.version }} [skip ci]"
-            git push origin master
+            git push origin main
           fi
       - name: ✨ Create GitHub Release
         if: steps.changelog.outputs.skipped == 'false'
