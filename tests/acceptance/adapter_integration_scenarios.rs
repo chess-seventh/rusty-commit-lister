@@ -13,6 +13,8 @@
 ///   - `ArboardClipboardAdapter`: compile/instantiation smoke test (headless-safe)
 use std::fs;
 use std::path::PathBuf;
+
+use chrono::{Duration, Local};
 use tempfile::TempDir;
 
 use rusty_commit_lister::adapters::arboard_clipboard::ArboardClipboardAdapter;
@@ -117,13 +119,19 @@ fn toml_config_adapter_returns_defaults_when_file_is_absent() {
 fn walkdir_scan_adapter_returns_commit_records_from_real_vault_directory() {
     let vault_dir = TempDir::new().expect("tempdir");
 
+    // Fixture filenames are relative to today so they always land inside the
+    // scan window (WalkdirScanAdapter filters notes to today - days_back).
+    let today = Local::now().date_naive();
+    let note1 = format!("{}.md", (today - Duration::days(1)).format("%Y-%m-%d"));
+    let note2 = format!("{}.md", (today - Duration::days(2)).format("%Y-%m-%d"));
+
     fs::write(
-        vault_dir.path().join("2026-05-18.md"),
+        vault_dir.path().join(note1),
         "## Commits\n\n| FOLDER | TIME | COMMIT MESSAGE | REPOSITORY URL |\n| --- | --- | --- | --- |\n| /projects/rcl/src | 14:32 | feat: add TUI skeleton | https://github.com/franci/rcl |\n",
     ).expect("write note");
 
     fs::write(
-        vault_dir.path().join("2026-05-17.md"),
+        vault_dir.path().join(note2),
         "## Commits\n\n| FOLDER | TIME | COMMIT MESSAGE | REPOSITORY URL |\n| --- | --- | --- | --- |\n| /projects/dotfiles | 09:15 | chore: update nvim | https://github.com/franci/dotfiles |\n",
     ).expect("write note");
 
@@ -158,8 +166,12 @@ fn walkdir_scan_adapter_handles_emoji_path_segment_without_data_loss() {
     let emoji_dir = base.path().join("📅 Diaries").join("0. Journal");
     fs::create_dir_all(&emoji_dir).expect("create emoji dir");
 
+    // Date-relative filename so the note stays inside the scan(7) window.
+    let today = Local::now().date_naive();
+    let note = format!("{}.md", (today - Duration::days(1)).format("%Y-%m-%d"));
+
     fs::write(
-        emoji_dir.join("2026-05-18.md"),
+        emoji_dir.join(note),
         "## Commits\n\n| FOLDER | TIME | COMMIT MESSAGE | REPOSITORY URL |\n| --- | --- | --- | --- |\n| /p/r | 10:00 | emoji path test commit | https://github.com/franci/r |\n",
     ).expect("write note");
 
