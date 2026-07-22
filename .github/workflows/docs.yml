@@ -2,6 +2,13 @@ name: 📚 Documentation
 on:
   release:
     types: [published]
+  push:
+    branches: ["main"]
+    paths:
+      - "src/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".github/workflows/docs.yml"
   workflow_dispatch:
 permissions:
   contents: write

@@ -1,3 +1,5 @@
+//! Pure Markdown daily-note parser: `parse_note(path) -> Vec<CommitRecord>`.
+
 use std::path::Path;
 
 use crate::domain::model::CommitRecord;
@@ -13,6 +15,8 @@ use crate::domain::model::CommitRecord;
 /// If rusty-commit-saver changes its output, update this constant
 /// and fix all tests — they will go RED immediately.
 pub const COMMITS_SECTION_HEADING: &str = "## Commits";
+
+/// The expected pipe-table column headers, in order, under the commits section.
 pub const EXPECTED_COLUMNS: [&str; 4] = ["FOLDER", "TIME", "COMMIT MESSAGE", "REPOSITORY URL"];
 
 /// Parse a single Obsidian daily note file and extract commit records.

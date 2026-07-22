@@ -1,3 +1,5 @@
+//! TOML-file [`ConfigPort`] adapter with `~` expansion and validation.
+
 use std::path::PathBuf;
 
 use serde::Deserialize;
@@ -10,8 +12,11 @@ use crate::ports::config_port::{ConfigPort, Probe};
 /// All fields are optional so missing keys fall back to `AppConfig` defaults.
 #[derive(Deserialize)]
 struct TomlFileConfig {
+    /// Vault directory (may start with `~`); falls back to the default when absent.
     vault_path: Option<String>,
+    /// Scan window in days; falls back to `DEFAULT_SCAN_DAYS_BACK` when absent.
     scan_days_back: Option<u32>,
+    /// Optional repository name pre-filter.
     repo_filter: Option<String>,
 }
 
@@ -35,6 +40,7 @@ pub struct TomlConfigAdapter {
 }
 
 impl TomlConfigAdapter {
+    /// Create an adapter that reads config from `config_path`.
     pub fn new(config_path: PathBuf) -> Self {
         Self { config_path }
     }

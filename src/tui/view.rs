@@ -1,3 +1,5 @@
+//! Pure `view` renderer (Elm/MVU) plus its widget-building helpers.
+
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Direction, Layout};
 use ratatui::style::Style;
@@ -91,11 +93,11 @@ pub fn view(model: &AppModel, frame: &mut Frame) {
 /// Builds the display lines for the Detail overlay from a `CommitRecord`.
 ///
 /// Returns a Vec of exactly 5 formatted strings:
-///   0. "Date:    <date>"
-///   1. "Time:    <time>"
-///   2. "Message: <message>"   (full, NOT truncated)
-///   3. "Folder:  <folder>"    (full, NOT truncated)
-///   4. "URL:     <url>" or "URL:     - not available -" when url is None
+///   0. `Date:    {date}`
+///   1. `Time:    {time}`
+///   2. `Message: {message}`   (full, NOT truncated)
+///   3. `Folder:  {folder}`    (full, NOT truncated)
+///   4. `URL:     {url}` or `URL:     - not available -` when url is None
 ///
 /// Pure function - no I/O, no mutation. pub so integration test files can call it.
 pub fn detail_lines(record: &CommitRecord) -> Vec<String> {
@@ -111,6 +113,7 @@ pub fn detail_lines(record: &CommitRecord) -> Vec<String> {
     ]
 }
 
+/// Renders the Detail overlay for the selected commit, plus any status message.
 fn render_detail_overlay(model: &AppModel, frame: &mut Frame, area: ratatui::layout::Rect) {
     // Safety: Detail mode is only entered from Browse when filtered_rows is non-empty
     // (handle_browse_key guards this). The cursor is always a valid index.
@@ -157,6 +160,8 @@ fn render_repo_picker(model: &AppModel, frame: &mut Frame, area: ratatui::layout
     frame.render_widget(list, area);
 }
 
+/// Renders the primary content area, dispatching on loading/error/empty state
+/// and the current `AppMode` (table, detail overlay, or repo picker).
 fn render_main_area(model: &AppModel, frame: &mut Frame, area: ratatui::layout::Rect) {
     if model.loading {
         frame.render_widget(Paragraph::new("Loading..."), area);
@@ -186,6 +191,8 @@ fn render_main_area(model: &AppModel, frame: &mut Frame, area: ratatui::layout::
     render_commit_table(model, frame, area);
 }
 
+/// Renders the scrollable commit table (Date/Time/Message/Folder) with the
+/// selected row highlighted. Message and folder cells are truncated to fit.
 fn render_commit_table(model: &AppModel, frame: &mut Frame, area: ratatui::layout::Rect) {
     let header = Row::new(vec![
         Cell::from(Text::from("Date").style(Style::new().bold())),
@@ -234,6 +241,7 @@ fn render_search_bar(model: &AppModel, frame: &mut Frame, area: ratatui::layout:
     frame.render_widget(Paragraph::new(search_text), area);
 }
 
+/// Renders the bottom status bar, whose contents depend on the current `AppMode`.
 fn render_status_bar(model: &AppModel, frame: &mut Frame, area: ratatui::layout::Rect) {
     let status_text = match model.mode {
         AppMode::Search => search_status_text(model.filtered_rows.len(), model.commit_rows.len()),

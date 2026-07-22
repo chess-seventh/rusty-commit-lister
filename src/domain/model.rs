@@ -1,3 +1,5 @@
+//! Domain data types: [`AppModel`], [`AppMode`], [`CommitRecord`], [`AppConfig`].
+
 use std::path::PathBuf;
 
 /// Default number of days to scan back for daily notes when no config overrides it.
@@ -66,6 +68,7 @@ impl Default for AppConfig {
 /// All mutations produce a new `AppModel` - no shared mutable state.
 #[derive(Debug, Clone)]
 pub struct AppModel {
+    /// Effective application configuration (vault path, scan window, clipboard flag).
     pub config: AppConfig,
     /// All commit rows loaded from the vault scan (sorted newest-first).
     pub commit_rows: Vec<CommitRecord>,
@@ -97,6 +100,7 @@ pub struct AppModel {
 }
 
 impl AppModel {
+    /// Build the initial model for `config`: Browse mode, empty rows, `loading = true`.
     pub fn new(config: AppConfig) -> Self {
         Self {
             config,

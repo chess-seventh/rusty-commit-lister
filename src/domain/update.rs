@@ -1,3 +1,4 @@
+//! The pure `update` reducer and its key-handling helpers (Elm/MVU).
 #![allow(clippy::collapsible_match)]
 use crossterm::event::{KeyCode, KeyEvent};
 
@@ -14,8 +15,8 @@ use crate::domain::model::{AppMode, AppModel, CommitRecord};
 ///
 /// # Examples
 ///
-/// ```
-/// // [("dotfiles", 2), ("notes", 1)]
+/// ```text
+/// distinct_repos(&rows) // => [("dotfiles", 2), ("notes", 1)]
 /// ```
 pub fn distinct_repos(commit_rows: &[CommitRecord]) -> Vec<(String, usize)> {
     use std::collections::HashMap;
@@ -89,6 +90,7 @@ pub fn update(mut model: AppModel, event: AppEvent) -> AppModel {
     model
 }
 
+/// Recompute `filtered_rows` from `commit_rows` under the active search + repo filters.
 fn recompute_filtered(model: &AppModel) -> Vec<CommitRecord> {
     model
         .commit_rows
@@ -104,6 +106,7 @@ fn recompute_filtered(model: &AppModel) -> Vec<CommitRecord> {
         .collect()
 }
 
+/// Returns true when `record` satisfies both the repo filter and the search query.
 fn record_matches_filters(
     record: &CommitRecord,
     search_query: &str,
@@ -113,6 +116,7 @@ fn record_matches_filters(
         && search_query_matches(record, search_query)
 }
 
+/// Returns true when no repo filter is active, or the record's URL contains it.
 fn repo_filter_matches(record: &CommitRecord, active_repo_filter: Option<&String>) -> bool {
     active_repo_filter.as_ref().map_or(true, |filter| {
         record
@@ -123,6 +127,8 @@ fn repo_filter_matches(record: &CommitRecord, active_repo_filter: Option<&String
     })
 }
 
+/// Returns true when the query is empty, or matches the record's message or URL
+/// (case-insensitive substring).
 fn search_query_matches(record: &CommitRecord, search_query: &str) -> bool {
     if search_query.is_empty() {
         return true;
@@ -137,6 +143,7 @@ fn search_query_matches(record: &CommitRecord, search_query: &str) -> bool {
             .contains(&query)
 }
 
+/// Dispatch a key event to the handler for the model's current `AppMode`.
 fn handle_key(model: AppModel, key: KeyEvent) -> AppModel {
     match model.mode.clone() {
         AppMode::Browse => handle_browse_key(model, key),
@@ -146,6 +153,7 @@ fn handle_key(model: AppModel, key: KeyEvent) -> AppModel {
     }
 }
 
+/// Browse-mode keys: navigation, search/detail/picker entry, reload, and quit.
 fn handle_browse_key(mut model: AppModel, key: KeyEvent) -> AppModel {
     let row_count = model.filtered_rows.len();
     match key.code {
@@ -196,6 +204,7 @@ fn handle_browse_key(mut model: AppModel, key: KeyEvent) -> AppModel {
     model
 }
 
+/// Search-mode keys: edit the query (live-filtering), commit, or cancel.
 fn handle_search_key(mut model: AppModel, key: KeyEvent) -> AppModel {
     match key.code {
         KeyCode::Esc => {
@@ -220,6 +229,7 @@ fn handle_search_key(mut model: AppModel, key: KeyEvent) -> AppModel {
     model
 }
 
+/// Detail-mode keys: copy the URL to the clipboard, or return to Browse.
 fn handle_detail_key(mut model: AppModel, key: KeyEvent) -> AppModel {
     match key.code {
         KeyCode::Esc => {
@@ -245,6 +255,7 @@ fn handle_detail_key(mut model: AppModel, key: KeyEvent) -> AppModel {
     model
 }
 
+/// Repo-picker keys: move the picker cursor, confirm a repo filter, or cancel.
 fn handle_repo_picker_key(mut model: AppModel, key: KeyEvent) -> AppModel {
     let repos = distinct_repos(&model.commit_rows);
     let len = repos.len();
