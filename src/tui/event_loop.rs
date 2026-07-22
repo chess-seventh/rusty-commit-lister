@@ -1,3 +1,4 @@
+//! Crossterm-driven event loop wrapping the terminal and the update/view cycle.
 // #![allow(clippy::needless_pass_by_value)]
 #![allow(clippy::missing_errors_doc)]
 use std::io::Stdout;
@@ -17,7 +18,9 @@ const POLL_INTERVAL: Duration = Duration::from_millis(250);
 /// On creation: enters raw mode and alt screen via crossterm.
 /// On drop (or explicit `restore()`): exits raw mode and alt screen, restoring the terminal.
 pub struct TuiEventLoop {
+    /// The ratatui terminal wrapping stdout in raw mode + alternate screen.
     terminal: ratatui::Terminal<ratatui::backend::CrosstermBackend<Stdout>>,
+    /// Whether the terminal has already been restored (guards double-restore).
     restored: bool,
 }
 

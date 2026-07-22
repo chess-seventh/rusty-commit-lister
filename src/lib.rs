@@ -4,6 +4,7 @@
 //! Production wiring happens in `main.rs` (composition root).
 
 #![forbid(unsafe_code)]
+#![warn(missing_docs)]
 
 pub mod error;
 pub use error::{Result, RustyCommitListerError};

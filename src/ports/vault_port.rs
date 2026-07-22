@@ -1,5 +1,6 @@
 // SCAFFOLD: true
 // Bootstrapped by DISTILL wave 2026-05-18.
+//! The [`VaultScanPort`] trait for scanning the vault for commit records.
 
 use crate::domain::model::CommitRecord;
 use crate::error::Result;

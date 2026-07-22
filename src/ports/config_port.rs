@@ -1,5 +1,6 @@
 // SCAFFOLD: true
 // Bootstrapped by DISTILL wave 2026-05-18.
+//! [`ConfigPort`] and the [`Probe`] supertrait every adapter implements.
 #![allow(clippy::missing_errors_doc)]
 use crate::domain::model::AppConfig;
 use crate::error::Result;
@@ -10,6 +11,7 @@ use crate::error::Result;
 /// - `TomlConfigAdapter::probe()`: read config path; parse and validate required fields.
 /// - Returns structured error on any failure.
 pub trait Probe {
+    /// Verify the adapter is structurally healthy. Returns `Err` on a fatal defect.
     fn probe(&self) -> Result<()>;
 }
 

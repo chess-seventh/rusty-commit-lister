@@ -1,5 +1,6 @@
 // SCAFFOLD: true
 // Bootstrapped by DISTILL wave 2026-05-18.
+//! The [`ClipboardPort`] trait and an in-memory fake for tests.
 
 use crate::error::Result;
 use crate::ports::config_port::Probe;
@@ -31,7 +32,9 @@ pub mod fake {
     use crate::ports::config_port::Probe;
     use std::cell::RefCell;
 
+    /// Test double capturing every `write()` in an internal buffer.
     pub struct FakeClipboard {
+        /// Every string passed to `write()`, in call order.
         pub written: RefCell<Vec<String>>,
     }
 
@@ -42,12 +45,14 @@ pub mod fake {
     }
 
     impl FakeClipboard {
+        /// Create an empty fake clipboard.
         pub fn new() -> Self {
             Self {
                 written: RefCell::new(Vec::new()),
             }
         }
 
+        /// Return the most recently written string, if any.
         pub fn last_written(&self) -> Option<String> {
             self.written.borrow().last().cloned()
         }

@@ -1,5 +1,6 @@
 // SCAFFOLD: true
 // Bootstrapped by DISTILL wave 2026-05-18.
+//! The [`AppEvent`] enum — inputs that drive the `update` reducer.
 
 use crossterm::event::KeyEvent;
 

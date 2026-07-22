@@ -1,3 +1,5 @@
+//! `arboard`-backed [`ClipboardPort`] adapter (ADR-004).
+
 use arboard::Clipboard;
 
 use crate::error::Result;
@@ -15,6 +17,7 @@ use crate::ports::config_port::Probe;
 pub struct ArboardClipboardAdapter;
 
 impl ArboardClipboardAdapter {
+    /// Create a new adapter. Holds no state — the clipboard is opened per call.
     pub fn new() -> Self {
         Self
     }

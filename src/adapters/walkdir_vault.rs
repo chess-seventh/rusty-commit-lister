@@ -1,3 +1,5 @@
+//! `walkdir`-backed [`VaultScanPort`] adapter with date-window filtering.
+
 use std::ffi::OsStr;
 use std::path::PathBuf;
 
@@ -30,6 +32,7 @@ pub struct WalkdirScanAdapter {
 }
 
 impl WalkdirScanAdapter {
+    /// Create an adapter that scans `vault_path` for daily notes.
     pub fn new(vault_path: PathBuf) -> Self {
         Self { vault_path }
     }
