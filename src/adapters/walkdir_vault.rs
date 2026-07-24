@@ -16,6 +16,25 @@ use crate::ports::vault_port::VaultScanPort;
 /// Prevents accidental full-filesystem traversal if `vault_path` is misconfigured.
 const VAULT_SCAN_MAX_DEPTH: usize = 10;
 
+/// Supplies "today" as a [`NaiveDate`](chrono::NaiveDate).
+///
+/// Injected into [`WalkdirScanAdapter`] so the `scan(days_back)` window is
+/// deterministic under test: the real wall-clock never leaks into the date
+/// filter, so date-based fixtures cannot rot. Production uses [`SystemClock`].
+pub trait Clock {
+    /// The current local date.
+    fn today(&self) -> chrono::NaiveDate;
+}
+
+/// Production [`Clock`] backed by the system's local time zone.
+pub struct SystemClock;
+
+impl Clock for SystemClock {
+    fn today(&self) -> chrono::NaiveDate {
+        Local::now().date_naive()
+    }
+}
+
 /// Adapter that walks the Obsidian vault directory using `walkdir 2`,
 /// filters daily notes by date range using `chrono 0.4`, and calls
 /// `parse_note()` on each discovered file.
@@ -29,12 +48,23 @@ const VAULT_SCAN_MAX_DEPTH: usize = 10;
 pub struct WalkdirScanAdapter {
     /// The root vault directory to scan.
     pub vault_path: PathBuf,
+    /// Source of "today" for the scan window (injected; see [`Clock`]).
+    clock: Box<dyn Clock>,
 }
 
 impl WalkdirScanAdapter {
-    /// Create an adapter that scans `vault_path` for daily notes.
+    /// Create an adapter that scans `vault_path` for daily notes,
+    /// using the [`SystemClock`] for the scan window.
     pub fn new(vault_path: PathBuf) -> Self {
-        Self { vault_path }
+        Self::with_clock(vault_path, Box::new(SystemClock))
+    }
+
+    /// Create an adapter with an injected [`Clock`].
+    ///
+    /// Lets tests pin "today" to a fixed date so the `scan(days_back)` window is
+    /// deterministic and fixture filenames need not track the real calendar.
+    pub fn with_clock(vault_path: PathBuf, clock: Box<dyn Clock>) -> Self {
+        Self { vault_path, clock }
     }
 }
 
@@ -53,7 +83,7 @@ impl Probe for WalkdirScanAdapter {
 
 impl VaultScanPort for WalkdirScanAdapter {
     fn scan(&self, days_back: u32) -> Result<Vec<CommitRecord>> {
-        let today = Local::now().date_naive();
+        let today = self.clock.today();
         let window_start = today - chrono::Duration::days(i64::from(days_back));
 
         let mut records: Vec<CommitRecord> = WalkDir::new(&self.vault_path)

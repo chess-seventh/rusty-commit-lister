@@ -14,14 +14,30 @@
 use std::fs;
 use std::path::PathBuf;
 
-use chrono::{Duration, Local};
+use chrono::NaiveDate;
 use tempfile::TempDir;
 
 use rusty_commit_lister::adapters::arboard_clipboard::ArboardClipboardAdapter;
 use rusty_commit_lister::adapters::toml_config::TomlConfigAdapter;
-use rusty_commit_lister::adapters::walkdir_vault::WalkdirScanAdapter;
+use rusty_commit_lister::adapters::walkdir_vault::{Clock, WalkdirScanAdapter};
 use rusty_commit_lister::ports::config_port::ConfigPort;
 use rusty_commit_lister::ports::vault_port::VaultScanPort;
+
+/// Test clock pinned to a fixed "today" so the `scan(days_back)` window is
+/// deterministic — fixture filenames use fixed dates and cannot rot.
+struct FixedClock(NaiveDate);
+
+impl Clock for FixedClock {
+    fn today(&self) -> NaiveDate {
+        self.0
+    }
+}
+
+/// Anchor date shared by the clock-injected scan tests.
+const PINNED_TODAY: NaiveDate = match NaiveDate::from_ymd_opt(2026, 5, 20) {
+    Some(d) => d,
+    None => unreachable!(),
+};
 
 // ─── TomlConfigAdapter tests ─────────────────────────────────────────────────
 
@@ -119,23 +135,23 @@ fn toml_config_adapter_returns_defaults_when_file_is_absent() {
 fn walkdir_scan_adapter_returns_commit_records_from_real_vault_directory() {
     let vault_dir = TempDir::new().expect("tempdir");
 
-    // Fixture filenames are relative to today so they always land inside the
-    // scan window (WalkdirScanAdapter filters notes to today - days_back).
-    let today = Local::now().date_naive();
-    let note1 = format!("{}.md", (today - Duration::days(1)).format("%Y-%m-%d"));
-    let note2 = format!("{}.md", (today - Duration::days(2)).format("%Y-%m-%d"));
-
+    // Fixed fixture filenames + an injected clock pinned to PINNED_TODAY: the
+    // scan(7) window is deterministic, so these dates cannot rot regardless of
+    // the real calendar.
     fs::write(
-        vault_dir.path().join(note1),
+        vault_dir.path().join("2026-05-19.md"),
         "## Commits\n\n| FOLDER | TIME | COMMIT MESSAGE | REPOSITORY URL |\n| --- | --- | --- | --- |\n| /projects/rcl/src | 14:32 | feat: add TUI skeleton | https://github.com/franci/rcl |\n",
     ).expect("write note");
 
     fs::write(
-        vault_dir.path().join(note2),
+        vault_dir.path().join("2026-05-18.md"),
         "## Commits\n\n| FOLDER | TIME | COMMIT MESSAGE | REPOSITORY URL |\n| --- | --- | --- | --- |\n| /projects/dotfiles | 09:15 | chore: update nvim | https://github.com/franci/dotfiles |\n",
     ).expect("write note");
 
-    let adapter = WalkdirScanAdapter::new(vault_dir.path().to_path_buf());
+    let adapter = WalkdirScanAdapter::with_clock(
+        vault_dir.path().to_path_buf(),
+        Box::new(FixedClock(PINNED_TODAY)),
+    );
     let records = adapter.scan(7).expect("scan should succeed");
 
     assert!(
@@ -166,12 +182,9 @@ fn walkdir_scan_adapter_handles_emoji_path_segment_without_data_loss() {
     let emoji_dir = base.path().join("📅 Diaries").join("0. Journal");
     fs::create_dir_all(&emoji_dir).expect("create emoji dir");
 
-    // Date-relative filename so the note stays inside the scan(7) window.
-    let today = Local::now().date_naive();
-    let note = format!("{}.md", (today - Duration::days(1)).format("%Y-%m-%d"));
-
+    // Fixed filename inside the pinned scan(7) window (see PINNED_TODAY).
     fs::write(
-        emoji_dir.join(note),
+        emoji_dir.join("2026-05-19.md"),
         "## Commits\n\n| FOLDER | TIME | COMMIT MESSAGE | REPOSITORY URL |\n| --- | --- | --- | --- |\n| /p/r | 10:00 | emoji path test commit | https://github.com/franci/r |\n",
     ).expect("write note");
 
@@ -184,7 +197,8 @@ fn walkdir_scan_adapter_handles_emoji_path_segment_without_data_loss() {
         "OsString round-trip for emoji path must be lossless"
     );
 
-    let adapter = WalkdirScanAdapter::new(emoji_dir.clone());
+    let adapter =
+        WalkdirScanAdapter::with_clock(emoji_dir.clone(), Box::new(FixedClock(PINNED_TODAY)));
     let records = adapter.scan(7).expect("scan should succeed");
 
     assert!(
@@ -246,13 +260,18 @@ fn arboard_clipboard_adapter_new_does_not_panic() {
 fn walkdir_scan_adapter_skips_note_with_no_commits_section() {
     let vault_dir = TempDir::new().expect("tempdir");
 
+    // Note dated inside the pinned scan(7) window so this genuinely exercises the
+    // no-Commits-section path (not a date-filtered miss).
     fs::write(
         vault_dir.path().join("2026-05-18.md"),
         "# 2026-05-18\n\nJust a journal entry with no commits today.\n",
     )
     .expect("write note");
 
-    let adapter = WalkdirScanAdapter::new(vault_dir.path().to_path_buf());
+    let adapter = WalkdirScanAdapter::with_clock(
+        vault_dir.path().to_path_buf(),
+        Box::new(FixedClock(PINNED_TODAY)),
+    );
     let records = adapter
         .scan(7)
         .expect("note without commits section should not error");
