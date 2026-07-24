@@ -380,6 +380,13 @@
       eval "$(<.env)"
     fi
 
+    # Durable repo-local git hooks: a global core.hooksPath (e.g. ~/.config/git/hooks)
+    # otherwise shadows the devenv/prek-installed hooks in this repo. Re-assert the
+    # repo-local override on every shell entry so it self-heals after a fresh clone.
+    if git rev-parse --git-dir > /dev/null 2>&1; then
+      git config --local core.hooksPath "$(git rev-parse --absolute-git-dir)/hooks"
+    fi
+
     # Set environment variables for Rust development
     export GREET="rusty-commit-lister"
     export RUST_LOG="info"
