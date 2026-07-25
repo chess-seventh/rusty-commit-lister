@@ -20,6 +20,7 @@ use rusty_commit_lister::tui::view::{detail_lines, view};
 fn make_commit_with_url() -> CommitRecord {
     CommitRecord {
         date: "2026-05-18".to_string(),
+        note_path: String::new(),
         time: "14:30".to_string(),
         message: "feat: implement full-length commit message that must not be truncated"
             .to_string(),
@@ -31,6 +32,7 @@ fn make_commit_with_url() -> CommitRecord {
 fn make_commit_without_url() -> CommitRecord {
     CommitRecord {
         date: "2026-05-17".to_string(),
+        note_path: String::new(),
         time: "09:15".to_string(),
         message: "fix: another commit".to_string(),
         folder: "/projects/other".to_string(),
@@ -291,6 +293,7 @@ fn view_detail_status_bar_shows_copy_hint() {
 fn make_repo_picker_model() -> AppModel {
     let dotfiles_1 = CommitRecord {
         date: "2026-05-18".to_string(),
+        note_path: String::new(),
         time: "10:00".to_string(),
         message: "feat: add dotfiles".to_string(),
         folder: "/home/user/dotfiles".to_string(),
@@ -298,6 +301,7 @@ fn make_repo_picker_model() -> AppModel {
     };
     let dotfiles_2 = CommitRecord {
         date: "2026-05-17".to_string(),
+        note_path: String::new(),
         time: "11:00".to_string(),
         message: "fix: update dotfiles".to_string(),
         folder: "/home/user/dotfiles".to_string(),
@@ -305,6 +309,7 @@ fn make_repo_picker_model() -> AppModel {
     };
     let notes_1 = CommitRecord {
         date: "2026-05-18".to_string(),
+        note_path: String::new(),
         time: "12:00".to_string(),
         message: "docs: add notes".to_string(),
         folder: "/home/user/notes".to_string(),
@@ -384,6 +389,7 @@ fn view_highlights_selected_picker_row() {
 fn view_status_bar_shows_active_filter() {
     let dotfiles_1 = CommitRecord {
         date: "2026-05-18".to_string(),
+        note_path: String::new(),
         time: "10:00".to_string(),
         message: "feat: add dotfiles".to_string(),
         folder: "/home/user/dotfiles".to_string(),
@@ -391,6 +397,7 @@ fn view_status_bar_shows_active_filter() {
     };
     let dotfiles_2 = CommitRecord {
         date: "2026-05-17".to_string(),
+        note_path: String::new(),
         time: "11:00".to_string(),
         message: "fix: update dotfiles".to_string(),
         folder: "/home/user/dotfiles".to_string(),
@@ -398,6 +405,7 @@ fn view_status_bar_shows_active_filter() {
     };
     let notes_1 = CommitRecord {
         date: "2026-05-18".to_string(),
+        note_path: String::new(),
         time: "12:00".to_string(),
         message: "docs: add notes".to_string(),
         folder: "/home/user/notes".to_string(),

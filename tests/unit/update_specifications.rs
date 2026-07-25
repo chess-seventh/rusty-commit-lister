@@ -31,6 +31,7 @@ fn make_commit(message: &str, repo_url: &str) -> CommitRecord {
         message: message.to_string(),
         url: Some(repo_url.to_string()),
         date: "2026-05-18".to_string(),
+        note_path: String::new(),
     }
 }
 
@@ -771,6 +772,7 @@ fn c_key_in_detail_mode_with_url_sets_clipboard_pending() {
         message: "feat: clipboard test".to_string(),
         url: Some("https://github.com/franci/test".to_string()),
         date: "2026-05-19".to_string(),
+        note_path: String::new(),
     }];
     let model = update(AppModel::new(config), AppEvent::LoadComplete(commits));
     let in_detail = update(model, key_event(KeyCode::Enter));
@@ -808,6 +810,7 @@ fn c_key_in_detail_mode_without_url_sets_status_message() {
         message: "fix: no url commit".to_string(),
         url: None,
         date: "2026-05-19".to_string(),
+        note_path: String::new(),
     }];
     let model = update(AppModel::new(config), AppEvent::LoadComplete(commits));
     let in_detail = update(model, key_event(KeyCode::Enter));
@@ -846,6 +849,7 @@ fn c_key_when_clipboard_unavailable_sets_status_message() {
         message: "feat: clipboard unavailable".to_string(),
         url: Some("https://github.com/franci/test".to_string()),
         date: "2026-05-19".to_string(),
+        note_path: String::new(),
     }];
     let model = update(AppModel::new(config), AppEvent::LoadComplete(commits));
     let in_detail = update(model, key_event(KeyCode::Enter));
@@ -943,6 +947,7 @@ fn distinct_repos_groups_by_last_url_segment() {
             message: "first".to_string(),
             url: Some("https://github.com/user/dotfiles".to_string()),
             date: "2026-05-18".to_string(),
+            note_path: String::new(),
         },
         CommitRecord {
             folder: "/home/user/dotfiles".to_string(),
@@ -950,6 +955,7 @@ fn distinct_repos_groups_by_last_url_segment() {
             message: "second".to_string(),
             url: Some("https://github.com/user/dotfiles".to_string()),
             date: "2026-05-18".to_string(),
+            note_path: String::new(),
         },
         CommitRecord {
             folder: "/home/user/notes".to_string(),
@@ -957,6 +963,7 @@ fn distinct_repos_groups_by_last_url_segment() {
             message: "third".to_string(),
             url: Some("https://github.com/user/notes".to_string()),
             date: "2026-05-18".to_string(),
+            note_path: String::new(),
         },
     ];
 
@@ -991,6 +998,7 @@ fn distinct_repos_uses_folder_when_url_is_none() {
         message: "fix: something".to_string(),
         url: None,
         date: "2026-05-18".to_string(),
+        note_path: String::new(),
     }];
 
     let result = distinct_repos(&commits);
@@ -1016,6 +1024,7 @@ fn picker_model() -> AppModel {
             message: "first dotfiles".to_string(),
             url: Some("https://github.com/user/dotfiles".to_string()),
             date: "2026-05-18".to_string(),
+            note_path: String::new(),
         },
         CommitRecord {
             folder: "/home/user/dotfiles".to_string(),
@@ -1023,6 +1032,7 @@ fn picker_model() -> AppModel {
             message: "second dotfiles".to_string(),
             url: Some("https://github.com/user/dotfiles".to_string()),
             date: "2026-05-18".to_string(),
+            note_path: String::new(),
         },
         CommitRecord {
             folder: "/home/user/notes".to_string(),
@@ -1030,6 +1040,7 @@ fn picker_model() -> AppModel {
             message: "notes commit".to_string(),
             url: Some("https://github.com/user/notes".to_string()),
             date: "2026-05-18".to_string(),
+            note_path: String::new(),
         },
     ];
     let model = update(AppModel::new(config), AppEvent::LoadComplete(commits));
@@ -1173,6 +1184,7 @@ fn f_key_clears_active_filter_in_browse_mode() {
             message: "first dotfiles".to_string(),
             url: Some("https://github.com/user/dotfiles".to_string()),
             date: "2026-05-18".to_string(),
+            note_path: String::new(),
         },
         CommitRecord {
             folder: "/home/user/notes".to_string(),
@@ -1180,6 +1192,7 @@ fn f_key_clears_active_filter_in_browse_mode() {
             message: "notes commit".to_string(),
             url: Some("https://github.com/user/notes".to_string()),
             date: "2026-05-18".to_string(),
+            note_path: String::new(),
         },
     ];
     let mut model = update(AppModel::new(config), AppEvent::LoadComplete(commits));

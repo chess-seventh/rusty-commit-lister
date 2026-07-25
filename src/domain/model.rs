@@ -34,6 +34,9 @@ pub struct CommitRecord {
     pub url: Option<String>,
     /// The date this commit was parsed from (derived from the note filename YYYY-MM-DD.md).
     pub date: String,
+    /// Path to the Obsidian daily note this commit was parsed from.
+    /// Used by the `P` copy action to yield the source note's vault path.
+    pub note_path: String,
 }
 
 /// Application configuration loaded from config.toml and CLI flags.
