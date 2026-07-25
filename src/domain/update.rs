@@ -22,13 +22,7 @@ pub fn distinct_repos(commit_rows: &[CommitRecord]) -> Vec<(String, usize)> {
     use std::collections::HashMap;
     let mut counts: HashMap<String, usize> = HashMap::new();
     for record in commit_rows {
-        let name = record
-            .url
-            .as_deref()
-            .and_then(|u| u.rsplit('/').next())
-            .map(str::to_string)
-            .or_else(|| record.folder.rsplit('/').next().map(str::to_string))
-            .unwrap_or_default();
+        let name = repo_name_of(record);
         if !name.is_empty() {
             *counts.entry(name).or_insert(0) += 1;
         }
@@ -36,6 +30,32 @@ pub fn distinct_repos(commit_rows: &[CommitRecord]) -> Vec<(String, usize)> {
     let mut pairs: Vec<(String, usize)> = counts.into_iter().collect();
     pairs.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
     pairs
+}
+
+/// Derives the repository name for a record: the last path segment of the URL
+/// (e.g. `"dotfiles"` from `".../user/dotfiles"`), or the last segment of the
+/// folder when the URL is absent. Returns an empty string when neither yields one.
+pub fn repo_name_of(record: &CommitRecord) -> String {
+    record
+        .url
+        .as_deref()
+        .and_then(|u| u.rsplit('/').next())
+        .filter(|s| !s.is_empty())
+        .or_else(|| record.folder.rsplit('/').next())
+        .map(str::to_string)
+        .unwrap_or_default()
+}
+
+/// Field prefixes recognized by the token filter (see [`record_matches_query`]).
+const FIELD_PREFIXES: [&str; 6] = ["repo:", "folder:", "dir:", "path:", "date:", "msg:"];
+
+/// Returns the first bare (non field-scoped) term of `query`, used by the view to
+/// highlight the matching substring in the message column. `None` when the query
+/// is empty or contains only field-scoped tokens.
+pub fn message_highlight_term(query: &str) -> Option<&str> {
+    query
+        .split_whitespace()
+        .find(|tok| !FIELD_PREFIXES.iter().any(|p| tok.starts_with(p)))
 }
 
 /// Pure state machine: given the current model and an event, return the next model.
@@ -112,7 +132,7 @@ fn record_matches_filters(
     active_repo_filter: Option<&String>,
 ) -> bool {
     repo_filter_matches(record, active_repo_filter.cloned().as_ref())
-        && search_query_matches(record, search_query)
+        && record_matches_query(record, search_query)
 }
 
 /// Returns true when no repo filter is active, or the record's URL contains it.
@@ -126,20 +146,42 @@ fn repo_filter_matches(record: &CommitRecord, active_repo_filter: Option<&String
     })
 }
 
-/// Returns true when the query is empty, or matches the record's message or URL
-/// (case-insensitive substring).
-fn search_query_matches(record: &CommitRecord, search_query: &str) -> bool {
-    if search_query.is_empty() {
-        return true;
+/// Returns true when every whitespace-separated token in `query` matches the
+/// record (AND semantics). Tokens may be field-scoped — `repo:`, `folder:`
+/// (aliases `dir:`/`path:`), `date:`, `msg:` — or a bare term that matches the
+/// message or URL. An empty query, or an empty value after a prefix, matches all.
+fn record_matches_query(record: &CommitRecord, query: &str) -> bool {
+    query
+        .split_whitespace()
+        .all(|tok| token_matches(record, tok))
+}
+
+/// Evaluates a single filter token against a record (case-insensitive).
+fn token_matches(record: &CommitRecord, token: &str) -> bool {
+    if let Some(v) = token.strip_prefix("repo:") {
+        return v.is_empty() || contains_ci(&repo_name_of(record), v);
     }
-    let query = search_query.to_lowercase();
-    record.message.to_lowercase().contains(&query)
-        || record
-            .url
-            .as_deref()
-            .unwrap_or("")
-            .to_lowercase()
-            .contains(&query)
+    if let Some(v) = token
+        .strip_prefix("folder:")
+        .or_else(|| token.strip_prefix("dir:"))
+        .or_else(|| token.strip_prefix("path:"))
+    {
+        return v.is_empty() || contains_ci(&record.folder, v);
+    }
+    if let Some(v) = token.strip_prefix("date:") {
+        // Prefix match so `date:2026-05` selects a whole month, `date:2026` a year.
+        return v.is_empty() || record.date.starts_with(v);
+    }
+    if let Some(v) = token.strip_prefix("msg:") {
+        return v.is_empty() || contains_ci(&record.message, v);
+    }
+    // Bare term: match the message or the URL.
+    contains_ci(&record.message, token) || contains_ci(record.url.as_deref().unwrap_or(""), token)
+}
+
+/// Case-insensitive substring test.
+fn contains_ci(haystack: &str, needle: &str) -> bool {
+    haystack.to_lowercase().contains(&needle.to_lowercase())
 }
 
 /// Dispatch a key event to the handler for the model's current `AppMode`.

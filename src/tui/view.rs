@@ -7,7 +7,7 @@ use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Cell, List, ListItem, Paragraph, Row, Table, TableState};
 
 use crate::domain::model::{AppMode, AppModel, CommitRecord};
-use crate::domain::update::distinct_repos;
+use crate::domain::update::{distinct_repos, message_highlight_term};
 
 /// Accent color for the commit-table header row.
 const HEADER_COLOR: Color = Color::Cyan;
@@ -157,7 +157,7 @@ pub fn view(model: &AppModel, frame: &mut Frame) {
 fn render_search_box(model: &AppModel, frame: &mut Frame, area: Rect) {
     let content = if model.search_query.is_empty() {
         Line::from(Span::styled(
-            "type to filter…",
+            "type to filter — repo: folder: date: msg:",
             Style::new().fg(Color::DarkGray),
         ))
     } else {
@@ -339,6 +339,7 @@ fn render_commit_table(model: &AppModel, frame: &mut Frame, area: Rect) {
 
     let (date_w, time_w, msg_w, folder_w) = table_column_widths(area.width);
     let (even_bg, odd_bg) = zebra_colors(&model.config.zebra_color);
+    let highlight = message_highlight_term(&model.search_query).unwrap_or("");
 
     let data_rows: Vec<Row> = model
         .filtered_rows
@@ -349,10 +350,7 @@ fn render_commit_table(model: &AppModel, frame: &mut Frame, area: Rect) {
             Row::new(vec![
                 Cell::from(record.date.as_str()),
                 Cell::from(record.time.as_str()),
-                Cell::from(Line::from(message_spans(
-                    &record.message,
-                    &model.search_query,
-                ))),
+                Cell::from(Line::from(message_spans(&record.message, highlight))),
                 Cell::from(truncate(folder_name(&record.folder), folder_w as usize)),
             ])
             .style(Style::new().bg(bg))

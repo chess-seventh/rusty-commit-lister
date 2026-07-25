@@ -1253,6 +1253,114 @@ fn ctrl_f_clears_active_filter_in_browse_mode() {
     );
 }
 
+// ─── Field-scoped token filter (repo: / folder: / date: / msg:) ──────────────
+
+/// Types each character of `query` into a Browse model, as the user would.
+fn type_query(model: AppModel, query: &str) -> AppModel {
+    query
+        .chars()
+        .fold(model, |m, c| update(m, key_event(KeyCode::Char(c))))
+}
+
+/// Three records differing in repo, folder, and date for token-filter tests.
+fn token_filter_model() -> AppModel {
+    let rec = |folder: &str, date: &str, msg: &str, url: &str| CommitRecord {
+        folder: folder.to_string(),
+        time: "10:00".to_string(),
+        message: msg.to_string(),
+        url: Some(url.to_string()),
+        date: date.to_string(),
+        note_path: String::new(),
+    };
+    let commits = vec![
+        rec(
+            "/home/user/alpha",
+            "2026-05-01",
+            "feat: one",
+            "https://github.com/franci/alpha",
+        ),
+        rec(
+            "/home/user/beta",
+            "2026-05-02",
+            "fix: two",
+            "https://github.com/franci/beta",
+        ),
+        rec(
+            "/work/alpha/src",
+            "2026-06-10",
+            "chore: three",
+            "https://github.com/franci/alpha",
+        ),
+    ];
+    update(
+        AppModel::new(AppConfig::default()),
+        AppEvent::LoadComplete(commits),
+    )
+}
+
+/// @US-06 @in-memory
+///
+/// Scenario: `date:` filters to an exact day
+#[test]
+fn date_token_filters_to_exact_day() {
+    let after = type_query(token_filter_model(), "date:2026-05-01");
+    assert_eq!(after.filtered_rows.len(), 1);
+    assert_eq!(after.filtered_rows[0].date, "2026-05-01");
+}
+
+/// @US-06 @in-memory
+///
+/// Scenario: `date:` is a prefix match, so a month selects every day in it
+#[test]
+fn date_token_prefix_selects_month() {
+    let after = type_query(token_filter_model(), "date:2026-05");
+    assert_eq!(after.filtered_rows.len(), 2, "both May commits match");
+}
+
+/// @US-09 @in-memory
+///
+/// Scenario: `repo:` filters by repository name
+#[test]
+fn repo_token_filters_by_repo_name() {
+    let after = type_query(token_filter_model(), "repo:beta");
+    assert_eq!(after.filtered_rows.len(), 1);
+    assert!(after.filtered_rows[0].message.contains("two"));
+}
+
+/// @US-09 @in-memory
+///
+/// Scenario: `folder:` filters by folder path substring
+#[test]
+fn folder_token_filters_by_folder_substring() {
+    let after = type_query(token_filter_model(), "folder:src");
+    assert_eq!(after.filtered_rows.len(), 1);
+    assert!(after.filtered_rows[0].folder.contains("/src"));
+}
+
+/// @US-06 @in-memory
+///
+/// Scenario: multiple tokens combine with AND (repo AND date)
+#[test]
+fn tokens_combine_with_and() {
+    let after = type_query(token_filter_model(), "repo:alpha date:2026-06");
+    assert_eq!(
+        after.filtered_rows.len(),
+        1,
+        "only the June alpha commit matches both tokens"
+    );
+    assert!(after.filtered_rows[0].message.contains("three"));
+}
+
+/// @US-06 @in-memory
+///
+/// Scenario: a bare term still matches the message (back-compat)
+#[test]
+fn bare_term_matches_message() {
+    let after = type_query(token_filter_model(), "feat");
+    assert_eq!(after.filtered_rows.len(), 1);
+    assert!(after.filtered_rows[0].message.contains("feat"));
+}
+
 // ─── State machine PBT invariant (proptest - layer 1) ─────────────────────────
 
 #[cfg(test)]
