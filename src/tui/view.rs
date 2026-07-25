@@ -17,36 +17,25 @@ const MATCH_COLOR: Color = Color::Red;
 /// Returns the (even-row, odd-row) background colors for zebra striping, both
 /// derived from a single user-chosen base color name (config `zebra_color`).
 ///
-/// Even rows use a dimmer shade than odd rows so the stripes read clearly while
-/// staying subtle behind the text. Unknown names fall back to the default
-/// blue-grey.
+/// Uses 256-palette indexed colors (not truecolor `Rgb`) so the stripes render
+/// on any 256-color terminal — including tmux without truecolor passthrough.
+/// The even shade is darker than the odd shade of the same hue; unknown names
+/// (and "default") fall back to a subtle dark grey.
 ///
 /// Pure function - no I/O, no mutation.
 fn zebra_colors(name: &str) -> (Color, Color) {
-    let (r, g, b) = zebra_base_rgb(name);
-    (scale_rgb(r, g, b, 12), scale_rgb(r, g, b, 26))
-}
-
-/// Maps a base color name to its full-intensity RGB. The default (and any
-/// unknown name) is a neutral blue-grey.
-fn zebra_base_rgb(name: &str) -> (u16, u16, u16) {
-    match name.trim().to_lowercase().as_str() {
-        "green" => (40, 200, 90),
-        "blue" => (60, 110, 220),
-        "red" => (210, 60, 60),
-        "cyan" => (40, 190, 190),
-        "magenta" | "purple" => (170, 70, 210),
-        "yellow" => (200, 190, 40),
-        "orange" => (220, 130, 30),
-        "gray" | "grey" => (130, 130, 140),
-        _ => (60, 65, 100),
-    }
-}
-
-/// Scales an RGB triple to `pct` percent brightness, clamped into `u8`.
-fn scale_rgb(r: u16, g: u16, b: u16, pct: u16) -> Color {
-    let s = |c: u16| ((c * pct) / 100).min(255) as u8;
-    Color::Rgb(s(r), s(g), s(b))
+    let (even, odd) = match name.trim().to_lowercase().as_str() {
+        "green" => (22, 28),
+        "blue" => (18, 25),
+        "red" => (52, 88),
+        "cyan" => (23, 30),
+        "magenta" | "purple" => (53, 90),
+        "yellow" => (58, 100),
+        "orange" => (94, 130),
+        "gray" | "grey" => (236, 240),
+        _ => (234, 237),
+    };
+    (Color::Indexed(even), Color::Indexed(odd))
 }
 
 /// Splits `message` into spans, highlighting the first case-insensitive match of
@@ -410,18 +399,17 @@ mod tests {
     };
     use ratatui::style::Color;
 
-    /// Scenario: a base color derives two distinct shades, odd brighter than even
+    /// Scenario: a base color derives two distinct indexed shades
     ///   Given zebra_color = "green"
-    ///   Then both rows are green-tinted RGB and the odd shade is brighter.
+    ///   Then both rows are 256-palette indexed colors and the shades differ.
     #[test]
     fn zebra_colors_derives_two_green_shades() {
         let (even, odd) = zebra_colors("green");
         match (even, odd) {
-            (Color::Rgb(_, eg, _), Color::Rgb(_, og, _)) => {
-                assert!(og > eg, "odd rows must be brighter than even");
-                assert!(eg > 0, "green base must tint the rows");
+            (Color::Indexed(e), Color::Indexed(o)) => {
+                assert_ne!(e, o, "the two shades must differ");
             }
-            _ => panic!("zebra_colors must return Rgb colors"),
+            _ => panic!("zebra_colors must return indexed (256-palette) colors"),
         }
     }
 
