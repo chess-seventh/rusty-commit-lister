@@ -18,6 +18,8 @@ struct TomlFileConfig {
     scan_days_back: Option<u32>,
     /// Optional repository name pre-filter.
     repo_filter: Option<String>,
+    /// Optional base color name for zebra-striped rows (e.g. "green").
+    zebra_color: Option<String>,
 }
 
 /// Adapter that reads `config.toml` from a given path and produces a
@@ -31,6 +33,7 @@ struct TomlFileConfig {
 /// vault_path = "~/Documents/Wiki/📅 Diaries/0. Journal"
 /// scan_days_back = 7
 /// repo_filter = "dotfiles"  # optional
+/// zebra_color = "green"     # optional: base color for zebra rows
 /// ```
 ///
 /// `~` in `vault_path` is expanded using the `HOME` environment variable.
@@ -100,6 +103,9 @@ impl ConfigPort for TomlConfigAdapter {
             scan_days_back,
             repo_filter: file_config.repo_filter,
             clipboard_available: false,
+            zebra_color: file_config
+                .zebra_color
+                .unwrap_or_else(|| AppConfig::default().zebra_color),
         })
     }
 }

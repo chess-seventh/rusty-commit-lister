@@ -51,7 +51,14 @@ pub struct AppConfig {
     pub repo_filter: Option<String>,
     /// Whether the system clipboard is available (set after `probe()`).
     pub clipboard_available: bool,
+    /// Base color name for the zebra-striped rows (e.g. "green", "blue").
+    /// The two alternating shades are derived from this single name; unknown
+    /// names fall back to the default blue-grey.
+    pub zebra_color: String,
 }
+
+/// Default base color name for zebra striping when the user sets none.
+pub const DEFAULT_ZEBRA_COLOR: &str = "default";
 
 impl Default for AppConfig {
     fn default() -> Self {
@@ -60,6 +67,7 @@ impl Default for AppConfig {
             scan_days_back: DEFAULT_SCAN_DAYS_BACK,
             repo_filter: None,
             clipboard_available: false,
+            zebra_color: DEFAULT_ZEBRA_COLOR.to_string(),
         }
     }
 }

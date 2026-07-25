@@ -11,10 +11,43 @@ use crate::domain::update::distinct_repos;
 
 /// Accent color for the commit-table header row.
 const HEADER_COLOR: Color = Color::Cyan;
-/// Background tint applied to alternate (odd-indexed) data rows for zebra striping.
-const ZEBRA_BG: Color = Color::Rgb(30, 30, 46);
 /// Color used to highlight the matched filter substring (fzf-style).
 const MATCH_COLOR: Color = Color::Red;
+
+/// Returns the (even-row, odd-row) background colors for zebra striping, both
+/// derived from a single user-chosen base color name (config `zebra_color`).
+///
+/// Even rows use a dimmer shade than odd rows so the stripes read clearly while
+/// staying subtle behind the text. Unknown names fall back to the default
+/// blue-grey.
+///
+/// Pure function - no I/O, no mutation.
+fn zebra_colors(name: &str) -> (Color, Color) {
+    let (r, g, b) = zebra_base_rgb(name);
+    (scale_rgb(r, g, b, 12), scale_rgb(r, g, b, 26))
+}
+
+/// Maps a base color name to its full-intensity RGB. The default (and any
+/// unknown name) is a neutral blue-grey.
+fn zebra_base_rgb(name: &str) -> (u16, u16, u16) {
+    match name.trim().to_lowercase().as_str() {
+        "green" => (40, 200, 90),
+        "blue" => (60, 110, 220),
+        "red" => (210, 60, 60),
+        "cyan" => (40, 190, 190),
+        "magenta" | "purple" => (170, 70, 210),
+        "yellow" => (200, 190, 40),
+        "orange" => (220, 130, 30),
+        "gray" | "grey" => (130, 130, 140),
+        _ => (60, 65, 100),
+    }
+}
+
+/// Scales an RGB triple to `pct` percent brightness, clamped into `u8`.
+fn scale_rgb(r: u16, g: u16, b: u16, pct: u16) -> Color {
+    let s = |c: u16| ((c * pct) / 100).min(255) as u8;
+    Color::Rgb(s(r), s(g), s(b))
+}
 
 /// Splits `message` into spans, highlighting the first case-insensitive match of
 /// `query` in [`MATCH_COLOR`]. Returns a single plain span when the query is
@@ -316,13 +349,15 @@ fn render_commit_table(model: &AppModel, frame: &mut Frame, area: Rect) {
         .style(Style::new().fg(HEADER_COLOR).bold());
 
     let (date_w, time_w, msg_w, folder_w) = table_column_widths(area.width);
+    let (even_bg, odd_bg) = zebra_colors(&model.config.zebra_color);
 
     let data_rows: Vec<Row> = model
         .filtered_rows
         .iter()
         .enumerate()
         .map(|(i, record)| {
-            let row = Row::new(vec![
+            let bg = if i % 2 == 1 { odd_bg } else { even_bg };
+            Row::new(vec![
                 Cell::from(record.date.as_str()),
                 Cell::from(record.time.as_str()),
                 Cell::from(Line::from(message_spans(
@@ -330,12 +365,8 @@ fn render_commit_table(model: &AppModel, frame: &mut Frame, area: Rect) {
                     &model.search_query,
                 ))),
                 Cell::from(truncate(folder_name(&record.folder), folder_w as usize)),
-            ]);
-            if i % 2 == 1 {
-                row.style(Style::new().bg(ZEBRA_BG))
-            } else {
-                row
-            }
+            ])
+            .style(Style::new().bg(bg))
         })
         .collect();
 
@@ -374,7 +405,32 @@ fn render_status_bar(model: &AppModel, frame: &mut Frame, area: Rect) {
 
 #[cfg(test)]
 mod tests {
-    use super::{browse_status_text, folder_name, message_spans, table_column_widths, truncate};
+    use super::{
+        browse_status_text, folder_name, message_spans, table_column_widths, truncate, zebra_colors,
+    };
+    use ratatui::style::Color;
+
+    /// Scenario: a base color derives two distinct shades, odd brighter than even
+    ///   Given zebra_color = "green"
+    ///   Then both rows are green-tinted RGB and the odd shade is brighter.
+    #[test]
+    fn zebra_colors_derives_two_green_shades() {
+        let (even, odd) = zebra_colors("green");
+        match (even, odd) {
+            (Color::Rgb(_, eg, _), Color::Rgb(_, og, _)) => {
+                assert!(og > eg, "odd rows must be brighter than even");
+                assert!(eg > 0, "green base must tint the rows");
+            }
+            _ => panic!("zebra_colors must return Rgb colors"),
+        }
+    }
+
+    /// Scenario: an unknown color name falls back to the default without panic
+    #[test]
+    fn zebra_colors_unknown_name_falls_back() {
+        let (even, odd) = zebra_colors("not-a-real-color");
+        assert_ne!(even, odd, "the two derived shades must differ");
+    }
 
     /// Scenario: folder_name returns the final path segment
     ///   Given folder = "/projects/rcl/src"

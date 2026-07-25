@@ -69,6 +69,46 @@ fn toml_config_adapter_reads_vault_path_and_scan_days_back_from_real_file() {
     assert_eq!(config.vault_path, PathBuf::from(vault_dir.path()));
 }
 
+/// @US-01 @real-io @adapter-integration
+///
+/// Scenario: `TomlConfigAdapter` reads the optional `zebra_color` key
+///   Given a config.toml with `zebra_color = "green"`
+///   When `TomlConfigAdapter::load()` is called
+///   Then the returned `AppConfig.zebra_color` is "green"
+///   And a config without the key falls back to the default
+#[test]
+fn toml_config_adapter_reads_zebra_color_and_defaults_when_absent() {
+    let dir = TempDir::new().expect("tempdir");
+    let vault_dir = TempDir::new().expect("vault tempdir");
+
+    let with_color = dir.path().join("with_color.toml");
+    fs::write(
+        &with_color,
+        format!(
+            "vault_path = {:?}\nscan_days_back = 7\nzebra_color = \"green\"\n",
+            vault_dir.path().to_str().unwrap()
+        ),
+    )
+    .expect("write config");
+    let config = TomlConfigAdapter::new(with_color).load().expect("load");
+    assert_eq!(config.zebra_color, "green");
+
+    let without_color = dir.path().join("without_color.toml");
+    fs::write(
+        &without_color,
+        format!(
+            "vault_path = {:?}\nscan_days_back = 7\n",
+            vault_dir.path().to_str().unwrap()
+        ),
+    )
+    .expect("write config");
+    let defaulted = TomlConfigAdapter::new(without_color).load().expect("load");
+    assert_eq!(
+        defaulted.zebra_color, "default",
+        "absent zebra_color must fall back to the default"
+    );
+}
+
 /// @US-01 @real-io @adapter-integration @error
 ///
 /// Scenario: `TomlConfigAdapter` returns config error when `scan_days_back` is 0
