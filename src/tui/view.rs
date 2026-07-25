@@ -1,13 +1,26 @@
 //! Pure `view` renderer (Elm/MVU) plus its widget-building helpers.
 
 use ratatui::Frame;
-use ratatui::layout::{Constraint, Direction, Layout};
-use ratatui::style::Style;
-use ratatui::text::Text;
+use ratatui::layout::{Constraint, Direction, Layout, Rect};
+use ratatui::style::{Color, Style};
 use ratatui::widgets::{Block, Borders, Cell, List, ListItem, Paragraph, Row, Table, TableState};
 
 use crate::domain::model::{AppMode, AppModel, CommitRecord};
 use crate::domain::update::distinct_repos;
+
+/// Accent color for the commit-table header row.
+const HEADER_COLOR: Color = Color::Cyan;
+/// Background tint applied to alternate (odd-indexed) data rows for zebra striping.
+const ZEBRA_BG: Color = Color::Rgb(30, 30, 46);
+
+/// Returns the final path segment of `folder` (the folder name), ignoring any
+/// trailing slash. Falls back to the whole string when there is no separator.
+///
+/// Pure function - no I/O, no mutation.
+fn folder_name(folder: &str) -> &str {
+    let trimmed = folder.trim_end_matches('/');
+    trimmed.rsplit('/').next().unwrap_or(trimmed)
+}
 
 /// Truncates a string to at most `max_chars` Unicode scalar values.
 ///
@@ -191,34 +204,57 @@ fn render_main_area(model: &AppModel, frame: &mut Frame, area: ratatui::layout::
     render_commit_table(model, frame, area);
 }
 
-/// Renders the scrollable commit table (Date/Time/Message/Folder) with the
-/// selected row highlighted. Message and folder cells are truncated to fit.
-fn render_commit_table(model: &AppModel, frame: &mut Frame, area: ratatui::layout::Rect) {
-    let header = Row::new(vec![
-        Cell::from(Text::from("Date").style(Style::new().bold())),
-        Cell::from(Text::from("Time").style(Style::new().bold())),
-        Cell::from(Text::from("Message").style(Style::new().bold())),
-        Cell::from(Text::from("Folder").style(Style::new().bold())),
-    ]);
+/// Computes the Message and Folder column widths for a table of inner width
+/// `area_width`, given fixed Date/Time widths and inter-column spacing.
+///
+/// Message takes ~70% of the flexible space, Folder ~30% (clamped 8..=30), so
+/// both columns grow with the terminal instead of being capped at a constant.
+///
+/// Pure function - no I/O, no mutation.
+fn table_column_widths(area_width: u16) -> (u16, u16, u16, u16) {
+    let (date_w, time_w) = (10u16, 5u16);
+    let inner = area_width.saturating_sub(2); // block borders
+    let gaps = 3u16; // column_spacing between 4 columns
+    let flex = inner.saturating_sub(date_w + time_w + gaps);
+    let folder_w = (flex * 3 / 10).clamp(8, 30);
+    let msg_w = flex.saturating_sub(folder_w);
+    (date_w, time_w, msg_w, folder_w)
+}
+
+/// Renders the scrollable commit table (Date/Time/Message/Folder) with a colored
+/// header, zebra-striped rows, and the selected row highlighted. Message and
+/// folder cells are truncated to the responsive column widths; the Folder cell
+/// shows only the final path segment (see [`folder_name`]).
+fn render_commit_table(model: &AppModel, frame: &mut Frame, area: Rect) {
+    let header = Row::new(vec!["Date", "Time", "Message", "Folder"])
+        .style(Style::new().fg(HEADER_COLOR).bold());
+
+    let (date_w, time_w, msg_w, folder_w) = table_column_widths(area.width);
 
     let data_rows: Vec<Row> = model
         .filtered_rows
         .iter()
-        .map(|record| {
-            Row::new(vec![
+        .enumerate()
+        .map(|(i, record)| {
+            let row = Row::new(vec![
                 Cell::from(record.date.as_str()),
                 Cell::from(record.time.as_str()),
-                Cell::from(truncate(&record.message, 40)),
-                Cell::from(truncate(&record.folder, 20)),
-            ])
+                Cell::from(truncate(&record.message, msg_w as usize)),
+                Cell::from(truncate(folder_name(&record.folder), folder_w as usize)),
+            ]);
+            if i % 2 == 1 {
+                row.style(Style::new().bg(ZEBRA_BG))
+            } else {
+                row
+            }
         })
         .collect();
 
     let column_widths = [
-        Constraint::Length(12),
-        Constraint::Length(8),
-        Constraint::Min(20),
-        Constraint::Min(10),
+        Constraint::Length(date_w),
+        Constraint::Length(time_w),
+        Constraint::Length(msg_w),
+        Constraint::Length(folder_w),
     ];
 
     let table = Table::new(data_rows, column_widths)
@@ -266,7 +302,56 @@ fn render_status_bar(model: &AppModel, frame: &mut Frame, area: ratatui::layout:
 
 #[cfg(test)]
 mod tests {
-    use super::{format_status_text, search_status_text, truncate};
+    use super::{
+        folder_name, format_status_text, search_status_text, table_column_widths, truncate,
+    };
+
+    /// Scenario: folder_name returns the final path segment
+    ///   Given folder = "/projects/rcl/src"
+    ///   Then folder_name returns "src"
+    #[test]
+    fn folder_name_returns_last_segment() {
+        assert_eq!(folder_name("/projects/rcl/src"), "src");
+    }
+
+    /// Scenario: folder_name ignores a trailing slash
+    ///   Given folder = "/projects/rcl/src/"
+    ///   Then folder_name returns "src" (not "")
+    #[test]
+    fn folder_name_ignores_trailing_slash() {
+        assert_eq!(folder_name("/projects/rcl/src/"), "src");
+    }
+
+    /// Scenario: folder_name returns the whole string when there is no separator
+    ///   Given folder = "dotfiles"
+    ///   Then folder_name returns "dotfiles"
+    #[test]
+    fn folder_name_without_separator_returns_whole() {
+        assert_eq!(folder_name("dotfiles"), "dotfiles");
+    }
+
+    /// Scenario: Message and Folder columns share the flexible width
+    ///   Given a 120-col area (118 inner)
+    ///   Then Date=10, Time=5, Folder is clamped to 8..=30, and all four column
+    ///   widths plus the 3 inter-column gaps fit within the inner width.
+    #[test]
+    fn table_column_widths_share_flexible_space() {
+        let (date_w, time_w, msg_w, folder_w) = table_column_widths(120);
+        assert_eq!(date_w, 10);
+        assert_eq!(time_w, 5);
+        assert!((8..=30).contains(&folder_w), "folder width clamped 8..=30");
+        assert_eq!(date_w + time_w + msg_w + folder_w + 3, 118);
+    }
+
+    /// Scenario: widths never underflow on a tiny terminal
+    ///   Given a 4-col area (narrower than the fixed columns)
+    ///   Then the computation saturates instead of panicking.
+    #[test]
+    fn table_column_widths_saturate_when_area_tiny() {
+        let (_d, _t, msg_w, folder_w) = table_column_widths(4);
+        assert_eq!(msg_w, 0, "message collapses to 0 on a tiny area");
+        assert_eq!(folder_w, 8, "folder stays at its lower clamp");
+    }
 
     /// Scenario: string shorter than `max_chars` is returned unchanged
     ///   Given s = "hello" and `max_chars` = 10
