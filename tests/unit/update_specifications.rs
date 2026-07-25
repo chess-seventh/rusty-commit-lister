@@ -39,6 +39,10 @@ fn key_event(code: KeyCode) -> AppEvent {
     AppEvent::KeyPress(KeyEvent::new(code, KeyModifiers::NONE))
 }
 
+fn ctrl_key(code: KeyCode) -> AppEvent {
+    AppEvent::KeyPress(KeyEvent::new(code, KeyModifiers::CONTROL))
+}
+
 fn loaded_browse_model() -> AppModel {
     let config = AppConfig::default();
     let commits = vec![
@@ -54,36 +58,36 @@ fn loaded_browse_model() -> AppModel {
 
 /// @US-03 @in-memory
 ///
-/// Scenario: j key in Browse mode increments cursor by 1
+/// Scenario: Down arrow in Browse mode increments cursor by 1
 ///   Given Browse mode with 3 commits loaded and cursor at row 0
-///   When the j key is pressed
+///   When the Down arrow is pressed
 ///   Then cursor is 1
 ///   And mode remains Browse
 #[test]
-fn j_key_in_browse_mode_increments_cursor() {
+fn down_key_in_browse_mode_increments_cursor() {
     let model = loaded_browse_model();
     assert_eq!(model.cursor, 0, "precondition: cursor starts at 0");
     assert_eq!(model.mode, AppMode::Browse, "precondition: Browse mode");
 
-    let after = update(model, key_event(KeyCode::Char('j')));
+    let after = update(model, key_event(KeyCode::Down));
 
-    assert_eq!(after.cursor, 1, "cursor must increment by 1 on j");
+    assert_eq!(after.cursor, 1, "cursor must increment by 1 on Down");
     assert_eq!(after.mode, AppMode::Browse, "mode must remain Browse");
 }
 
 /// @US-03 @in-memory
 ///
-/// Scenario: k key at row 0 (top) wraps cursor to last row
+/// Scenario: Up arrow at row 0 (top) wraps cursor to last row
 ///   Given Browse mode with 3 commits and cursor at row 0
-///   When the k key is pressed
+///   When the Up arrow is pressed
 ///   Then cursor wraps to 2 (last row index)
 ///   And no error or crash occurs
 #[test]
-fn k_key_at_top_wraps_cursor_to_last_row() {
+fn up_key_at_top_wraps_cursor_to_last_row() {
     let model = loaded_browse_model();
     assert_eq!(model.cursor, 0, "precondition: cursor at top");
 
-    let after = update(model, key_event(KeyCode::Char('k')));
+    let after = update(model, key_event(KeyCode::Up));
 
     assert_eq!(
         after.cursor, 2,
@@ -94,21 +98,21 @@ fn k_key_at_top_wraps_cursor_to_last_row() {
 
 /// @US-03 @in-memory
 ///
-/// Scenario: j key at last row wraps cursor to 0
+/// Scenario: Down arrow at last row wraps cursor to 0
 ///   Given Browse mode with cursor at last row (2)
-///   When the j key is pressed
+///   When the Down arrow is pressed
 ///   Then cursor wraps to 0 (top)
 #[test]
-fn j_key_at_last_row_wraps_cursor_to_zero() {
+fn down_key_at_last_row_wraps_cursor_to_zero() {
     let model = loaded_browse_model();
     // Navigate to last row
     let at_row_2 = update(
-        update(model, key_event(KeyCode::Char('j'))),
-        key_event(KeyCode::Char('j')),
+        update(model, key_event(KeyCode::Down)),
+        key_event(KeyCode::Down),
     );
     assert_eq!(at_row_2.cursor, 2, "precondition: cursor at last row");
 
-    let after = update(at_row_2, key_event(KeyCode::Char('j')));
+    let after = update(at_row_2, key_event(KeyCode::Down));
 
     assert_eq!(after.cursor, 0, "cursor must wrap to 0 when at last row");
 }
@@ -117,118 +121,62 @@ fn j_key_at_last_row_wraps_cursor_to_zero() {
 
 /// @US-06 @in-memory
 ///
-/// Scenario: "/" key in Browse mode transitions to Search mode
-///   Given Browse mode with commits loaded
-///   When the "/" key is pressed
-///   Then mode becomes Search
-///   And `search_query` is empty
-///   And cursor is unchanged
+/// Scenario: typing a printable char in Browse filters live (no "/" needed)
+///   Given Browse mode with 3 commits (one "feat")
+///   When 'f','e','a','t' are typed
+///   Then mode stays Browse, `search_query` accumulates, and `filtered_rows`
+///   narrows to the matching commit with the cursor reset to the top.
 #[test]
-fn slash_key_transitions_browse_to_search_mode() {
+fn typing_in_browse_filters_rows_live() {
     let model = loaded_browse_model();
-    let before_cursor = model.cursor;
 
-    let after = update(model, key_event(KeyCode::Char('/')));
-
-    assert_eq!(after.mode, AppMode::Search, "mode must be Search after /");
-    assert_eq!(
-        after.search_query, "",
-        "search_query must be empty on entry"
-    );
-    assert_eq!(
-        after.cursor, before_cursor,
-        "cursor must not change on / press"
-    );
-}
-
-/// @US-06 @in-memory
-///
-/// Scenario: Esc in Search mode restores Browse mode and clears the query
-///   Given Search mode with `search_query` = "rusty"
-///   When Esc is pressed
-///   Then mode becomes Browse
-///   And `search_query` is empty
-///   And `filtered_rows` equals `commit_rows` (all rows visible)
-#[test]
-fn esc_in_search_mode_restores_browse_and_clears_query() {
-    let model = loaded_browse_model();
-    // Enter search mode
-    let in_search = update(model, key_event(KeyCode::Char('/')));
-    // Type "rusty" in search
-    let with_query = update(
-        in_search,
-        AppEvent::KeyPress(KeyEvent::new(KeyCode::Char('r'), KeyModifiers::NONE)),
-    );
-    // Simulate full query by forcing search_query (direct struct test is acceptable here
-    // since we're testing Esc behavior, not typing accumulation)
-    let _ = with_query; // typing test is separate
-
-    // Test Esc from search mode (with empty query is sufficient for this scenario)
-    let in_search = update(loaded_browse_model(), key_event(KeyCode::Char('/')));
-    let after = update(in_search, key_event(KeyCode::Esc));
+    let after = ['f', 'e', 'a', 't']
+        .iter()
+        .fold(model, |m, &ch| update(m, key_event(KeyCode::Char(ch))));
 
     assert_eq!(
         after.mode,
         AppMode::Browse,
-        "mode must return to Browse on Esc"
+        "must stay in Browse while typing"
     );
-    assert_eq!(after.search_query, "", "query must be cleared on Esc");
+    assert_eq!(after.search_query, "feat", "query accumulates typed chars");
     assert_eq!(
         after.filtered_rows.len(),
-        after.commit_rows.len(),
-        "filtered_rows must equal commit_rows (all rows visible)"
+        1,
+        "filtered to the 'feat' commit"
     );
+    assert!(
+        after.filtered_rows[0].message.contains("feat"),
+        "the matching commit must be the feat commit"
+    );
+    assert_eq!(after.cursor, 0, "cursor resets to top of the result set");
 }
 
 /// @US-06 @in-memory
 ///
-/// Scenario: Enter in Search mode confirms search and returns to Browse
-///   Given Search mode with `search_query` = "feat" and 1 filtered row
-///   When Enter is pressed
-///   Then mode returns to Browse
-///   And `search_query` is preserved ("feat" - confirm, not cancel)
-///   And `filtered_rows` remains as-is (1 row - not reset to all rows)
-///   And cursor resets to 0 (start of filtered result set)
+/// Scenario: Esc in Browse quits the read-only browser
+///   Given Browse mode
+///   When Esc is pressed
+///   Then quit is signalled
 #[test]
-fn enter_in_search_mode_confirms_and_returns_to_browse() {
+fn esc_in_browse_signals_quit() {
     let model = loaded_browse_model();
-    let in_search = update(model, key_event(KeyCode::Char('/')));
 
-    // Type "feat" to narrow to 1 result
-    let with_query = ['f', 'e', 'a', 't'].iter().fold(in_search, |m, &ch| {
-        update(
-            m,
-            AppEvent::KeyPress(KeyEvent::new(KeyCode::Char(ch), KeyModifiers::NONE)),
-        )
-    });
-    assert_eq!(
-        with_query.search_query, "feat",
-        "precondition: query is 'feat'"
-    );
-    assert_eq!(
-        with_query.filtered_rows.len(),
-        1,
-        "precondition: 1 filtered row"
-    );
-    assert_eq!(
-        with_query.mode,
-        AppMode::Search,
-        "precondition: Search mode"
-    );
+    let after = update(model, key_event(KeyCode::Esc));
 
-    let after = update(with_query, key_event(KeyCode::Enter));
+    assert!(after.quit, "Esc must signal quit in Browse");
+}
 
-    assert_eq!(after.mode, AppMode::Browse, "Enter must return to Browse");
-    assert_eq!(
-        after.search_query, "feat",
-        "search_query must be preserved (confirm, not cancel)"
-    );
-    assert_eq!(
-        after.filtered_rows.len(),
-        1,
-        "filtered_rows must remain filtered (not reset)"
-    );
-    assert_eq!(after.cursor, 0, "cursor must reset to 0 on Enter");
+/// @US-06 @in-memory
+///
+/// Scenario: Ctrl-C in Browse quits the read-only browser
+#[test]
+fn ctrl_c_in_browse_signals_quit() {
+    let model = loaded_browse_model();
+
+    let after = update(model, ctrl_key(KeyCode::Char('c')));
+
+    assert!(after.quit, "Ctrl-C must signal quit in Browse");
 }
 
 /// @US-07 @in-memory
@@ -241,7 +189,7 @@ fn enter_in_search_mode_confirms_and_returns_to_browse() {
 #[test]
 fn enter_in_browse_mode_transitions_to_detail() {
     let model = loaded_browse_model();
-    let at_row_1 = update(model, key_event(KeyCode::Char('j')));
+    let at_row_1 = update(model, key_event(KeyCode::Down));
     assert_eq!(at_row_1.cursor, 1, "precondition: cursor at row 1");
 
     let after = update(at_row_1, key_event(KeyCode::Enter));
@@ -265,7 +213,7 @@ fn enter_in_browse_mode_transitions_to_detail() {
 fn esc_in_detail_mode_returns_to_browse_preserving_cursor() {
     let model = loaded_browse_model();
     let in_detail = update(
-        update(model, key_event(KeyCode::Char('j'))),
+        update(model, key_event(KeyCode::Down)),
         key_event(KeyCode::Enter),
     );
     assert_eq!(in_detail.mode, AppMode::Detail, "precondition: Detail mode");
@@ -286,62 +234,121 @@ fn esc_in_detail_mode_returns_to_browse_preserving_cursor() {
 
 /// @US-09 @in-memory
 ///
-/// Scenario: "f" key in Browse mode transitions to `RepoPicker` mode
-///   Given Browse mode with commits loaded
-///   When the f key is pressed
+/// Scenario: Ctrl-F in Browse mode transitions to `RepoPicker` mode
+///   Given Browse mode with commits loaded and no active repo filter
+///   When Ctrl-F is pressed
 ///   Then mode becomes `RepoPicker`
 ///   And `picker_cursor` is 0
 #[test]
-fn f_key_in_browse_mode_transitions_to_repo_picker() {
+fn ctrl_f_in_browse_mode_transitions_to_repo_picker() {
     let model = loaded_browse_model();
 
-    let after = update(model, key_event(KeyCode::Char('f')));
+    let after = update(model, ctrl_key(KeyCode::Char('f')));
 
     assert_eq!(
         after.mode,
         AppMode::RepoPicker,
-        "mode must be RepoPicker after f"
+        "mode must be RepoPicker after Ctrl-F"
     );
     assert_eq!(after.picker_cursor, 0, "picker_cursor must start at 0");
 }
 
-// ─── Search filtering ─────────────────────────────────────────────────────────
+// ─── Copy actions (Ctrl-Y / Ctrl-E / Ctrl-P) ─────────────────────────────────
 
-/// @US-06 @in-memory
+/// @US-05 @in-memory
 ///
-/// Scenario: `SearchInput` event with "feat" narrows `filtered_rows` to matching commits
-///   Given 3 commits loaded (one with "feat", two without)
-///   And Search mode is active
-///   When a char 'f', 'e', 'a', 't' is typed (`SearchInput` event sequence)
-///   Then `filtered_rows` contains only the commit with "feat" in the message
-///   And the status shows "1 of 3 commits"
-///
-/// Note: this tests the filtering logic via successive `KeyPress` events in Search mode.
+/// Scenario: Ctrl-Y copies the selected commit's folder path to the clipboard
 #[test]
-fn search_input_event_narrows_filtered_rows_to_matching_commits() {
-    let model = loaded_browse_model();
-    let in_search = update(model, key_event(KeyCode::Char('/')));
+fn ctrl_y_in_browse_copies_folder_path() {
+    let config = AppConfig {
+        clipboard_available: true,
+        ..Default::default()
+    };
+    let commits = vec![make_commit("feat: x", "https://github.com/franci/a")];
+    let model = update(AppModel::new(config), AppEvent::LoadComplete(commits));
 
-    // Type "feat" to search
-    let after = ['f', 'e', 'a', 't'].iter().fold(in_search, |m, &ch| {
-        update(
-            m,
-            AppEvent::KeyPress(KeyEvent::new(KeyCode::Char(ch), KeyModifiers::NONE)),
-        )
-    });
+    let after = update(model, ctrl_key(KeyCode::Char('y')));
 
     assert_eq!(
-        after.search_query, "feat",
-        "search_query must accumulate typed characters"
+        after.clipboard_pending,
+        Some("/projects/repo".to_string()),
+        "Ctrl-Y must queue the folder path for copy"
     );
+}
+
+/// @US-05 @in-memory
+///
+/// Scenario: Ctrl-E copies the selected commit's message to the clipboard
+#[test]
+fn ctrl_e_in_browse_copies_message() {
+    let config = AppConfig {
+        clipboard_available: true,
+        ..Default::default()
+    };
+    let commits = vec![make_commit(
+        "feat: the message",
+        "https://github.com/franci/a",
+    )];
+    let model = update(AppModel::new(config), AppEvent::LoadComplete(commits));
+
+    let after = update(model, ctrl_key(KeyCode::Char('e')));
+
     assert_eq!(
-        after.filtered_rows.len(),
-        1,
-        "filtered_rows must contain only the 'feat' commit"
+        after.clipboard_pending,
+        Some("feat: the message".to_string()),
+        "Ctrl-E must queue the commit message for copy"
+    );
+}
+
+/// @US-05 @in-memory
+///
+/// Scenario: Ctrl-P copies the selected commit's Obsidian note path
+#[test]
+fn ctrl_p_in_browse_copies_note_path() {
+    let config = AppConfig {
+        clipboard_available: true,
+        ..Default::default()
+    };
+    let commits = vec![CommitRecord {
+        folder: "/projects/repo".to_string(),
+        time: "10:00".to_string(),
+        message: "feat: x".to_string(),
+        url: None,
+        date: "2026-05-19".to_string(),
+        note_path: "/vault/2026-05-19.md".to_string(),
+    }];
+    let model = update(AppModel::new(config), AppEvent::LoadComplete(commits));
+
+    let after = update(model, ctrl_key(KeyCode::Char('p')));
+
+    assert_eq!(
+        after.clipboard_pending,
+        Some("/vault/2026-05-19.md".to_string()),
+        "Ctrl-P must queue the note path for copy"
+    );
+}
+
+/// @US-08 @in-memory
+///
+/// Scenario: a copy with no clipboard degrades to a status message, never panics
+#[test]
+fn copy_without_clipboard_sets_status_message() {
+    // Default config has clipboard_available = false.
+    let model = loaded_browse_model();
+
+    let after = update(model, ctrl_key(KeyCode::Char('y')));
+
+    assert!(
+        after.clipboard_pending.is_none(),
+        "no clipboard write queued"
     );
     assert!(
-        after.filtered_rows[0].message.contains("feat"),
-        "the matching commit must be the feat commit"
+        after
+            .status_message
+            .as_deref()
+            .unwrap_or("")
+            .contains("Copy not available"),
+        "must surface a graceful status message"
     );
 }
 
@@ -503,74 +510,77 @@ fn page_up_clamps_at_zero() {
 
 /// @US-03 @in-memory
 ///
-/// Scenario: 'r' key in Browse mode triggers reload by setting `loading` = true
+/// Scenario: Ctrl-R in Browse mode triggers reload by setting `loading` = true
 ///   Given Browse mode with commits loaded
-///   When 'r' is pressed
+///   When Ctrl-R is pressed
 ///   Then loading is true
 #[test]
-fn r_key_in_browse_mode_sets_loading_true() {
+fn ctrl_r_in_browse_mode_sets_loading_true() {
     let model = loaded_browse_model();
     assert!(!model.loading, "precondition: not loading");
 
-    let after = update(model, key_event(KeyCode::Char('r')));
+    let after = update(model, ctrl_key(KeyCode::Char('r')));
 
     assert!(
         after.loading,
-        "loading must be true after 'r' to signal reload"
+        "loading must be true after Ctrl-R to signal reload"
     );
     assert_eq!(after.mode, AppMode::Browse, "mode must remain Browse");
 }
 
 /// @US-03 @in-memory
 ///
-/// Scenario: 'q' key in Browse mode signals application exit
+/// Scenario: a bare 'r' in Browse mode filters (does not reload)
 ///   Given Browse mode with commits loaded
-///   When 'q' is pressed
-///   Then quit is true
+///   When bare 'r' is pressed
+///   Then loading stays false and the query captures 'r'
 #[test]
-fn q_key_in_browse_mode_sets_quit_true() {
+fn bare_r_in_browse_mode_filters_not_reloads() {
     let model = loaded_browse_model();
-    assert!(!model.quit, "precondition: not quitting");
 
-    let after = update(model, key_event(KeyCode::Char('q')));
+    let after = update(model, key_event(KeyCode::Char('r')));
 
-    assert!(after.quit, "quit must be true after 'q'");
+    assert!(!after.loading, "bare 'r' must not trigger reload");
+    assert_eq!(
+        after.search_query, "r",
+        "bare 'r' must feed the live filter"
+    );
 }
 
 // ─── Browse mode - empty rows guard ──────────────────────────────────────────
 
 /// @US-03 @in-memory
 ///
-/// Scenario: j key with empty `filtered_rows` is a no-op
+/// Scenario: Down arrow with empty `filtered_rows` is a no-op
 ///   Given Browse mode with no commits (empty `filtered_rows`)
-///   When j is pressed
+///   When Down is pressed
 ///   Then cursor remains at 0 (no panic, no wrap)
 #[test]
-fn j_key_with_empty_rows_is_noop() {
+fn down_key_with_empty_rows_is_noop() {
     let config = AppConfig::default();
     let model = AppModel::new(config);
     let empty = update(model, AppEvent::LoadComplete(vec![]));
     assert!(empty.filtered_rows.is_empty(), "precondition: no rows");
 
-    let after = update(empty, key_event(KeyCode::Char('j')));
+    let after = update(empty, key_event(KeyCode::Down));
 
     assert_eq!(after.cursor, 0, "cursor must stay at 0 when no rows");
 }
 
 /// @US-03 @in-memory
 ///
-/// Scenario: k key with empty `filtered_rows` is a no-op
+/// Scenario: Up arrow with empty `filtered_rows` is a no-op
 ///   Given Browse mode with no commits (empty `filtered_rows`)
-///   When k is pressed
+///   When Up is pressed
 ///   Then cursor remains at 0 (no panic, no underflow)
 #[test]
-fn k_key_with_empty_rows_is_noop() {
+fn up_key_with_empty_rows_is_noop() {
     let config = AppConfig::default();
     let model = AppModel::new(config);
     let empty = update(model, AppEvent::LoadComplete(vec![]));
     assert!(empty.filtered_rows.is_empty(), "precondition: no rows");
 
-    let after = update(empty, key_event(KeyCode::Char('k')));
+    let after = update(empty, key_event(KeyCode::Up));
 
     assert_eq!(after.cursor, 0, "cursor must stay at 0 when no rows");
 }
@@ -633,28 +643,20 @@ fn page_down_with_empty_filtered_rows_preserves_cursor() {
     );
 }
 
-// ─── Search mode - backspace and control chars ────────────────────────────────
+// ─── Browse filter - backspace and control chars ─────────────────────────────
 
 /// @US-06 @in-memory
 ///
-/// Scenario: `Backspace` in Search mode removes the last character from `search_query`
-///   Given Search mode with query "feat"
+/// Scenario: `Backspace` in Browse removes the last character from the filter
+///   Given Browse mode with the live query "feat"
 ///   When `Backspace` is pressed
 ///   Then `search_query` is "fea"
 #[test]
-fn backspace_in_search_mode_removes_last_char() {
+fn backspace_in_browse_removes_last_filter_char() {
     let model = loaded_browse_model();
-    let in_search = update(model, key_event(KeyCode::Char('/')));
-    let with_query = update(
-        update(
-            update(
-                update(in_search, key_event(KeyCode::Char('f'))),
-                key_event(KeyCode::Char('e')),
-            ),
-            key_event(KeyCode::Char('a')),
-        ),
-        key_event(KeyCode::Char('t')),
-    );
+    let with_query = ['f', 'e', 'a', 't']
+        .iter()
+        .fold(model, |m, &ch| update(m, key_event(KeyCode::Char(ch))));
     assert_eq!(
         with_query.search_query, "feat",
         "precondition: query is 'feat'"
@@ -670,25 +672,22 @@ fn backspace_in_search_mode_removes_last_char() {
 
 /// @US-06 @in-memory
 ///
-/// Scenario: Control character is not appended to `search_query` in Search mode
-///   Given Search mode with empty query
-///   When a control char (`KeyCode::Null`) is pressed as a `Char` event
-///   Then `search_query` remains empty
+/// Scenario: a Ctrl-modified char in Browse is a command, not filter input
+///   Given Browse mode with empty query
+///   When Ctrl-<char> that maps to no command is pressed
+///   Then `search_query` remains empty (control chords never feed the filter)
 #[test]
-fn control_char_not_appended_in_search_mode() {
+fn ctrl_char_not_appended_to_filter_in_browse() {
     let model = loaded_browse_model();
-    let in_search = update(model, key_event(KeyCode::Char('/')));
-    assert_eq!(in_search.search_query, "", "precondition: empty query");
+    assert_eq!(model.search_query, "", "precondition: empty query");
 
-    let after = update(
-        in_search,
-        AppEvent::KeyPress(crossterm::event::KeyEvent::new(
-            KeyCode::Char('\x01'),
-            crossterm::event::KeyModifiers::CONTROL,
-        )),
+    // Ctrl-A has no bound command; it must be ignored, not typed into the filter.
+    let after = update(model, ctrl_key(KeyCode::Char('a')));
+
+    assert_eq!(
+        after.search_query, "",
+        "ctrl chords must not feed the filter"
     );
-
-    assert_eq!(after.search_query, "", "control chars must not be appended");
 }
 
 // ─── RepoPicker mode ──────────────────────────────────────────────────────────
@@ -696,13 +695,13 @@ fn control_char_not_appended_in_search_mode() {
 /// @US-09 @in-memory
 ///
 /// Scenario: `Esc` in `RepoPicker` mode returns to Browse mode
-///   Given `RepoPicker` mode (entered via 'f')
+///   Given `RepoPicker` mode (entered via Ctrl-F)
 ///   When `Esc` is pressed
 ///   Then mode returns to Browse
 #[test]
 fn esc_in_repo_picker_returns_to_browse() {
     let model = loaded_browse_model();
-    let in_picker = update(model, key_event(KeyCode::Char('f')));
+    let in_picker = update(model, ctrl_key(KeyCode::Char('f')));
     assert_eq!(
         in_picker.mode,
         AppMode::RepoPicker,
@@ -1044,8 +1043,8 @@ fn picker_model() -> AppModel {
         },
     ];
     let model = update(AppModel::new(config), AppEvent::LoadComplete(commits));
-    // Open RepoPicker via 'f'
-    update(model, key_event(KeyCode::Char('f')))
+    // Open RepoPicker via Ctrl-F
+    update(model, ctrl_key(KeyCode::Char('f')))
 }
 
 /// @US-09 @in-memory
@@ -1168,14 +1167,14 @@ fn picker_esc_returns_without_changing_filter() {
 
 /// @US-09 @in-memory
 ///
-/// Scenario: f key in `Browse` mode when `active_repo_filter` is `Some` clears the filter
+/// Scenario: Ctrl-F in `Browse` mode when `active_repo_filter` is `Some` clears it
 ///   Given `Browse` mode with `active_repo_filter = Some("dotfiles")`
-///   When f is pressed
+///   When Ctrl-F is pressed
 ///   Then `active_repo_filter = None`
 ///   And `mode = Browse` (not `RepoPicker`)
 ///   And `filtered_rows` is recomputed (shows all commits)
 #[test]
-fn f_key_clears_active_filter_in_browse_mode() {
+fn ctrl_f_clears_active_filter_in_browse_mode() {
     let config = AppConfig::default();
     let commits = vec![
         CommitRecord {
@@ -1214,11 +1213,11 @@ fn f_key_clears_active_filter_in_browse_mode() {
         "precondition: filter narrows to 1 row"
     );
 
-    let after = update(model, key_event(KeyCode::Char('f')));
+    let after = update(model, ctrl_key(KeyCode::Char('f')));
 
     assert!(
         after.active_repo_filter.is_none(),
-        "f must clear active_repo_filter"
+        "Ctrl-F must clear active_repo_filter"
     );
     assert_eq!(
         after.mode,
@@ -1242,18 +1241,19 @@ mod property_tests {
     use rusty_commit_lister::domain::model::{AppConfig, AppMode, AppModel};
     use rusty_commit_lister::domain::update::update;
 
-    use super::{key_event, make_commit};
+    use super::{ctrl_key, key_event, make_commit};
     use crossterm::event::KeyCode;
 
     fn valid_events() -> impl Strategy<Value = AppEvent> {
         prop_oneof![
-            Just(key_event(KeyCode::Char('j'))),
-            Just(key_event(KeyCode::Char('k'))),
-            Just(key_event(KeyCode::Char('/'))),
+            Just(key_event(KeyCode::Down)),
+            Just(key_event(KeyCode::Up)),
+            Just(key_event(KeyCode::Char('f'))), // filters live
+            Just(key_event(KeyCode::Backspace)),
             Just(key_event(KeyCode::Esc)),
             Just(key_event(KeyCode::Enter)),
-            Just(key_event(KeyCode::Char('f'))),
-            Just(key_event(KeyCode::Char('q'))),
+            Just(ctrl_key(KeyCode::Char('f'))), // repo picker
+            Just(ctrl_key(KeyCode::Char('y'))), // copy
             Just(key_event(KeyCode::PageDown)),
             Just(key_event(KeyCode::PageUp)),
             Just(AppEvent::Tick),
@@ -1299,7 +1299,7 @@ mod property_tests {
             prop_assert!(
                 matches!(
                     final_model.mode,
-                    AppMode::Browse | AppMode::Search | AppMode::Detail | AppMode::RepoPicker
+                    AppMode::Browse | AppMode::Detail | AppMode::RepoPicker
                 ),
                 "mode must be a valid AppMode variant"
             );

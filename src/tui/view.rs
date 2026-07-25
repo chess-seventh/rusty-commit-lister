@@ -1,8 +1,9 @@
 //! Pure `view` renderer (Elm/MVU) plus its widget-building helpers.
 
 use ratatui::Frame;
-use ratatui::layout::{Constraint, Direction, Layout, Rect};
+use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::{Color, Style};
+use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Cell, List, ListItem, Paragraph, Row, Table, TableState};
 
 use crate::domain::model::{AppMode, AppModel, CommitRecord};
@@ -12,6 +13,38 @@ use crate::domain::update::distinct_repos;
 const HEADER_COLOR: Color = Color::Cyan;
 /// Background tint applied to alternate (odd-indexed) data rows for zebra striping.
 const ZEBRA_BG: Color = Color::Rgb(30, 30, 46);
+/// Color used to highlight the matched filter substring (fzf-style).
+const MATCH_COLOR: Color = Color::Red;
+
+/// Splits `message` into spans, highlighting the first case-insensitive match of
+/// `query` in [`MATCH_COLOR`]. Returns a single plain span when the query is
+/// empty or unmatched.
+///
+/// Highlighting is applied only when both strings are ASCII, which keeps byte
+/// offsets valid and avoids slicing on a non-char-boundary; non-ASCII messages
+/// render un-highlighted (never panics).
+///
+/// Pure function - no I/O, no mutation.
+fn message_spans(message: &str, query: &str) -> Vec<Span<'static>> {
+    let q = query.trim();
+    if q.is_empty() || !message.is_ascii() || !q.is_ascii() {
+        return vec![Span::raw(message.to_string())];
+    }
+    match message.to_ascii_lowercase().find(&q.to_ascii_lowercase()) {
+        Some(start) => {
+            let end = start + q.len();
+            vec![
+                Span::raw(message[..start].to_string()),
+                Span::styled(
+                    message[start..end].to_string(),
+                    Style::new().fg(MATCH_COLOR),
+                ),
+                Span::raw(message[end..].to_string()),
+            ]
+        }
+        None => vec![Span::raw(message.to_string())],
+    }
+}
 
 /// Returns the final path segment of `folder` (the folder name), ignoring any
 /// trailing slash. Falls back to the whole string when there is no separator.
@@ -42,27 +75,31 @@ fn truncate(s: &str, max_chars: usize) -> String {
     format!("{}...", &s[..end_byte])
 }
 
-/// Formats the status bar text based on row count and cursor position.
+/// Formats the Browse status bar: the live filter query (when any), the active
+/// repo filter (when any), the visible/total counts, and the key hints.
 ///
-/// Returns `"Row 0/0 | q quit"` when total is 0.
-/// Returns `"Row {cursor}/Total | q quit"` otherwise (cursor is already 1-based).
+/// - no filter: `"3/3 | type: filter · ^Y/^E/^P/^U copy · ^F repo ^R reload · Esc quit"`
+/// - filtering: `"/feat · 1/3 | ^Y/^E/^P/^U copy · Esc quit"`
 ///
 /// Pure function - no I/O, no mutation.
-fn format_status_text(cursor_one_based: usize, total: usize) -> String {
-    if total == 0 {
-        "Row 0/0 | q quit".to_string()
-    } else {
-        format!("Row {cursor_one_based}/{total} | q quit")
+fn browse_status_text(
+    query: &str,
+    repo_filter: Option<&str>,
+    filtered: usize,
+    total: usize,
+) -> String {
+    let copy_hints = "^Y/^E/^P/^U copy";
+    if !query.is_empty() {
+        return format!("/{query} \u{2022} {filtered}/{total} | {copy_hints} \u{2022} Esc quit");
     }
-}
-
-/// Formats the search mode status bar text showing filtered vs total commit count.
-///
-/// Returns `"{filtered} of {total} commits | Esc cancel"`.
-///
-/// Pure function - no I/O, no mutation.
-fn search_status_text(filtered: usize, total: usize) -> String {
-    format!("{filtered} of {total} commits | Esc cancel")
+    if let Some(name) = repo_filter {
+        return format!(
+            "repo:{name} \u{2022} {filtered}/{total} | ^F clear \u{2022} {copy_hints} \u{2022} Esc quit"
+        );
+    }
+    format!(
+        "{filtered}/{total} | type: filter \u{2022} {copy_hints} \u{2022} ^F repo ^R reload \u{2022} Esc quit"
+    )
 }
 
 /// Pure render function - Elm/MVU View.
@@ -71,36 +108,17 @@ fn search_status_text(filtered: usize, total: usize) -> String {
 /// Does NOT mutate model state.
 /// Renders the appropriate widget tree for the current `AppMode`.
 ///
-/// Layout: 2 vertical chunks in Browse/Detail/RepoPicker mode (table area + status bar).
-/// In Search mode: 3 vertical chunks (table area + search bar + status bar).
+/// Layout: 2 vertical chunks (main area + status bar). The live filter query and
+/// key hints are shown in the status bar; there is no separate search mode.
 pub fn view(model: &AppModel, frame: &mut Frame) {
-    if model.mode == AppMode::Search {
-        let vertical_chunks = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([
-                Constraint::Min(0),
-                Constraint::Length(1),
-                Constraint::Length(1),
-            ])
-            .split(frame.area());
+    let vertical_chunks =
+        Layout::vertical([Constraint::Min(0), Constraint::Length(1)]).split(frame.area());
 
-        let main_area = vertical_chunks[0];
-        let search_bar_area = vertical_chunks[1];
-        let status_area = vertical_chunks[2];
+    let main_area = vertical_chunks[0];
+    let status_area = vertical_chunks[1];
 
-        render_main_area(model, frame, main_area);
-        render_search_bar(model, frame, search_bar_area);
-        render_status_bar(model, frame, status_area);
-    } else {
-        let vertical_chunks =
-            Layout::vertical([Constraint::Min(0), Constraint::Length(1)]).split(frame.area());
-
-        let main_area = vertical_chunks[0];
-        let status_area = vertical_chunks[1];
-
-        render_main_area(model, frame, main_area);
-        render_status_bar(model, frame, status_area);
-    }
+    render_main_area(model, frame, main_area);
+    render_status_bar(model, frame, status_area);
 }
 
 /// Builds the display lines for the Detail overlay from a `CommitRecord`.
@@ -278,7 +296,10 @@ fn render_commit_table(model: &AppModel, frame: &mut Frame, area: Rect) {
             let row = Row::new(vec![
                 Cell::from(record.date.as_str()),
                 Cell::from(record.time.as_str()),
-                Cell::from(truncate(&record.message, msg_w as usize)),
+                Cell::from(Line::from(message_spans(
+                    &record.message,
+                    &model.search_query,
+                ))),
                 Cell::from(truncate(folder_name(&record.folder), folder_w as usize)),
             ]);
             if i % 2 == 1 {
@@ -307,43 +328,24 @@ fn render_commit_table(model: &AppModel, frame: &mut Frame, area: Rect) {
     frame.render_stateful_widget(table, area, &mut table_state);
 }
 
-/// Renders the search input line showing the current search query with a cursor indicator.
-///
-/// Displays `"/ <query>_"` where the trailing underscore acts as a cursor indicator.
-/// Pure render - reads model, writes frame, no mutation.
-fn render_search_bar(model: &AppModel, frame: &mut Frame, area: ratatui::layout::Rect) {
-    let search_text = format!("/ {}_", model.search_query);
-    frame.render_widget(Paragraph::new(search_text), area);
-}
-
 /// Renders the bottom status bar, whose contents depend on the current `AppMode`.
-fn render_status_bar(model: &AppModel, frame: &mut Frame, area: ratatui::layout::Rect) {
+fn render_status_bar(model: &AppModel, frame: &mut Frame, area: Rect) {
     let status_text = match model.mode {
-        AppMode::Search => search_status_text(model.filtered_rows.len(), model.commit_rows.len()),
-        AppMode::Detail => "c copy | Esc return".to_string(),
+        AppMode::Detail => "^U copy URL | Esc return".to_string(),
         AppMode::RepoPicker => "j/k select | Enter confirm | Esc cancel".to_string(),
-        AppMode::Browse => {
-            if let Some(ref name) = model.active_repo_filter {
-                format!(
-                    "{name} \u{2022} {}/{} commits | f clear | q quit",
-                    model.filtered_rows.len(),
-                    model.commit_rows.len()
-                )
-            } else {
-                let total = model.filtered_rows.len();
-                let cursor_one_based = if total == 0 { 0 } else { model.cursor + 1 };
-                format_status_text(cursor_one_based, total)
-            }
-        }
+        AppMode::Browse => browse_status_text(
+            &model.search_query,
+            model.active_repo_filter.as_deref(),
+            model.filtered_rows.len(),
+            model.commit_rows.len(),
+        ),
     };
     frame.render_widget(Paragraph::new(status_text), area);
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        folder_name, format_status_text, search_status_text, table_column_widths, truncate,
-    };
+    use super::{browse_status_text, folder_name, message_spans, table_column_widths, truncate};
 
     /// Scenario: folder_name returns the final path segment
     ///   Given folder = "/projects/rcl/src"
@@ -455,47 +457,76 @@ mod tests {
         assert_eq!(result.chars().count(), 3);
     }
 
-    /// Scenario: status bar shows "Row 0/0 | q quit" when `filtered_rows` is empty
-    ///
-    /// This test validates the `format_status_text()` helper directly (pure function).
-    /// Given `filtered_rows` is empty
-    /// Then status text = "Row 0/0 | q quit"
+    /// Scenario: Browse status with no filter shows counts and the copy/nav hints
+    ///   Given no query, no repo filter, 3 of 3 rows
+    ///   Then it shows the total counts, the copy hints, and "Esc quit"
     #[test]
-    fn status_text_is_row_zero_of_zero_when_no_rows() {
-        let text = format_status_text(0, 0);
-        assert_eq!(text, "Row 0/0 | q quit");
+    fn browse_status_without_filter_shows_counts_and_hints() {
+        let text = browse_status_text("", None, 3, 3);
+        assert!(
+            text.starts_with("3/3 "),
+            "must lead with counts; got: {text}"
+        );
+        assert!(text.contains("^Y/^E/^P/^U copy"), "must list copy hints");
+        assert!(text.contains("Esc quit"), "must show quit hint");
     }
 
-    /// Scenario: status bar shows "Row N/Total | q quit" when rows are present
-    ///   Given cursor = 0 and total = 5
-    ///   Then status text = "Row 1/5 | q quit" (cursor+1 for 1-based display)
+    /// Scenario: Browse status while filtering shows the query and the match count
+    ///   Given query "feat", 1 of 3 rows
+    ///   Then it shows "/feat" and "1/3"
     #[test]
-    fn status_text_shows_one_based_row_and_total() {
-        let text = format_status_text(1, 5);
-        assert_eq!(text, "Row 1/5 | q quit");
+    fn browse_status_while_filtering_shows_query_and_matches() {
+        let text = browse_status_text("feat", None, 1, 3);
+        assert!(text.contains("/feat"), "must echo the query; got: {text}");
+        assert!(
+            text.contains("1/3"),
+            "must show filtered/total; got: {text}"
+        );
     }
 
-    /// Scenario: search status bar shows "N of M commits | Esc cancel" with partial match
-    ///   Given filtered = 3, total = 10
-    ///   Then `search_status_text` returns "3 of 10 commits | Esc cancel"
+    /// Scenario: Browse status with an active repo filter names it and offers clear
     #[test]
-    fn search_status_text_shows_filtered_count_of_total() {
-        assert_eq!(search_status_text(3, 10), "3 of 10 commits | Esc cancel");
+    fn browse_status_with_repo_filter_names_it() {
+        let text = browse_status_text("", Some("dotfiles"), 2, 5);
+        assert!(
+            text.contains("repo:dotfiles"),
+            "must name the repo; got: {text}"
+        );
+        assert!(text.contains("^F clear"), "must offer clear; got: {text}");
     }
 
-    /// Scenario: search status bar shows "0 of M commits | Esc cancel" when no match
-    ///   Given filtered = 0, total = 10
-    ///   Then `search_status_text` returns "0 of 10 commits | Esc cancel"
+    /// Scenario: an empty query yields a single plain span (no highlight)
     #[test]
-    fn search_status_text_shows_zero_when_no_match() {
-        assert_eq!(search_status_text(0, 10), "0 of 10 commits | Esc cancel");
+    fn message_spans_without_query_is_single_plain_span() {
+        let spans = message_spans("feat: add thing", "");
+        assert_eq!(spans.len(), 1);
+        assert_eq!(spans[0].content, "feat: add thing");
     }
 
-    /// Scenario: search status bar shows "M of M commits | Esc cancel" when all match
-    ///   Given filtered = 10, total = 10
-    ///   Then `search_status_text` returns "10 of 10 commits | Esc cancel"
+    /// Scenario: a matching query splits into before/match/after with the match styled
+    ///   Given message "feat: add thing" and query "add"
+    ///   Then the middle span is exactly "add" and carries the match color
     #[test]
-    fn search_status_text_shows_full_count_when_all_match() {
-        assert_eq!(search_status_text(10, 10), "10 of 10 commits | Esc cancel");
+    fn message_spans_highlights_case_insensitive_match() {
+        let spans = message_spans("feat: ADD thing", "add");
+        assert_eq!(spans.len(), 3, "before/match/after");
+        assert_eq!(spans[0].content, "feat: ");
+        assert_eq!(spans[1].content, "ADD", "match preserves original case");
+        assert_eq!(spans[1].style.fg, Some(super::MATCH_COLOR));
+        assert_eq!(spans[2].content, " thing");
+    }
+
+    /// Scenario: a non-matching query yields a single plain span
+    #[test]
+    fn message_spans_without_match_is_single_plain_span() {
+        let spans = message_spans("feat: add thing", "zzz");
+        assert_eq!(spans.len(), 1);
+    }
+
+    /// Scenario: a non-ASCII message is never highlighted (no panic on boundaries)
+    #[test]
+    fn message_spans_non_ascii_is_not_highlighted() {
+        let spans = message_spans("✨ féat: add", "add");
+        assert_eq!(spans.len(), 1, "non-ASCII messages render un-highlighted");
     }
 }

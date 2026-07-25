@@ -1,6 +1,6 @@
 //! The pure `update` reducer and its key-handling helpers (Elm/MVU).
 #![allow(clippy::collapsible_match)]
-use crossterm::event::{KeyCode, KeyEvent};
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 use crate::domain::events::AppEvent;
 use crate::domain::model::{AppMode, AppModel, CommitRecord};
@@ -45,15 +45,14 @@ pub fn distinct_repos(commit_rows: &[CommitRecord]) -> Vec<(String, usize)> {
 ///
 /// # Key state machine transitions
 ///
-/// - Browse + j → cursor += 1 (wraps at bottom)
-/// - Browse + k → cursor -= 1 (wraps at top)
-/// - Browse + `/` → mode = Search, `search_query` = ""
+/// - Browse + Down/Up → cursor moves (wraps)
+/// - Browse + char → `search_query` += char, `filtered_rows` recomputed, cursor = 0
+/// - Browse + Backspace → `search_query` shortened, `filtered_rows` recomputed
 /// - Browse + Enter → mode = Detail
-/// - Browse + `f` → mode = `RepoPicker`
-/// - Browse + `r` → loading = true (triggers re-scan in event loop)
-/// - Browse + `q` / Esc → signal to quit (returns model with quit flag)
-/// - Search + char → `search_query` += char, `filtered_rows` recalculated
-/// - Search + Esc → mode = Browse, `search_query` = "", `filtered_rows` = `commit_rows`
+/// - Browse + Ctrl-Y/E/P/U → copy folder / message / note path / URL
+/// - Browse + Ctrl-F → toggle `RepoPicker` (or clear an active repo filter)
+/// - Browse + Ctrl-R → loading = true (triggers re-scan in event loop)
+/// - Browse + Esc / Ctrl-C → signal to quit (returns model with quit flag)
 /// - Detail + Esc → mode = Browse, cursor preserved
 /// - Detail + `c` → triggers clipboard write (`ClipboardResult` event follows)
 /// - `RepoPicker` + Enter → `active_repo_filter` = selected repo
@@ -147,22 +146,39 @@ fn search_query_matches(record: &CommitRecord, search_query: &str) -> bool {
 fn handle_key(model: AppModel, key: KeyEvent) -> AppModel {
     match model.mode.clone() {
         AppMode::Browse => handle_browse_key(model, key),
-        AppMode::Search => handle_search_key(model, key),
         AppMode::Detail => handle_detail_key(model, key),
         AppMode::RepoPicker => handle_repo_picker_key(model, key),
     }
 }
 
-/// Browse-mode keys: navigation, search/detail/picker entry, reload, and quit.
-fn handle_browse_key(mut model: AppModel, key: KeyEvent) -> AppModel {
+/// Queue `text` for the clipboard when it is available, otherwise surface a
+/// graceful status message (US-08: copy never panics, degrades to a hint).
+fn queue_copy(model: &mut AppModel, text: String) {
+    if model.config.clipboard_available {
+        model.clipboard_pending = Some(text);
+        model.status_message = None;
+    } else {
+        model.status_message = Some("Copy not available — select text manually".to_string());
+    }
+}
+
+/// Browse-mode keys (fzf-style): any printable char filters live; arrows and
+/// page keys navigate; Ctrl-modified keys copy/reload/open the picker; Esc and
+/// Ctrl-C quit. Nothing here mutates data — this is a read-only browser.
+fn handle_browse_key(model: AppModel, key: KeyEvent) -> AppModel {
+    if key.modifiers.contains(KeyModifiers::CONTROL) {
+        return handle_browse_command(model, key);
+    }
+
+    let mut model = model;
     let row_count = model.filtered_rows.len();
     match key.code {
-        KeyCode::Char('j') | KeyCode::Down => {
+        KeyCode::Down => {
             if row_count > 0 {
                 model.cursor = (model.cursor + 1) % row_count;
             }
         }
-        KeyCode::Char('k') | KeyCode::Up => {
+        KeyCode::Up => {
             if row_count > 0 {
                 model.cursor = model.cursor.checked_sub(1).unwrap_or(row_count - 1);
             }
@@ -175,13 +191,54 @@ fn handle_browse_key(mut model: AppModel, key: KeyEvent) -> AppModel {
         KeyCode::PageUp => {
             model.cursor = model.cursor.saturating_sub(model.page_size);
         }
-        KeyCode::Char('/') => {
-            model.mode = AppMode::Search;
-            model.search_query = String::new();
-        }
         KeyCode::Enter => {
             if !model.filtered_rows.is_empty() {
                 model.mode = AppMode::Detail;
+            }
+        }
+        KeyCode::Esc => {
+            model.quit = true;
+        }
+        KeyCode::Backspace => {
+            model.search_query.pop();
+            model = apply_filter_change(model);
+        }
+        KeyCode::Char(c) if !c.is_control() => {
+            model.search_query.push(c);
+            model = apply_filter_change(model);
+        }
+        _ => {}
+    }
+    model
+}
+
+/// Ctrl-modified Browse commands: copy the selected fields, reload, open the
+/// repo picker, or quit. Copies degrade gracefully when the clipboard is absent.
+fn handle_browse_command(mut model: AppModel, key: KeyEvent) -> AppModel {
+    let selected = model.filtered_rows.get(model.cursor).cloned();
+    match key.code {
+        KeyCode::Char('c') => model.quit = true,
+        KeyCode::Char('y') => {
+            if let Some(r) = selected {
+                queue_copy(&mut model, r.folder);
+            }
+        }
+        KeyCode::Char('e') => {
+            if let Some(r) = selected {
+                queue_copy(&mut model, r.message);
+            }
+        }
+        KeyCode::Char('p') => {
+            if let Some(r) = selected {
+                queue_copy(&mut model, r.note_path);
+            }
+        }
+        KeyCode::Char('u') => {
+            if let Some(r) = selected {
+                match r.url {
+                    Some(url) => queue_copy(&mut model, url),
+                    None => model.status_message = Some("Copy not available — no URL".to_string()),
+                }
             }
         }
         KeyCode::Char('f') => {
@@ -193,39 +250,17 @@ fn handle_browse_key(mut model: AppModel, key: KeyEvent) -> AppModel {
                 model.picker_cursor = 0;
             }
         }
-        KeyCode::Char('r') => {
-            model.loading = true;
-        }
-        KeyCode::Char('q' | 'Q') | KeyCode::Esc => {
-            model.quit = true;
-        }
+        KeyCode::Char('r') => model.loading = true,
         _ => {}
     }
     model
 }
 
-/// Search-mode keys: edit the query (live-filtering), commit, or cancel.
-fn handle_search_key(mut model: AppModel, key: KeyEvent) -> AppModel {
-    match key.code {
-        KeyCode::Esc => {
-            model.mode = AppMode::Browse;
-            model.search_query = String::new();
-            model.filtered_rows = model.commit_rows.clone();
-        }
-        KeyCode::Enter => {
-            model.mode = AppMode::Browse;
-            model.cursor = 0;
-        }
-        KeyCode::Backspace => {
-            model.search_query.pop();
-            model.filtered_rows = recompute_filtered(&model);
-        }
-        KeyCode::Char(c) if !c.is_control() => {
-            model.search_query.push(c);
-            model.filtered_rows = recompute_filtered(&model);
-        }
-        _ => {}
-    }
+/// Recompute `filtered_rows` after a filter-query change and clamp the cursor to
+/// the top of the new result set (fzf semantics: selection jumps to first match).
+fn apply_filter_change(mut model: AppModel) -> AppModel {
+    model.filtered_rows = recompute_filtered(&model);
+    model.cursor = 0;
     model
 }
 

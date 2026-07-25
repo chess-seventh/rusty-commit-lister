@@ -8,13 +8,12 @@ pub const DEFAULT_SCAN_DAYS_BACK: u32 = 7;
 /// The current interaction mode of the TUI.
 #[derive(Debug, Clone, PartialEq)]
 pub enum AppMode {
-    /// Main browse mode - j/k navigation, q/Esc to exit.
+    /// Main browse mode: arrows navigate, any char filters live (fzf-style),
+    /// Ctrl-based keys copy/reload, Esc/Ctrl-C quit.
     Browse,
-    /// Inline search mode - / activates, Esc clears.
-    Search,
     /// Detail overlay mode - Enter opens, Esc closes.
     Detail,
-    /// Repository picker overlay mode - f opens, Esc closes.
+    /// Repository picker overlay mode - Ctrl-F opens, Esc closes.
     RepoPicker,
 }
 
