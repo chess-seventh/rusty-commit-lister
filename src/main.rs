@@ -121,10 +121,14 @@ fn main() -> Result<()> {
             },
         )?;
     } else if model.commit_rows.is_empty() {
-        println!(
-            "No commits found in the last {} days",
-            model.config.scan_days_back
-        );
+        if model.config.scan_days_back == 0 {
+            println!("No commits found in the vault");
+        } else {
+            println!(
+                "No commits found in the last {} days",
+                model.config.scan_days_back
+            );
+        }
     } else {
         println!("Found {} commits:", model.commit_rows.len());
         for r in &model.commit_rows {

@@ -45,7 +45,8 @@ pub struct CommitRecord {
 pub struct AppConfig {
     /// Absolute path to the Obsidian vault directory (may contain emoji like 📅).
     pub vault_path: PathBuf,
-    /// Number of days back to scan for daily notes (must be > 0).
+    /// Number of days back to scan for daily notes. `0` means no window —
+    /// load every commit available in the vault.
     pub scan_days_back: u32,
     /// Optional repository name pre-filter applied at load time.
     pub repo_filter: Option<String>,

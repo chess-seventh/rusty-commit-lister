@@ -109,14 +109,14 @@ fn toml_config_adapter_reads_zebra_color_and_defaults_when_absent() {
     );
 }
 
-/// @US-01 @real-io @adapter-integration @error
+/// @US-01 @real-io @adapter-integration
 ///
-/// Scenario: `TomlConfigAdapter` returns config error when `scan_days_back` is 0
+/// Scenario: `TomlConfigAdapter` accepts `scan_days_back` = 0 (meaning "all")
 ///   Given a `config.toml` with `scan_days_back` = 0
 ///   When `TomlConfigAdapter::load()` is called
-///   Then it returns an `Err` with a `Config` variant
+///   Then it returns `Ok(AppConfig)` with `scan_days_back` = 0 (no window)
 #[test]
-fn toml_config_adapter_rejects_scan_days_back_zero() {
+fn toml_config_adapter_accepts_scan_days_back_zero_as_all() {
     let dir = TempDir::new().expect("tempdir");
     let vault_dir = TempDir::new().expect("vault tempdir");
 
@@ -131,14 +131,11 @@ fn toml_config_adapter_rejects_scan_days_back_zero() {
     .expect("write config");
 
     let adapter = TomlConfigAdapter::new(config_path);
-    let result = adapter.load();
+    let config = adapter.load().expect("scan_days_back = 0 must be accepted");
 
-    assert!(result.is_err(), "load should fail for scan_days_back = 0");
-    let err = result.unwrap_err();
-    let err_str = err.to_string();
-    assert!(
-        err_str.contains("scan_days_back"),
-        "error message must name the invalid field, got: {err_str}"
+    assert_eq!(
+        config.scan_days_back, 0,
+        "scan_days_back = 0 must load as 0 (no window)"
     );
 }
 
@@ -205,6 +202,39 @@ fn walkdir_scan_adapter_returns_commit_records_from_real_vault_directory() {
     assert!(
         records.iter().any(|r| r.message.contains("update nvim")),
         "expected nvim commit in results"
+    );
+}
+
+/// @US-02 @US-04 @real-io @adapter-integration
+///
+/// Scenario: `WalkdirScanAdapter::scan(0)` ignores the date window and returns all notes
+///   Given a note dated far outside any recent window (2026-01-01)
+///   When `scan(0)` is called with the clock pinned to 2026-05-20
+///   Then the old note is still returned (0 = no window)
+#[test]
+fn walkdir_scan_adapter_scan_zero_returns_all_notes_ignoring_window() {
+    let vault_dir = TempDir::new().expect("tempdir");
+    fs::write(
+        vault_dir.path().join("2026-01-01.md"),
+        "## Commits\n\n| FOLDER | TIME | COMMIT MESSAGE | REPOSITORY URL |\n| --- | --- | --- | --- |\n| /p/old | 08:00 | old new-year commit | https://github.com/franci/old |\n",
+    )
+    .expect("write note");
+
+    let adapter = WalkdirScanAdapter::with_clock(
+        vault_dir.path().to_path_buf(),
+        Box::new(FixedClock(PINNED_TODAY)),
+    );
+
+    // A 7-day window from PINNED_TODAY (2026-05-20) excludes the January note...
+    assert!(
+        adapter.scan(7).expect("scan should succeed").is_empty(),
+        "precondition: the old note is outside a 7-day window"
+    );
+    // ...but scan(0) means "no window" and returns it.
+    let all = adapter.scan(0).expect("scan should succeed");
+    assert!(
+        all.iter().any(|r| r.message.contains("new-year commit")),
+        "scan(0) must return notes regardless of date"
     );
 }
 

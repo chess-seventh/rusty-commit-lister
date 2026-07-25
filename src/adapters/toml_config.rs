@@ -31,7 +31,7 @@ struct TomlFileConfig {
 /// TOML schema:
 /// ```toml
 /// vault_path = "~/Documents/Wiki/📅 Diaries/0. Journal"
-/// scan_days_back = 7
+/// scan_days_back = 7        # 0 = no window, load all commits
 /// repo_filter = "dotfiles"  # optional
 /// zebra_color = "green"     # optional: base color for zebra rows
 /// ```
@@ -85,13 +85,8 @@ impl ConfigPort for TomlConfigAdapter {
             ))
         })?;
 
+        // scan_days_back = 0 is valid and means "no window — load all commits".
         let scan_days_back = file_config.scan_days_back.unwrap_or(DEFAULT_SCAN_DAYS_BACK);
-        if scan_days_back == 0 {
-            return Err(RustyCommitListerError::config(format!(
-                "scan_days_back must be > 0 in config file {:?}",
-                self.config_path.display()
-            )));
-        }
 
         let vault_path = file_config.vault_path.map_or_else(
             || AppConfig::default().vault_path,

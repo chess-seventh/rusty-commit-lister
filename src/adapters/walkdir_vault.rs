@@ -84,7 +84,9 @@ impl Probe for WalkdirScanAdapter {
 impl VaultScanPort for WalkdirScanAdapter {
     fn scan(&self, days_back: u32) -> Result<Vec<CommitRecord>> {
         let today = self.clock.today();
-        let window_start = today - chrono::Duration::days(i64::from(days_back));
+        // days_back == 0 means "no window": include every validly-dated note.
+        let window_start =
+            (days_back > 0).then(|| today - chrono::Duration::days(i64::from(days_back)));
 
         let mut records: Vec<CommitRecord> = WalkDir::new(&self.vault_path)
             .max_depth(VAULT_SCAN_MAX_DEPTH)
@@ -94,7 +96,7 @@ impl VaultScanPort for WalkdirScanAdapter {
             .filter_map(|entry| {
                 let stem = entry.path().file_stem().and_then(|s| s.to_str())?;
                 let note_date = chrono::NaiveDate::parse_from_str(stem, "%Y-%m-%d").ok()?;
-                if note_date >= window_start {
+                if window_start.map_or(true, |start| note_date >= start) {
                     Some(entry)
                 } else {
                     None
