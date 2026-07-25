@@ -52,7 +52,7 @@ pub fn distinct_repos(commit_rows: &[CommitRecord]) -> Vec<(String, usize)> {
 /// - Browse + Ctrl-Y/E/P/U → copy folder / message / note path / URL
 /// - Browse + Ctrl-F → toggle `RepoPicker` (or clear an active repo filter)
 /// - Browse + Ctrl-R → loading = true (triggers re-scan in event loop)
-/// - Browse + Esc / Ctrl-C → signal to quit (returns model with quit flag)
+/// - Browse + Esc → clear the filter if any, else quit; Ctrl-C always quits
 /// - Detail + Esc → mode = Browse, cursor preserved
 /// - Detail + `c` → triggers clipboard write (`ClipboardResult` event follows)
 /// - `RepoPicker` + Enter → `active_repo_filter` = selected repo
@@ -197,7 +197,12 @@ fn handle_browse_key(model: AppModel, key: KeyEvent) -> AppModel {
             }
         }
         KeyCode::Esc => {
-            model.quit = true;
+            if model.search_query.is_empty() {
+                model.quit = true;
+            } else {
+                model.search_query.clear();
+                model = apply_filter_change(model);
+            }
         }
         KeyCode::Backspace => {
             model.search_query.pop();

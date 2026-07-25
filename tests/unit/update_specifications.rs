@@ -154,17 +154,39 @@ fn typing_in_browse_filters_rows_live() {
 
 /// @US-06 @in-memory
 ///
-/// Scenario: Esc in Browse quits the read-only browser
-///   Given Browse mode
+/// Scenario: Esc in Browse with an empty filter quits the read-only browser
+///   Given Browse mode with no active filter
 ///   When Esc is pressed
 ///   Then quit is signalled
 #[test]
-fn esc_in_browse_signals_quit() {
+fn esc_in_browse_with_empty_filter_signals_quit() {
     let model = loaded_browse_model();
+    assert_eq!(model.search_query, "", "precondition: empty filter");
 
     let after = update(model, key_event(KeyCode::Esc));
 
-    assert!(after.quit, "Esc must signal quit in Browse");
+    assert!(after.quit, "Esc must quit when the filter is empty");
+}
+
+/// @US-06 @in-memory
+///
+/// Scenario: Esc in Browse with an active filter clears it instead of quitting
+///   Given Browse mode with the live query "feat" (1 of 3 rows)
+///   When Esc is pressed
+///   Then the query is cleared, all rows are shown again, and quit is NOT set
+#[test]
+fn esc_in_browse_with_active_filter_clears_it() {
+    let model = loaded_browse_model();
+    let filtering = ['f', 'e', 'a', 't']
+        .iter()
+        .fold(model, |m, &ch| update(m, key_event(KeyCode::Char(ch))));
+    assert_eq!(filtering.filtered_rows.len(), 1, "precondition: filtered");
+
+    let after = update(filtering, key_event(KeyCode::Esc));
+
+    assert!(!after.quit, "Esc must clear the filter, not quit");
+    assert_eq!(after.search_query, "", "filter query must be cleared");
+    assert_eq!(after.filtered_rows.len(), 3, "all rows visible again");
 }
 
 /// @US-06 @in-memory

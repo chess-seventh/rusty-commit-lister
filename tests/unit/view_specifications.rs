@@ -250,6 +250,28 @@ fn view_shows_counts_in_browse_mode() {
 
 // ─── Render: live filter ───────────────────────────────────────────────────────
 
+/// Scenario: Browse mode renders the explicit search box with its title
+#[test]
+fn view_renders_search_box_in_browse_mode() {
+    let rows = render_to_rows(&make_browse_model_with_one_row());
+    let out = joined(&rows);
+    assert!(
+        out.contains("Search"),
+        "Browse mode must render the 'Search' box; got:\n{out}"
+    );
+}
+
+/// Scenario: the search box echoes the live filter query as it is typed
+#[test]
+fn view_search_box_echoes_query() {
+    let rows = render_to_rows(&make_filtering_browse_model());
+    let out = joined(&rows);
+    assert!(
+        out.contains("feat"),
+        "the search box must echo the 'feat' query; got:\n{out}"
+    );
+}
+
 /// Scenario: the live filter query is echoed in the Browse status bar
 #[test]
 fn view_shows_filter_query_in_status_bar() {

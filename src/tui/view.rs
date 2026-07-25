@@ -90,7 +90,7 @@ fn browse_status_text(
 ) -> String {
     let copy_hints = "^Y/^E/^P/^U copy";
     if !query.is_empty() {
-        return format!("/{query} \u{2022} {filtered}/{total} | {copy_hints} \u{2022} Esc quit");
+        return format!("/{query} \u{2022} {filtered}/{total} | {copy_hints} \u{2022} Esc clear");
     }
     if let Some(name) = repo_filter {
         return format!(
@@ -108,17 +108,46 @@ fn browse_status_text(
 /// Does NOT mutate model state.
 /// Renders the appropriate widget tree for the current `AppMode`.
 ///
-/// Layout: 2 vertical chunks (main area + status bar). The live filter query and
-/// key hints are shown in the status bar; there is no separate search mode.
+/// Layout: an explicit search box on top (Browse only), then the main area, then
+/// the status bar. The search box shows the live filter query as you type; there
+/// is no separate search mode.
 pub fn view(model: &AppModel, frame: &mut Frame) {
-    let vertical_chunks =
-        Layout::vertical([Constraint::Min(0), Constraint::Length(1)]).split(frame.area());
+    if model.mode == AppMode::Browse {
+        let chunks = Layout::vertical([
+            Constraint::Length(3),
+            Constraint::Min(0),
+            Constraint::Length(1),
+        ])
+        .split(frame.area());
+        render_search_box(model, frame, chunks[0]);
+        render_main_area(model, frame, chunks[1]);
+        render_status_bar(model, frame, chunks[2]);
+    } else {
+        let chunks =
+            Layout::vertical([Constraint::Min(0), Constraint::Length(1)]).split(frame.area());
+        render_main_area(model, frame, chunks[0]);
+        render_status_bar(model, frame, chunks[1]);
+    }
+}
 
-    let main_area = vertical_chunks[0];
-    let status_area = vertical_chunks[1];
-
-    render_main_area(model, frame, main_area);
-    render_status_bar(model, frame, status_area);
+/// Renders the explicit search box (fzf-style prompt) showing the live filter
+/// query with a trailing cursor. Shows a placeholder hint when the query is empty.
+fn render_search_box(model: &AppModel, frame: &mut Frame, area: Rect) {
+    let content = if model.search_query.is_empty() {
+        Line::from(Span::styled(
+            "type to filter…",
+            Style::new().fg(Color::DarkGray),
+        ))
+    } else {
+        Line::from(format!("{}\u{2588}", model.search_query))
+    };
+    let paragraph = Paragraph::new(content).block(
+        Block::default()
+            .borders(Borders::ALL)
+            .border_style(Style::new().fg(HEADER_COLOR))
+            .title("Search"),
+    );
+    frame.render_widget(paragraph, area);
 }
 
 /// Builds the display lines for the Detail overlay from a `CommitRecord`.
