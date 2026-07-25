@@ -216,6 +216,28 @@ fn view_renders_table_header_in_browse_mode() {
     );
 }
 
+/// Scenario: Browse mode shows the always-on detail bubble for the selected row
+///   Given Browse mode with one selected commit
+///   Then the "Commit Detail" bubble renders with the full (un-truncated)
+///   message and folder path visible below the table.
+#[test]
+fn view_shows_detail_bubble_in_browse_mode() {
+    let rows = render_to_rows(&make_browse_model_with_one_row());
+    let out = joined(&rows);
+    assert!(
+        out.contains("Commit Detail"),
+        "Browse mode must render the always-on detail bubble; got:\n{out}"
+    );
+    assert!(
+        out.contains("feat: implement full-length commit message that must not be truncated"),
+        "bubble must show the full message; got:\n{out}"
+    );
+    assert!(
+        out.contains("/projects/my-very-long-folder-name/sub/dir"),
+        "bubble must show the full folder path; got:\n{out}"
+    );
+}
+
 /// Scenario: Status bar shows 1-based row/total in Browse mode
 #[test]
 fn view_shows_row_one_of_one_in_browse_mode() {

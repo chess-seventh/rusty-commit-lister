@@ -201,7 +201,46 @@ fn render_main_area(model: &AppModel, frame: &mut Frame, area: ratatui::layout::
         return;
     }
 
-    render_commit_table(model, frame, area);
+    // Browse with rows: commit table on top, always-on detail bubble below so the
+    // full info for the selected line is visible without opening a separate view.
+    let bubble_h = detail_bubble_height(model.status_message.is_some());
+    let chunks = Layout::vertical([Constraint::Min(3), Constraint::Length(bubble_h)]).split(area);
+    render_commit_table(model, frame, chunks[0]);
+    render_detail_bubble(model, frame, chunks[1]);
+}
+
+/// Height (including borders) of the always-on detail bubble.
+///
+/// 5 detail lines + top/bottom border = 7; two extra lines when a status message
+/// (e.g. a copy confirmation) is present.
+///
+/// Pure function - no I/O, no mutation.
+fn detail_bubble_height(has_status: bool) -> u16 {
+    if has_status { 9 } else { 7 }
+}
+
+/// Renders the always-on "bubble" showing the full detail of the selected commit
+/// (never truncated), plus any transient status message, in a bordered box.
+fn render_detail_bubble(model: &AppModel, frame: &mut Frame, area: Rect) {
+    // Clamp defensively: filtered_rows is non-empty here, but the cursor may lag
+    // a shrink after filtering until the next update.
+    let idx = model.cursor.min(model.filtered_rows.len() - 1);
+    let record = &model.filtered_rows[idx];
+    let mut lines: Vec<ratatui::text::Line> = detail_lines(record)
+        .into_iter()
+        .map(ratatui::text::Line::from)
+        .collect();
+    if let Some(status) = &model.status_message {
+        lines.push(ratatui::text::Line::from(""));
+        lines.push(ratatui::text::Line::from(status.clone()));
+    }
+    let paragraph = Paragraph::new(lines).block(
+        Block::default()
+            .borders(Borders::ALL)
+            .border_style(Style::new().fg(HEADER_COLOR))
+            .title("Commit Detail"),
+    );
+    frame.render_widget(paragraph, area);
 }
 
 /// Computes the Message and Folder column widths for a table of inner width
@@ -351,6 +390,18 @@ mod tests {
         let (_d, _t, msg_w, folder_w) = table_column_widths(4);
         assert_eq!(msg_w, 0, "message collapses to 0 on a tiny area");
         assert_eq!(folder_w, 8, "folder stays at its lower clamp");
+    }
+
+    /// Scenario: the detail bubble is 7 rows tall without a status message
+    #[test]
+    fn detail_bubble_height_is_seven_without_status() {
+        assert_eq!(super::detail_bubble_height(false), 7);
+    }
+
+    /// Scenario: the detail bubble grows to 9 rows to fit a status message
+    #[test]
+    fn detail_bubble_height_is_nine_with_status() {
+        assert_eq!(super::detail_bubble_height(true), 9);
     }
 
     /// Scenario: string shorter than `max_chars` is returned unchanged
