@@ -167,7 +167,7 @@ fn render_search_box(model: &AppModel, frame: &mut Frame, area: Rect) {
         Block::default()
             .borders(Borders::ALL)
             .border_style(Style::new().fg(HEADER_COLOR))
-            .title("Search"),
+            .title("Search  (repo:  folder:  date:  msg:  — space-separated, AND)"),
     );
     frame.render_widget(paragraph, area);
 }
