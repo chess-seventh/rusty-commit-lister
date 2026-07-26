@@ -7,25 +7,25 @@ use crate::ports::config_port::Probe;
 
 /// Driven port for writing to the system clipboard.
 ///
-/// Probe contract: `probe()` writes sentinel string "rcl-probe-sentinel" and reads it back.
-/// On SSH/headless environments, `write()` returns `Err` (never panics).
-/// Clipboard probe failure is NON-FATAL - the composition root sets
+/// Probe contract: `probe()` reports whether copying is possible without side
+/// effects (the OSC 52 adapter needs no backend, so it always succeeds).
+/// Probe failure is NON-FATAL - the composition root sets
 /// `AppConfig.clipboard_available = false` and the TUI degrades gracefully.
 pub trait ClipboardPort: Probe {
     /// Write `text` to the system clipboard.
     ///
     /// # Errors
     ///
-    /// - `RustyCommitListerError::ClipboardUnavailable` if the clipboard is inaccessible
-    ///   (SSH session, headless environment, arboard init failure).
+    /// - `RustyCommitListerError::ClipboardUnavailable` if the copy could not be
+    ///   performed (e.g. failure writing the OSC 52 escape to the terminal).
     fn write(&self, text: &str) -> Result<()>;
 }
 
 /// In-memory fake clipboard implementing `ClipboardPort` for tests.
 ///
 /// `write()` captures to an internal Vec. `probe()` always returns Ok.
-/// Validates input contracts identically to `ArboardClipboardAdapter`
-/// (empty string is rejected - real clipboard would silently no-op but that hides wiring bugs).
+/// Rejects the empty string to surface wiring bugs (a real clipboard would
+/// silently no-op).
 #[cfg(test)]
 pub mod fake {
     use super::*;

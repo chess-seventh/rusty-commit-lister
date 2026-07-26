@@ -10,14 +10,14 @@
 ///   - `TomlConfigAdapter`: reads real TOML from `tempdir`, validates fields, rejects invalid
 ///   - `WalkdirScanAdapter`: scans tempdir with realistic note structure, returns `CommitRecord` slice
 ///   - Unicode path probe: `WalkdirScanAdapter` with 📅 in path segment - `OsString` round-trip
-///   - `ArboardClipboardAdapter`: compile/instantiation smoke test (headless-safe)
+///   - `Osc52ClipboardAdapter`: headless-safe probe smoke test
 use std::fs;
 use std::path::PathBuf;
 
 use chrono::NaiveDate;
 use tempfile::TempDir;
 
-use rusty_commit_lister::adapters::arboard_clipboard::ArboardClipboardAdapter;
+use rusty_commit_lister::adapters::osc52_clipboard::Osc52ClipboardAdapter;
 use rusty_commit_lister::adapters::toml_config::TomlConfigAdapter;
 use rusty_commit_lister::adapters::walkdir_vault::{Clock, WalkdirScanAdapter};
 use rusty_commit_lister::ports::config_port::ConfigPort;
@@ -302,22 +302,24 @@ fn walkdir_scan_adapter_returns_empty_vec_when_no_notes_in_window() {
     assert!(records.is_empty(), "expected zero records from empty vault");
 }
 
-// ─── ArboardClipboardAdapter tests ───────────────────────────────────────────
+// ─── Osc52ClipboardAdapter tests ─────────────────────────────────────────────
 
 /// @US-05 @adapter-integration
 ///
-/// Scenario: `ArboardClipboardAdapter::new()` creates a zero-size struct without panicking
-///   Given no preconditions
-///   When `ArboardClipboardAdapter::new()` is called
-///   Then it returns an instance (headless-safe: no clipboard ops)
+/// Scenario: `Osc52ClipboardAdapter::probe()` succeeds without a display server
+///   Given no preconditions (headless CI, no X11/Wayland)
+///   When `probe()` is called
+///   Then it returns `Ok(())` — OSC 52 needs no system clipboard backend
 ///
-/// This is a compile-time + instantiation smoke test. Actual clipboard I/O is
-/// tested manually (arboard requires a display server - fails in CI/headless).
+/// The escape-sequence encoding itself is unit-tested in the adapter module.
 #[test]
-fn arboard_clipboard_adapter_new_does_not_panic() {
-    let _adapter = ArboardClipboardAdapter::new();
-    // If this compiles and runs without panic, the struct is wired correctly.
-    // ArboardClipboardAdapter is zero-size - no heap allocation, no I/O.
+fn osc52_clipboard_adapter_probe_is_headless_safe() {
+    use rusty_commit_lister::ports::config_port::Probe;
+    let adapter = Osc52ClipboardAdapter::new();
+    assert!(
+        adapter.probe().is_ok(),
+        "OSC 52 probe must succeed even with no display server"
+    );
 }
 
 /// @US-02 @real-io @adapter-integration @error

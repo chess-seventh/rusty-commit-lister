@@ -8,7 +8,7 @@ use anyhow::Result;
 use clap::{Arg, Command};
 use tracing::info;
 
-use rusty_commit_lister::adapters::arboard_clipboard::ArboardClipboardAdapter;
+use rusty_commit_lister::adapters::osc52_clipboard::Osc52ClipboardAdapter;
 use rusty_commit_lister::ports::clipboard_port::ClipboardPort;
 use rusty_commit_lister::ports::config_port::ConfigPort;
 use rusty_commit_lister::ports::config_port::Probe;
@@ -23,8 +23,25 @@ fn default_config_path() -> std::path::PathBuf {
         .join("config.toml")
 }
 
+/// Initialize tracing. When `interactive` (the TUI will run), logs are discarded
+/// so they never bleed onto the alternate screen; otherwise they go to stderr.
+/// Honors `RUST_LOG` in both cases.
+fn init_logging(interactive: bool) {
+    use tracing_subscriber::EnvFilter;
+    let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
+    let builder = tracing_subscriber::fmt().with_env_filter(filter);
+    if interactive {
+        builder.with_writer(std::io::sink).init();
+    } else {
+        builder.init();
+    }
+}
+
 fn main() -> Result<()> {
-    tracing_subscriber::fmt::init();
+    // The TUI owns the alternate screen; any log written to stdout/stderr while it
+    // runs corrupts the display. So when stdout is a terminal, discard logs.
+    let interactive = std::io::stdout().is_terminal();
+    init_logging(interactive);
     info!("Starting rusty-commit-lister");
 
     let matches = Command::new("rusty-commit-lister")
@@ -82,7 +99,7 @@ fn main() -> Result<()> {
     });
 
     // 4. Probe clipboard (non-fatal — degrades gracefully)
-    let clipboard_available = ArboardClipboardAdapter::new().probe().is_ok();
+    let clipboard_available = Osc52ClipboardAdapter::new().probe().is_ok();
     let mut config = config;
     config.clipboard_available = clipboard_available;
     if !clipboard_available {
@@ -104,8 +121,11 @@ fn main() -> Result<()> {
     );
 
     // 7. TTY detection and run
-    if std::io::stdout().is_terminal() {
+    if interactive {
         let mut tui = rusty_commit_lister::tui::event_loop::TuiEventLoop::new()?;
+        // OSC 52 clipboard: copies by writing an escape sequence to the terminal,
+        // so it works on Wayland, X11, SSH, and tmux with no system dependency.
+        let clipboard = Osc52ClipboardAdapter::new();
         tui.run(
             model,
             move || {
@@ -114,11 +134,7 @@ fn main() -> Result<()> {
                     vec![]
                 })
             },
-            |url| {
-                ArboardClipboardAdapter::new()
-                    .write(url)
-                    .map_err(|e| e.to_string())
-            },
+            move |url| clipboard.write(url).map_err(|e| e.to_string()),
         )?;
     } else if model.commit_rows.is_empty() {
         if model.config.scan_days_back == 0 {

@@ -45,7 +45,7 @@ pub enum RustyCommitListerError {
     /// This is NON-FATAL — the composition root degrades clipboard capability.
     #[error("Clipboard unavailable: {reason}")]
     ClipboardUnavailable {
-        /// Why the clipboard could not be used (e.g. headless, arboard init failure).
+        /// Why the clipboard could not be used (e.g. failure writing the OSC 52 escape).
         reason: String,
     },
 
