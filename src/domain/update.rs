@@ -1,6 +1,6 @@
 //! The pure `update` reducer and its key-handling helpers (Elm/MVU).
 #![allow(clippy::collapsible_match)]
-use crossterm::event::{KeyCode, KeyEvent};
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 use crate::domain::events::AppEvent;
 use crate::domain::model::{AppMode, AppModel, CommitRecord};
@@ -22,13 +22,7 @@ pub fn distinct_repos(commit_rows: &[CommitRecord]) -> Vec<(String, usize)> {
     use std::collections::HashMap;
     let mut counts: HashMap<String, usize> = HashMap::new();
     for record in commit_rows {
-        let name = record
-            .url
-            .as_deref()
-            .and_then(|u| u.rsplit('/').next())
-            .map(str::to_string)
-            .or_else(|| record.folder.rsplit('/').next().map(str::to_string))
-            .unwrap_or_default();
+        let name = repo_name_of(record);
         if !name.is_empty() {
             *counts.entry(name).or_insert(0) += 1;
         }
@@ -38,6 +32,32 @@ pub fn distinct_repos(commit_rows: &[CommitRecord]) -> Vec<(String, usize)> {
     pairs
 }
 
+/// Derives the repository name for a record: the last path segment of the URL
+/// (e.g. `"dotfiles"` from `".../user/dotfiles"`), or the last segment of the
+/// folder when the URL is absent. Returns an empty string when neither yields one.
+pub fn repo_name_of(record: &CommitRecord) -> String {
+    record
+        .url
+        .as_deref()
+        .and_then(|u| u.rsplit('/').next())
+        .filter(|s| !s.is_empty())
+        .or_else(|| record.folder.rsplit('/').next())
+        .map(str::to_string)
+        .unwrap_or_default()
+}
+
+/// Field prefixes recognized by the token filter (see [`record_matches_query`]).
+const FIELD_PREFIXES: [&str; 6] = ["repo:", "folder:", "dir:", "path:", "date:", "msg:"];
+
+/// Returns the first bare (non field-scoped) term of `query`, used by the view to
+/// highlight the matching substring in the message column. `None` when the query
+/// is empty or contains only field-scoped tokens.
+pub fn message_highlight_term(query: &str) -> Option<&str> {
+    query
+        .split_whitespace()
+        .find(|tok| !FIELD_PREFIXES.iter().any(|p| tok.starts_with(p)))
+}
+
 /// Pure state machine: given the current model and an event, return the next model.
 ///
 /// This is the Update function in the Elm/MVU architecture.
@@ -45,15 +65,14 @@ pub fn distinct_repos(commit_rows: &[CommitRecord]) -> Vec<(String, usize)> {
 ///
 /// # Key state machine transitions
 ///
-/// - Browse + j → cursor += 1 (wraps at bottom)
-/// - Browse + k → cursor -= 1 (wraps at top)
-/// - Browse + `/` → mode = Search, `search_query` = ""
+/// - Browse + Down/Up → cursor moves (wraps)
+/// - Browse + char → `search_query` += char, `filtered_rows` recomputed, cursor = 0
+/// - Browse + Backspace → `search_query` shortened, `filtered_rows` recomputed
 /// - Browse + Enter → mode = Detail
-/// - Browse + `f` → mode = `RepoPicker`
-/// - Browse + `r` → loading = true (triggers re-scan in event loop)
-/// - Browse + `q` / Esc → signal to quit (returns model with quit flag)
-/// - Search + char → `search_query` += char, `filtered_rows` recalculated
-/// - Search + Esc → mode = Browse, `search_query` = "", `filtered_rows` = `commit_rows`
+/// - Browse + Ctrl-Y/E/P/U → copy folder / message / note path / URL
+/// - Browse + Ctrl-F → toggle `RepoPicker` (or clear an active repo filter)
+/// - Browse + Ctrl-R → loading = true (triggers re-scan in event loop)
+/// - Browse + Esc → clear the filter if any, else quit; Ctrl-C always quits
 /// - Detail + Esc → mode = Browse, cursor preserved
 /// - Detail + `c` → triggers clipboard write (`ClipboardResult` event follows)
 /// - `RepoPicker` + Enter → `active_repo_filter` = selected repo
@@ -113,7 +132,7 @@ fn record_matches_filters(
     active_repo_filter: Option<&String>,
 ) -> bool {
     repo_filter_matches(record, active_repo_filter.cloned().as_ref())
-        && search_query_matches(record, search_query)
+        && record_matches_query(record, search_query)
 }
 
 /// Returns true when no repo filter is active, or the record's URL contains it.
@@ -127,42 +146,81 @@ fn repo_filter_matches(record: &CommitRecord, active_repo_filter: Option<&String
     })
 }
 
-/// Returns true when the query is empty, or matches the record's message or URL
-/// (case-insensitive substring).
-fn search_query_matches(record: &CommitRecord, search_query: &str) -> bool {
-    if search_query.is_empty() {
-        return true;
+/// Returns true when every whitespace-separated token in `query` matches the
+/// record (AND semantics). Tokens may be field-scoped — `repo:`, `folder:`
+/// (aliases `dir:`/`path:`), `date:`, `msg:` — or a bare term that matches the
+/// message or URL. An empty query, or an empty value after a prefix, matches all.
+fn record_matches_query(record: &CommitRecord, query: &str) -> bool {
+    query
+        .split_whitespace()
+        .all(|tok| token_matches(record, tok))
+}
+
+/// Evaluates a single filter token against a record (case-insensitive).
+fn token_matches(record: &CommitRecord, token: &str) -> bool {
+    if let Some(v) = token.strip_prefix("repo:") {
+        return v.is_empty() || contains_ci(&repo_name_of(record), v);
     }
-    let query = search_query.to_lowercase();
-    record.message.to_lowercase().contains(&query)
-        || record
-            .url
-            .as_deref()
-            .unwrap_or("")
-            .to_lowercase()
-            .contains(&query)
+    if let Some(v) = token
+        .strip_prefix("folder:")
+        .or_else(|| token.strip_prefix("dir:"))
+        .or_else(|| token.strip_prefix("path:"))
+    {
+        return v.is_empty() || contains_ci(&record.folder, v);
+    }
+    if let Some(v) = token.strip_prefix("date:") {
+        // Prefix match so `date:2026-05` selects a whole month, `date:2026` a year.
+        return v.is_empty() || record.date.starts_with(v);
+    }
+    if let Some(v) = token.strip_prefix("msg:") {
+        return v.is_empty() || contains_ci(&record.message, v);
+    }
+    // Bare term: match the message or the URL.
+    contains_ci(&record.message, token) || contains_ci(record.url.as_deref().unwrap_or(""), token)
+}
+
+/// Case-insensitive substring test.
+fn contains_ci(haystack: &str, needle: &str) -> bool {
+    haystack.to_lowercase().contains(&needle.to_lowercase())
 }
 
 /// Dispatch a key event to the handler for the model's current `AppMode`.
 fn handle_key(model: AppModel, key: KeyEvent) -> AppModel {
     match model.mode.clone() {
         AppMode::Browse => handle_browse_key(model, key),
-        AppMode::Search => handle_search_key(model, key),
         AppMode::Detail => handle_detail_key(model, key),
         AppMode::RepoPicker => handle_repo_picker_key(model, key),
     }
 }
 
-/// Browse-mode keys: navigation, search/detail/picker entry, reload, and quit.
-fn handle_browse_key(mut model: AppModel, key: KeyEvent) -> AppModel {
+/// Queue `text` for the clipboard when it is available, otherwise surface a
+/// graceful status message (US-08: copy never panics, degrades to a hint).
+fn queue_copy(model: &mut AppModel, text: String) {
+    if model.config.clipboard_available {
+        model.clipboard_pending = Some(text);
+        model.status_message = None;
+    } else {
+        model.status_message = Some("Copy not available — select text manually".to_string());
+    }
+}
+
+/// Browse-mode keys (fzf-style): any printable char filters live; arrows and
+/// page keys navigate; Ctrl-modified keys copy/reload/open the picker; Esc and
+/// Ctrl-C quit. Nothing here mutates data — this is a read-only browser.
+fn handle_browse_key(model: AppModel, key: KeyEvent) -> AppModel {
+    if key.modifiers.contains(KeyModifiers::CONTROL) {
+        return handle_browse_command(model, key);
+    }
+
+    let mut model = model;
     let row_count = model.filtered_rows.len();
     match key.code {
-        KeyCode::Char('j') | KeyCode::Down => {
+        KeyCode::Down => {
             if row_count > 0 {
                 model.cursor = (model.cursor + 1) % row_count;
             }
         }
-        KeyCode::Char('k') | KeyCode::Up => {
+        KeyCode::Up => {
             if row_count > 0 {
                 model.cursor = model.cursor.checked_sub(1).unwrap_or(row_count - 1);
             }
@@ -175,13 +233,59 @@ fn handle_browse_key(mut model: AppModel, key: KeyEvent) -> AppModel {
         KeyCode::PageUp => {
             model.cursor = model.cursor.saturating_sub(model.page_size);
         }
-        KeyCode::Char('/') => {
-            model.mode = AppMode::Search;
-            model.search_query = String::new();
-        }
         KeyCode::Enter => {
             if !model.filtered_rows.is_empty() {
                 model.mode = AppMode::Detail;
+            }
+        }
+        KeyCode::Esc => {
+            if model.search_query.is_empty() {
+                model.quit = true;
+            } else {
+                model.search_query.clear();
+                model = apply_filter_change(model);
+            }
+        }
+        KeyCode::Backspace => {
+            model.search_query.pop();
+            model = apply_filter_change(model);
+        }
+        KeyCode::Char(c) if !c.is_control() => {
+            model.search_query.push(c);
+            model = apply_filter_change(model);
+        }
+        _ => {}
+    }
+    model
+}
+
+/// Ctrl-modified Browse commands: copy the selected fields, reload, open the
+/// repo picker, or quit. Copies degrade gracefully when the clipboard is absent.
+fn handle_browse_command(mut model: AppModel, key: KeyEvent) -> AppModel {
+    let selected = model.filtered_rows.get(model.cursor).cloned();
+    match key.code {
+        KeyCode::Char('c') => model.quit = true,
+        KeyCode::Char('y') => {
+            if let Some(r) = selected {
+                queue_copy(&mut model, r.folder);
+            }
+        }
+        KeyCode::Char('e') => {
+            if let Some(r) = selected {
+                queue_copy(&mut model, r.message);
+            }
+        }
+        KeyCode::Char('p') => {
+            if let Some(r) = selected {
+                queue_copy(&mut model, r.note_path);
+            }
+        }
+        KeyCode::Char('u') => {
+            if let Some(r) = selected {
+                match r.url {
+                    Some(url) => queue_copy(&mut model, url),
+                    None => model.status_message = Some("Copy not available — no URL".to_string()),
+                }
             }
         }
         KeyCode::Char('f') => {
@@ -193,39 +297,17 @@ fn handle_browse_key(mut model: AppModel, key: KeyEvent) -> AppModel {
                 model.picker_cursor = 0;
             }
         }
-        KeyCode::Char('r') => {
-            model.loading = true;
-        }
-        KeyCode::Char('q' | 'Q') | KeyCode::Esc => {
-            model.quit = true;
-        }
+        KeyCode::Char('r') => model.loading = true,
         _ => {}
     }
     model
 }
 
-/// Search-mode keys: edit the query (live-filtering), commit, or cancel.
-fn handle_search_key(mut model: AppModel, key: KeyEvent) -> AppModel {
-    match key.code {
-        KeyCode::Esc => {
-            model.mode = AppMode::Browse;
-            model.search_query = String::new();
-            model.filtered_rows = model.commit_rows.clone();
-        }
-        KeyCode::Enter => {
-            model.mode = AppMode::Browse;
-            model.cursor = 0;
-        }
-        KeyCode::Backspace => {
-            model.search_query.pop();
-            model.filtered_rows = recompute_filtered(&model);
-        }
-        KeyCode::Char(c) if !c.is_control() => {
-            model.search_query.push(c);
-            model.filtered_rows = recompute_filtered(&model);
-        }
-        _ => {}
-    }
+/// Recompute `filtered_rows` after a filter-query change and clamp the cursor to
+/// the top of the new result set (fzf semantics: selection jumps to first match).
+fn apply_filter_change(mut model: AppModel) -> AppModel {
+    model.filtered_rows = recompute_filtered(&model);
+    model.cursor = 0;
     model
 }
 

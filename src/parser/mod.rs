@@ -42,6 +42,8 @@ pub fn parse_note(path: &Path) -> Vec<CommitRecord> {
         .unwrap_or("")
         .to_string();
 
+    let note_path = path.to_string_lossy().into_owned();
+
     let content = match std::fs::read_to_string(path) {
         Ok(c) => c,
         Err(e) => {
@@ -101,6 +103,7 @@ pub fn parse_note(path: &Path) -> Vec<CommitRecord> {
             message: cols[2].to_string(),
             url,
             date: date.clone(),
+            note_path: note_path.clone(),
         });
     }
 

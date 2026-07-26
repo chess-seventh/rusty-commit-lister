@@ -123,15 +123,14 @@ fn unicode_emoji_vault_path_resolves_correctly() {
         .stdout(contains("commit").or(contains("Commit")));
 }
 
-/// @US-01 @real-io @error
+/// @US-01 @real-io
 ///
-/// Scenario: `scan_days_back` = 0 in config exits with code 2 and actionable error
-///   Given `config.toml` contains `scan_days_back` = 0
+/// Scenario: `scan_days_back` = 0 is accepted and means "all commits"
+///   Given `config.toml` contains `scan_days_back` = 0 and an empty vault
 ///   When the binary loads config
-///   Then exit code is 2
-///   And stderr names the invalid field and the config file path to fix
+///   Then exit code is 0 (0 is a valid "no window" setting, not an error)
 #[test]
-fn scan_days_back_zero_exits_code_2_with_actionable_error() {
+fn scan_days_back_zero_is_accepted_as_all() {
     let config_dir = TempDir::new().expect("tempdir");
     let vault_dir = TempDir::new().expect("tempdir");
     let config_path = write_config_file(
@@ -147,8 +146,7 @@ fn scan_days_back_zero_exits_code_2_with_actionable_error() {
         .arg("--config")
         .arg(&config_path)
         .assert()
-        .code(2)
-        .stderr(contains("scan_days_back").and(contains(config_path.to_str().unwrap())));
+        .code(0);
 }
 
 /// @US-01 @real-io @error
