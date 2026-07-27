@@ -7,53 +7,72 @@
 **Steps**: 6 TDD steps, all COMMIT/PASS.
 
 **Key decisions made during DELIVER**:
+
 - OQ-1 (emoji path OsString) resolved: WalkDir handles `📅 Diaries` paths natively via `OsStr` — no manual conversion needed.
-- TTY detection via `std::io::IsTerminal` (stable since Rust 1.70) enables non-interactive text output for piped use and acceptance tests.
-- `SKIP=clippy` required on all commits due to a pre-existing double-dash bug in the devenv clippy hook configuration — not a code issue.
+- TTY detection via `std::io::IsTerminal` (stable since Rust 1.70) enables non-interactive text output for piped use and
+  acceptance tests.
+- `SKIP=clippy` required on all commits due to a pre-existing double-dash bug in the devenv clippy hook configuration —
+  not a code issue.
 
 **Mutation gaps logged for future slice**:
+
 - `probe()` error paths not exercised (deferred to slice-02 probe gold tests).
 - `active_repo_filter` / `repo_filter_matches` always-true mutant not caught (RepoPicker feature deferred to slice-02).
 - Backspace in Search mode not explicitly tested (covered by proptest invariant but not example test).
 
-**Deferred to slice-02**: ClipboardPort/ArboardClipboardAdapter (US-08), Detail view (US-06), RepoPicker filter (US-07), probe gold tests.
+**Deferred to slice-02**: ClipboardPort/ArboardClipboardAdapter (US-08), Detail view (US-06), RepoPicker filter (US-07),
+probe gold tests.
 
 ## Slice-02: Full Browse Experience (2026-05-19)
 
-**Shipped**: PgUp/PgDn navigation with page_size clamping; message/folder truncation with ellipsis; "Row N/Total | q quit" status bar; r-refresh via reload_fn closure in TuiEventLoop::run().
+**Shipped**: PgUp/PgDn navigation with page_size clamping; message/folder truncation with ellipsis; "Row N/Total | q
+quit" status bar; r-refresh via reload_fn closure in TuiEventLoop::run().
 
 **Steps**: 3 TDD steps (02-01, 02-02, 02-03), all COMMIT/PASS.
 
 **Key decisions made during DELIVER**:
+
 - PageDown/PageUp clamp at boundaries (no wrap) — contrast with j/k which wrap. Clamping matches typical pager UX.
 - Folder column truncated to 20 chars; message to 40 chars — both use a char-boundary-safe `truncate()` pure helper.
-- reload_fn closure pattern chosen over channel/message-passing: simpler for sync blocking I/O (ADR-002: async upgrade deferred until > 100ms latency observed).
+- reload_fn closure pattern chosen over channel/message-passing: simpler for sync blocking I/O (ADR-002: async upgrade
+  deferred until > 100ms latency observed).
 - Status bar "Row N/Total" format matches vi-style line position — familiar to terminal users.
 
 **Mutation gaps logged for future slice**:
-- `event_loop.rs` TUI lifecycle (run loop, restore guard, Drop, translate_event) — requires terminal mock (ratatui TestBackend) to reach.
-- `view.rs` render functions and status bar arithmetic — same reason.
-- The PageDown `row_count > 0` guard was an equivalent mutant for empty-cursor-0 case; added `page_down_with_empty_filtered_rows_preserves_cursor` to discriminate cursor>0 case.
 
-**Deferred to slice-03**: ClipboardPort/ArboardClipboardAdapter (US-08), Detail view (US-06), RepoPicker filter logic (US-07), ratatui TestBackend integration for TUI render tests.
+- `event_loop.rs` TUI lifecycle (run loop, restore guard, Drop, translate_event) — requires terminal mock (ratatui
+  TestBackend) to reach.
+- `view.rs` render functions and status bar arithmetic — same reason.
+- The PageDown `row_count > 0` guard was an equivalent mutant for empty-cursor-0 case; added
+  `page_down_with_empty_filtered_rows_preserves_cursor` to discriminate cursor>0 case.
+
+**Deferred to slice-03**: ClipboardPort/ArboardClipboardAdapter (US-08), Detail view (US-06), RepoPicker filter logic
+(US-07), ratatui TestBackend integration for TUI render tests.
 
 ## Slice-03: Full-Text Search (2026-05-19)
 
-**Shipped**: Enter key in Search mode confirms query and returns to Browse (filtered view preserved, cursor=0). Search mode renders a 3-chunk layout: table + "/ query_" search bar + "N of M commits | Esc cancel" status bar.
+**Shipped**: Enter key in Search mode confirms query and returns to Browse (filtered view preserved, cursor=0). Search
+mode renders a 3-chunk layout: table + "/ query_" search bar + "N of M commits | Esc cancel" status bar.
 
 **Steps**: 2 TDD steps (03-01, 03-02), all COMMIT/PASS.
 
 **Key decisions made during DELIVER**:
-- Enter = confirm (preserve filter, return to Browse); Esc = cancel (clear filter, restore all). Symmetric semantics: no ambiguity.
+
+- Enter = confirm (preserve filter, return to Browse); Esc = cancel (clear filter, restore all). Symmetric semantics: no
+  ambiguity.
 - Cursor resets to 0 on Enter — user is navigating a new result set, prior position is irrelevant.
-- 3-chunk layout only activates in Search mode — Browse/Detail/RepoPicker keep the 2-chunk layout. No layout thrash on mode transitions.
+- 3-chunk layout only activates in Search mode — Browse/Detail/RepoPicker keep the 2-chunk layout. No layout thrash on
+  mode transitions.
 - "/ query_" with trailing underscore as cursor indicator — no block cursor positioning needed; simple and clear.
-- search_status_text() and format_status_text() are separate pure helpers — one for search context, one for browse context. No conditional formatting inside a single function.
+- search_status_text() and format_status_text() are separate pure helpers — one for search context, one for browse
+  context. No conditional formatting inside a single function.
 
 **Mutation gaps logged**:
+
 - view.rs render functions still untestable without terminal mock (same as slice-02). Deferred.
 
-**Deferred to slice-04**: Commit Detail Panel (US-07) — Enter in Browse opens detail overlay; full message/path/URL display; Esc returns to Browse with cursor preserved.
+**Deferred to slice-04**: Commit Detail Panel (US-07) — Enter in Browse opens detail overlay; full message/path/URL
+display; Esc returns to Browse with cursor preserved.
 
 ## Slice-04: Commit Detail Panel (2026-05-19)
 
@@ -63,6 +82,7 @@
 handled this). 1 step TDD'd through RED→GREEN→COMMIT.
 
 **Key design choices**:
+
 - `detail_lines(&CommitRecord) -> Vec<String>` extracted as pure helper — testable without Frame.
 - `render_detail_overlay` is a thin wrapper that calls `detail_lines` and renders into a bordered Block.
 - Detail branch inserted in `render_main_area` before the table path — no layout changes needed.
@@ -81,6 +101,7 @@ graceful degradation. `ArboardClipboardAdapter` probed non-fatally at startup; r
 `AppConfig.clipboard_available`. 2 steps TDD'd through RED→GREEN→COMMIT.
 
 **Key design choices**:
+
 - `AppModel.clipboard_pending: Option<String>` — pure domain signals the effect; event loop picks
   it up and dispatches `ClipboardResult`. Zero I/O in the domain update function.
 - `ArboardClipboardAdapter::new()` created fresh inside each write/probe call — arboard::Clipboard
@@ -98,6 +119,7 @@ clears it. Status bar shows `"{repo} • {filtered}/{total} commits | f clear | 
 2 steps TDD'd through RED→GREEN→COMMIT.
 
 **Key design choices**:
+
 - `pub fn distinct_repos(&[CommitRecord]) -> Vec<(String, usize)>` in `update.rs` — shared by both
   domain (Enter key sets filter) and view (picker list rendering). Single source of truth; no
   divergence between what's displayed and what's selected.
@@ -109,8 +131,10 @@ clears it. Status bar shows `"{repo} • {filtered}/{total} commits | f clear | 
   render test pattern established in slice-04.
 
 **Mutation gaps logged for future slice**:
+
 - `len > 0` → `len >= 0` in `handle_repo_picker_key` (3×, empty-picker guard) — no test covers empty `commit_rows` in picker
-- `i == picker_cursor` → `i != picker_cursor` in `render_repo_picker` — highlight test doesn't assert non-selected rows lack reversed style
+- `i == picker_cursor` → `i != picker_cursor` in `render_repo_picker` — highlight test doesn't assert non-selected rows
+  lack reversed style
 
 **Mutation**: 95.9% kill rate on domain/update.rs, tui/view.rs (93 caught, 7 unviable, 4 missed).
 
@@ -123,6 +147,7 @@ vault probe) and empty-vault non-TTY output ("No commits found in the last N day
 through RED→GREEN→COMMIT.
 
 **Key design choices**:
+
 - `config_absent = !config_path.exists()` captured before `config_adapter.load()` — allows detecting
   the absent-file case without changing the adapter API or AppConfig semantics.
 - Early return after printing notice prevents vault probe from running with `vault_path = PathBuf::from("")`
@@ -145,10 +170,12 @@ config notice now prints the config path so `missing_config_triggers_default_fal
 assert it. 1 step TDD'd through RED→GREEN→COMMIT.
 
 **Key design choice**:
+
 - `config_path_display = config_path.display().to_string()` captured before `config_path` is moved
   into `TomlConfigAdapter::new()` — Rust ownership prevents using `config_path` after move; capturing
   display string before the move is the idiomatic solution.
 - All 4 error-path tests (scan_days_back validation, TOML parse error) passed without code changes —
   the `toml` 0.8 serde deserializer includes the field name in error messages for type mismatches.
 
-**Mutation**: 28.6% (2/7) on main.rs — same pre-existing composition-root gaps as slice-07 (default_config_path, verbosity count, clipboard warning). No new gaps introduced.
+**Mutation**: 28.6% (2/7) on main.rs — same pre-existing composition-root gaps as slice-07 (default_config_path,
+verbosity count, clipboard warning). No new gaps introduced.
