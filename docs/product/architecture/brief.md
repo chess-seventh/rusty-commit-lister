@@ -35,7 +35,7 @@ searchable, filterable ratatui TUI.
 
 The Elm/MVU pattern maps directly onto ratatui's event loop:
 
-```
+```text
 Event → update(Model, Event) → Model → view(&Model, &mut Frame)
 ```
 
@@ -157,7 +157,7 @@ C4Component
 
 #### ConfigPort
 
-```
+```text
 trait ConfigPort:
   fn load(&self) -> Result<AppConfig>
 ```
@@ -167,7 +167,7 @@ Config precedence (highest to lowest): CLI flags → env vars → config.toml �
 
 #### VaultScanPort
 
-```
+```text
 trait VaultScanPort:
   fn scan(&self, days_back: u32) -> Result<Vec<CommitRecord>>
 ```
@@ -177,7 +177,7 @@ The adapter internally calls `parse_note()` for each discovered file.
 
 #### ClipboardPort
 
-```
+```text
 trait ClipboardPort:
   fn write(&self, text: &str) -> Result<()>
   fn probe(&self) -> Result<()>
@@ -206,9 +206,13 @@ process to exit with a structured error message before the TUI starts. Clipboard
 is non-fatal — it sets `AppConfig.clipboard_available = false`.
 
 **Enforcement layers** (three semantically orthogonal):
-1. Subtype check: `mypy`-equivalent = Rust trait bounds. `ClipboardPort: Probe` supertrait enforced at compile time. Any adapter missing `probe()` fails to compile.
-2. Structural check: AST pre-commit hook (custom Rust script or `cargo check` with clippy lint) walks adapter source files and asserts presence of `fn probe` in each struct that implements a port trait.
-3. Behavioral check: CI gold test runner (`cargo test --test probe_gold_tests`) exercises each adapter's probe against a real substrate (temp filesystem, temp clipboard where available).
+
+1. Subtype check: `mypy`-equivalent = Rust trait bounds. `ClipboardPort: Probe` supertrait enforced at compile time. Any
+   adapter missing `probe()` fails to compile.
+2. Structural check: AST pre-commit hook (custom Rust script or `cargo check` with clippy lint) walks adapter source
+   files and asserts presence of `fn probe` in each struct that implements a port trait.
+3. Behavioral check: CI gold test runner (`cargo test --test probe_gold_tests`) exercises each adapter's probe against a
+   real substrate (temp filesystem, temp clipboard where available).
 
 ---
 
@@ -255,7 +259,7 @@ needed for this feature — they should be removed when cleaning up the scaffold
 
 ### Module Structure
 
-```
+```text
 src/
 ├── main.rs                      ← composition root: wire adapters → probe → run TUI
 ├── lib.rs                       ← re-export port traits and domain types for tests
@@ -317,28 +321,40 @@ function does not change — only the adapter wiring changes.
 ### Quality Attribute Strategies
 
 #### Performance
-- Startup < 2s for scan_days_back ≤ 30: enforced by sync blocking load (30 files × < 1ms parse = < 50ms). Loading indicator rendered within 100ms by showing spinner before scan starts.
-- TUI rendering: ratatui double-buffer reduces redraw to changed regions. View is pure — no allocation per render beyond ratatui's own buffers.
+
+- Startup < 2s for scan_days_back ≤ 30: enforced by sync blocking load (30 files × < 1ms parse = < 50ms). Loading
+  indicator rendered within 100ms by showing spinner before scan starts.
+- TUI rendering: ratatui double-buffer reduces redraw to changed regions. View is pure — no allocation per render beyond
+  ratatui's own buffers.
 - Search filtering: in-memory substring filter on `Vec<CommitRecord>`; no re-parse on keypress.
 
 #### Reliability
+
 - Skip-and-log: parser never panics on malformed input (property test in slice-01).
 - Clipboard failure is non-fatal: degrades to text display per US-08.
-- Vault path missing: `VaultScanPort::probe()` catches this before TUI starts; structured error message with actionable guidance.
-- Alt screen + raw mode always restored: cleanup via `Drop` impl on event loop struct, and SIGINT handler registered at startup.
+- Vault path missing: `VaultScanPort::probe()` catches this before TUI starts; structured error message with actionable
+  guidance.
+- Alt screen + raw mode always restored: cleanup via `Drop` impl on event loop struct, and SIGINT handler registered at
+  startup.
 
 #### Maintainability
+
 - Pure domain: `update()` is a pure function. State machine tests need no setup or mocks.
-- Dependency direction: domain has zero imports from adapters or TUI. Enforced by `cargo-deny` or `dependency-cruiser` rule (see Enforcement section below).
-- Single-file parser: `parse_note()` is a pure function with no trait — trivially replaceable if rusty-commit-saver changes its format.
+- Dependency direction: domain has zero imports from adapters or TUI. Enforced by `cargo-deny` or `dependency-cruiser`
+  rule (see Enforcement section below).
+- Single-file parser: `parse_note()` is a pure function with no trait — trivially replaceable if rusty-commit-saver
+  changes its format.
 
 #### Testability
+
 - Domain unit tests: `update(model, event)` tests are pure-function calls. No async, no I/O, no setup.
 - Parser unit tests: `parse_note(path)` against fixture files (real Obsidian note samples).
 - Adapter integration tests: each adapter tested against real filesystem/clipboard in isolated `tempfile` environments.
-- Probe gold tests: CI runner exercises `probe()` on each adapter with fault-injection scenarios (missing vault dir, unreadable file, clipboard unavailable).
+- Probe gold tests: CI runner exercises `probe()` on each adapter with fault-injection scenarios (missing vault dir,
+  unreadable file, clipboard unavailable).
 
 #### Security
+
 - No secrets in config; vault_path is not sensitive.
 - No network I/O — the tool is fully offline.
 - No `unsafe` code; enforced by `#![forbid(unsafe_code)]` at crate root.

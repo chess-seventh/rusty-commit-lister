@@ -38,7 +38,7 @@ Clipboard probe failure is non-fatal — sets `AppConfig.clipboard_available = f
 
 ### Module Structure
 
-```
+```text
 src/
 ├── main.rs               ← composition root: wire adapters → probe → run TUI
 ├── lib.rs                ← re-export port traits and domain types
