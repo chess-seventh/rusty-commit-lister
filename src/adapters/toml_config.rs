@@ -18,6 +18,8 @@ struct TomlFileConfig {
     scan_days_back: Option<u32>,
     /// Optional repository name pre-filter.
     repo_filter: Option<String>,
+    /// Optional base color name for zebra-striped rows (e.g. "green").
+    zebra_color: Option<String>,
 }
 
 /// Adapter that reads `config.toml` from a given path and produces a
@@ -29,8 +31,9 @@ struct TomlFileConfig {
 /// TOML schema:
 /// ```toml
 /// vault_path = "~/Documents/Wiki/📅 Diaries/0. Journal"
-/// scan_days_back = 7
+/// scan_days_back = 7        # 0 = no window, load all commits
 /// repo_filter = "dotfiles"  # optional
+/// zebra_color = "green"     # optional: base color for zebra rows
 /// ```
 ///
 /// `~` in `vault_path` is expanded using the `HOME` environment variable.
@@ -82,13 +85,8 @@ impl ConfigPort for TomlConfigAdapter {
             ))
         })?;
 
+        // scan_days_back = 0 is valid and means "no window — load all commits".
         let scan_days_back = file_config.scan_days_back.unwrap_or(DEFAULT_SCAN_DAYS_BACK);
-        if scan_days_back == 0 {
-            return Err(RustyCommitListerError::config(format!(
-                "scan_days_back must be > 0 in config file {:?}",
-                self.config_path.display()
-            )));
-        }
 
         let vault_path = file_config.vault_path.map_or_else(
             || AppConfig::default().vault_path,
@@ -100,6 +98,9 @@ impl ConfigPort for TomlConfigAdapter {
             scan_days_back,
             repo_filter: file_config.repo_filter,
             clipboard_available: false,
+            zebra_color: file_config
+                .zebra_color
+                .unwrap_or_else(|| AppConfig::default().zebra_color),
         })
     }
 }

@@ -8,13 +8,12 @@ pub const DEFAULT_SCAN_DAYS_BACK: u32 = 7;
 /// The current interaction mode of the TUI.
 #[derive(Debug, Clone, PartialEq)]
 pub enum AppMode {
-    /// Main browse mode - j/k navigation, q/Esc to exit.
+    /// Main browse mode: arrows navigate, any char filters live (fzf-style),
+    /// Ctrl-based keys copy/reload, Esc/Ctrl-C quit.
     Browse,
-    /// Inline search mode - / activates, Esc clears.
-    Search,
     /// Detail overlay mode - Enter opens, Esc closes.
     Detail,
-    /// Repository picker overlay mode - f opens, Esc closes.
+    /// Repository picker overlay mode - Ctrl-F opens, Esc closes.
     RepoPicker,
 }
 
@@ -34,6 +33,9 @@ pub struct CommitRecord {
     pub url: Option<String>,
     /// The date this commit was parsed from (derived from the note filename YYYY-MM-DD.md).
     pub date: String,
+    /// Path to the Obsidian daily note this commit was parsed from.
+    /// Used by the `P` copy action to yield the source note's vault path.
+    pub note_path: String,
 }
 
 /// Application configuration loaded from config.toml and CLI flags.
@@ -43,13 +45,21 @@ pub struct CommitRecord {
 pub struct AppConfig {
     /// Absolute path to the Obsidian vault directory (may contain emoji like 📅).
     pub vault_path: PathBuf,
-    /// Number of days back to scan for daily notes (must be > 0).
+    /// Number of days back to scan for daily notes. `0` means no window —
+    /// load every commit available in the vault.
     pub scan_days_back: u32,
     /// Optional repository name pre-filter applied at load time.
     pub repo_filter: Option<String>,
     /// Whether the system clipboard is available (set after `probe()`).
     pub clipboard_available: bool,
+    /// Base color name for the zebra-striped rows (e.g. "green", "blue").
+    /// The two alternating shades are derived from this single name; unknown
+    /// names fall back to the default blue-grey.
+    pub zebra_color: String,
 }
+
+/// Default base color name for zebra striping when the user sets none.
+pub const DEFAULT_ZEBRA_COLOR: &str = "default";
 
 impl Default for AppConfig {
     fn default() -> Self {
@@ -58,6 +68,7 @@ impl Default for AppConfig {
             scan_days_back: DEFAULT_SCAN_DAYS_BACK,
             repo_filter: None,
             clipboard_available: false,
+            zebra_color: DEFAULT_ZEBRA_COLOR.to_string(),
         }
     }
 }

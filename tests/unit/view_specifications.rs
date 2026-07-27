@@ -20,6 +20,7 @@ use rusty_commit_lister::tui::view::{detail_lines, view};
 fn make_commit_with_url() -> CommitRecord {
     CommitRecord {
         date: "2026-05-18".to_string(),
+        note_path: String::new(),
         time: "14:30".to_string(),
         message: "feat: implement full-length commit message that must not be truncated"
             .to_string(),
@@ -31,6 +32,7 @@ fn make_commit_with_url() -> CommitRecord {
 fn make_commit_without_url() -> CommitRecord {
     CommitRecord {
         date: "2026-05-17".to_string(),
+        note_path: String::new(),
         time: "09:15".to_string(),
         message: "fix: another commit".to_string(),
         folder: "/projects/other".to_string(),
@@ -143,9 +145,8 @@ fn make_detail_model() -> AppModel {
     m
 }
 
-fn make_search_model() -> AppModel {
+fn make_filtering_browse_model() -> AppModel {
     let mut m = make_browse_model_with_one_row();
-    m.mode = AppMode::Search;
     m.search_query = "feat".to_string();
     m
 }
@@ -214,38 +215,82 @@ fn view_renders_table_header_in_browse_mode() {
     );
 }
 
-/// Scenario: Status bar shows 1-based row/total in Browse mode
+/// Scenario: Browse mode shows the always-on detail bubble for the selected row
+///   Given Browse mode with one selected commit
+///   Then the "Commit Detail" bubble renders with the full (un-truncated)
+///   message and folder path visible below the table.
 #[test]
-fn view_shows_row_one_of_one_in_browse_mode() {
+fn view_shows_detail_bubble_in_browse_mode() {
+    let rows = render_to_rows(&make_browse_model_with_one_row());
+    let out = joined(&rows);
+    assert!(
+        out.contains("Commit Detail"),
+        "Browse mode must render the always-on detail bubble; got:\n{out}"
+    );
+    assert!(
+        out.contains("feat: implement full-length commit message that must not be truncated"),
+        "bubble must show the full message; got:\n{out}"
+    );
+    assert!(
+        out.contains("/projects/my-very-long-folder-name/sub/dir"),
+        "bubble must show the full folder path; got:\n{out}"
+    );
+}
+
+/// Scenario: Status bar shows filtered/total counts in Browse mode
+#[test]
+fn view_shows_counts_in_browse_mode() {
     let rows = render_to_rows(&make_browse_model_with_one_row());
     let last_row = rows.last().unwrap();
     assert!(
-        last_row.contains("Row 1/1"),
-        "Browse mode status must show 'Row 1/1' for cursor=0 with 1 row; got: {last_row:?}",
+        last_row.contains("1/1"),
+        "Browse mode status must show '1/1' for 1 row; got: {last_row:?}",
     );
 }
 
-// ─── Render: Search mode ───────────────────────────────────────────────────────
+// ─── Render: live filter ───────────────────────────────────────────────────────
 
-/// Scenario: Search mode renders the search bar
+/// Scenario: Browse mode renders the explicit search box with its title
 #[test]
-fn view_renders_search_bar_in_search_mode() {
-    let rows = render_to_rows(&make_search_model());
+fn view_renders_search_box_in_browse_mode() {
+    let rows = render_to_rows(&make_browse_model_with_one_row());
     let out = joined(&rows);
     assert!(
-        out.contains("/ feat"),
-        "Search mode must render '/ feat' search bar; got:\n{out}",
+        out.contains("Search"),
+        "Browse mode must render the 'Search' box; got:\n{out}"
     );
 }
 
-/// Scenario: Status bar shows N-of-M match count in Search mode
+/// Scenario: the search box echoes the live filter query as it is typed
 #[test]
-fn view_shows_match_count_in_search_mode() {
-    let rows = render_to_rows(&make_search_model());
+fn view_search_box_echoes_query() {
+    let rows = render_to_rows(&make_filtering_browse_model());
+    let out = joined(&rows);
+    assert!(
+        out.contains("feat"),
+        "the search box must echo the 'feat' query; got:\n{out}"
+    );
+}
+
+/// Scenario: the live filter query is echoed in the Browse status bar
+#[test]
+fn view_shows_filter_query_in_status_bar() {
+    let rows = render_to_rows(&make_filtering_browse_model());
     let last_row = rows.last().unwrap();
     assert!(
-        last_row.contains("commits | Esc cancel"),
-        "Search mode status must contain 'commits | Esc cancel'; got: {last_row:?}",
+        last_row.contains("/feat"),
+        "Browse status must echo the '/feat' filter query; got: {last_row:?}",
+    );
+}
+
+/// Scenario: Browse status offers the copy hints while filtering
+#[test]
+fn view_shows_copy_hints_while_filtering() {
+    let rows = render_to_rows(&make_filtering_browse_model());
+    let last_row = rows.last().unwrap();
+    assert!(
+        last_row.contains("copy"),
+        "Browse status must show copy hints; got: {last_row:?}",
     );
 }
 
@@ -269,10 +314,10 @@ fn view_shows_status_message_in_detail_overlay() {
     );
 }
 
-/// Scenario: Status bar in Detail mode shows "c copy | Esc return"
+/// Scenario: Status bar in Detail mode shows the copy + return hints
 ///   Given `Detail` mode (no `status_message`)
 ///   When the view is rendered
-///   Then the last row contains "c copy"
+///   Then the last row shows the copy hint and "Esc return"
 #[test]
 fn view_detail_status_bar_shows_copy_hint() {
     let model = make_detail_model();
@@ -281,8 +326,8 @@ fn view_detail_status_bar_shows_copy_hint() {
     let last_row = rows.last().unwrap();
 
     assert!(
-        last_row.contains("c copy"),
-        "Detail mode status bar must contain 'c copy'; got: {last_row:?}",
+        last_row.contains("copy") && last_row.contains("Esc return"),
+        "Detail mode status bar must show copy + return hints; got: {last_row:?}",
     );
 }
 
@@ -291,6 +336,7 @@ fn view_detail_status_bar_shows_copy_hint() {
 fn make_repo_picker_model() -> AppModel {
     let dotfiles_1 = CommitRecord {
         date: "2026-05-18".to_string(),
+        note_path: String::new(),
         time: "10:00".to_string(),
         message: "feat: add dotfiles".to_string(),
         folder: "/home/user/dotfiles".to_string(),
@@ -298,6 +344,7 @@ fn make_repo_picker_model() -> AppModel {
     };
     let dotfiles_2 = CommitRecord {
         date: "2026-05-17".to_string(),
+        note_path: String::new(),
         time: "11:00".to_string(),
         message: "fix: update dotfiles".to_string(),
         folder: "/home/user/dotfiles".to_string(),
@@ -305,6 +352,7 @@ fn make_repo_picker_model() -> AppModel {
     };
     let notes_1 = CommitRecord {
         date: "2026-05-18".to_string(),
+        note_path: String::new(),
         time: "12:00".to_string(),
         message: "docs: add notes".to_string(),
         folder: "/home/user/notes".to_string(),
@@ -384,6 +432,7 @@ fn view_highlights_selected_picker_row() {
 fn view_status_bar_shows_active_filter() {
     let dotfiles_1 = CommitRecord {
         date: "2026-05-18".to_string(),
+        note_path: String::new(),
         time: "10:00".to_string(),
         message: "feat: add dotfiles".to_string(),
         folder: "/home/user/dotfiles".to_string(),
@@ -391,6 +440,7 @@ fn view_status_bar_shows_active_filter() {
     };
     let dotfiles_2 = CommitRecord {
         date: "2026-05-17".to_string(),
+        note_path: String::new(),
         time: "11:00".to_string(),
         message: "fix: update dotfiles".to_string(),
         folder: "/home/user/dotfiles".to_string(),
@@ -398,6 +448,7 @@ fn view_status_bar_shows_active_filter() {
     };
     let notes_1 = CommitRecord {
         date: "2026-05-18".to_string(),
+        note_path: String::new(),
         time: "12:00".to_string(),
         message: "docs: add notes".to_string(),
         folder: "/home/user/notes".to_string(),
@@ -418,8 +469,8 @@ fn view_status_bar_shows_active_filter() {
         "Browse status bar must show repo name 'dotfiles' when filter active; got: {last_row:?}",
     );
     assert!(
-        last_row.contains("f clear"),
-        "Browse status bar must show 'f clear' when filter active; got: {last_row:?}",
+        last_row.contains("^F clear"),
+        "Browse status bar must show '^F clear' when filter active; got: {last_row:?}",
     );
 }
 

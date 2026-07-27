@@ -71,15 +71,14 @@ fn tool_loads_commits_from_vault_and_exits_successfully() {
         .stdout(contains("commit").or(contains("Commit")));
 }
 
-/// @US-01 @real-io @error
+/// @US-01 @real-io
 ///
-/// Scenario: Tool exits with code 2 when `scan_days_back` is invalid
-///   Given a config.toml with `scan_days_back` = 0
+/// Scenario: Tool accepts `scan_days_back` = 0 (meaning "load all commits")
+///   Given a config.toml with `scan_days_back` = 0 and an empty vault
 ///   When the binary is invoked with that config
-///   Then the process exits with code 2
-///   And stderr contains an actionable error mentioning `scan_days_back` and the config path
+///   Then the process exits with code 0 (0 is a valid "no window" setting)
 #[test]
-fn invalid_scan_days_back_exits_with_code_2_and_actionable_error() {
+fn scan_days_back_zero_is_accepted_and_exits_cleanly() {
     let config_dir = TempDir::new().expect("failed to create config tempdir");
     let vault_dir = TempDir::new().expect("failed to create vault tempdir");
     let config_path = write_config(&config_dir, vault_dir.path().to_str().unwrap(), 0);
@@ -89,9 +88,7 @@ fn invalid_scan_days_back_exits_with_code_2_and_actionable_error() {
         .arg("--config")
         .arg(config_path.to_str().unwrap())
         .assert()
-        .failure()
-        .code(2)
-        .stderr(contains("scan_days_back").and(contains("config")));
+        .code(0);
 }
 
 /// @US-01 @real-io
