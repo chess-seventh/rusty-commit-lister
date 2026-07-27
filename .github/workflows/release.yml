@@ -79,13 +79,6 @@ jobs:
             exit 1
           fi
           echo "✅ Valid version: $VERSION"
-      - name: ❄️ Update flake.nix version
-        if: steps.changelog.outputs.skipped == 'false'
-        run: |
-          VERSION="${{ steps.changelog.outputs.version }}"
-          echo "Updating flake.nix to version: $VERSION"
-          sed -i "s/version = \"[0-9]\+\.[0-9]\+\.[0-9]\+\"/version = \"${VERSION}\"/" flake.nix
-          grep 'version = ' flake.nix | head -1
       - name: 🔒 Update Cargo.lock
         if: steps.changelog.outputs.skipped == 'false'
         run: |
@@ -97,12 +90,12 @@ jobs:
           git config user.name "chess-seventh"
           git config user.email "chess7th@pm.me"
 
-          git add flake.nix Cargo.lock
+          git add Cargo.lock
 
           if git diff --staged --quiet; then
             echo "No additional changes to commit"
           else
-            git commit -m "chore(release): update flake.nix and Cargo.lock for ${{ steps.changelog.outputs.version }} [skip ci]"
+            git commit -m "chore(release): update Cargo.lock for ${{ steps.changelog.outputs.version }} [skip ci]"
             git push origin main
           fi
       - name: ✨ Create GitHub Release
