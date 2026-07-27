@@ -305,6 +305,26 @@ walkdir       = "2"
 anyhow        = "1"
 ```
 
+### Releasing
+
+Releases are fully automated - never bump the version by hand.
+
+When CI succeeds on a push to `main`, the Release workflow:
+
+1. derives the next version and the changelog from the conventional-commit
+   history;
+2. writes `CHANGELOG.md`, `Cargo.toml` and `Cargo.lock`, then opens a
+   `release-bot/<run-id>-<attempt>` pull request with that bump;
+3. merges that PR itself (merge commit, never squash) using the built-in
+   `GITHUB_TOKEN` - no GitHub App and no `APP_ID` / `APP_PRIVATE_KEY` secrets
+   are involved;
+4. tags the merged bump commit and publishes the GitHub release.
+
+`main` is protected by the `branch-discipline` ruleset - a pull request is
+required and there is no bypass actor - so the bot goes through a PR like
+everyone else. The tag is created only *after* the PR merges, which keeps a
+failed release from leaving an orphan tag behind.
+
 ---
 
 ## Roadmap
