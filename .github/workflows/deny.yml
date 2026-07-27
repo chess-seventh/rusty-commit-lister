@@ -22,6 +22,6 @@ jobs:
     if: "!contains(github.event.head_commit.message, 'chore(release)')"
     steps:
       - name: 📥 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: 📋 Check Dependencies
         uses: EmbarkStudios/cargo-deny-action@v2
