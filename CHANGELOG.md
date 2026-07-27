@@ -1,12 +1,21 @@
+## [0.3.0](https://github.com/chess-seventh/rusty-commit-lister/compare/v0.2.2...v0.3.0) (2026-07-27)
+
+
+### Features
+
+* **treefmt:** reconcile to fleet canon (nixfmt-classic -> nixfmt) ([609d373](https://github.com/chess-seventh/rusty-commit-lister/commit/609d3735ad3c49e5da83ffa559b84704e922086a))
+
+
+### Bug Fixes
+
+* **deps:** require patched anyhow 1.0.103 (RUSTSEC-2026-0190) ([#12](https://github.com/chess-seventh/rusty-commit-lister/issues/12)) ([ba72a6c](https://github.com/chess-seventh/rusty-commit-lister/commit/ba72a6c903b49574a8c4b005ddf2ba080a6e972b)), closes [#7](https://github.com/chess-seventh/rusty-commit-lister/issues/7)
+* **lint:** green the devenv test lint hooks ([#19](https://github.com/chess-seventh/rusty-commit-lister/issues/19)) ([15e9d1c](https://github.com/chess-seventh/rusty-commit-lister/commit/15e9d1cc09319eacb72fd30bedc30c3ad3719e7b))
+
 ## [0.2.2](https://github.com/chess-seventh/rusty-commit-lister/compare/v0.2.1...v0.2.2) (2026-05-22)
-
-
 
 ## [0.2.1](https://github.com/chess-seventh/rusty-commit-lister/compare/v0.2.0...v0.2.1) (2026-05-22)
 
-
-
-# [0.2.0](https://github.com/chess-seventh/rusty-commit-lister/compare/2d80af6e7dae480857ab3e44e9611b4ed585b030...v0.2.0) (2026-05-22)
+## [0.2.0](https://github.com/chess-seventh/rusty-commit-lister/compare/2d80af6e7dae480857ab3e44e9611b4ed585b030...v0.2.0) (2026-05-22)
 
 
 ### Features
@@ -32,6 +41,4 @@
 * **tui:** render commit detail overlay in Detail mode ([51eee7c](https://github.com/chess-seventh/rusty-commit-lister/commit/51eee7cb1255e3012d067b94dfcff0626ef43a03))
 * **tui:** RepoPicker overlay and filter-active status bar ([0875066](https://github.com/chess-seventh/rusty-commit-lister/commit/0875066d1c142b3178a21fa188e71036006e6ae8))
 * **tui:** wire reload_fn closure into run loop for r-refresh ([ff68037](https://github.com/chess-seventh/rusty-commit-lister/commit/ff68037f658e500991f3f9d5572835f7ccd73f7a))
-
-
 
