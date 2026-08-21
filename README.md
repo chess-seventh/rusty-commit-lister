@@ -6,7 +6,7 @@
 ![Status](https://img.shields.io/badge/Status-WIP-yellow)
 
 > A terminal UI application that reads and displays commits captured by
-> [`rusty-commit-saver`](https://github.com/franci/rusty-commit-saver) from
+> [`rusty-commit-saver`](https://github.com/chess-seventh/rusty-commit-saver) from
 > your Obsidian Diary daily notes.
 
 ---
@@ -31,7 +31,7 @@
 
 ## Overview
 
-`rusty-commit-lister` is a companion tool for [`rusty-commit-saver`](https://github.com/franci/rusty-commit-saver).
+`rusty-commit-lister` is a companion tool for [`rusty-commit-saver`](https://github.com/chess-seventh/rusty-commit-saver).
 
 `rusty-commit-saver` works as a Git post-commit hook and saves every commit
 into your Obsidian Diary daily notes as a Markdown table.
@@ -94,7 +94,7 @@ Obsidian Diary (Markdown files)
 ### From source
 
 ```bash
-git clone https://github.com/franci/rusty-commit-lister
+git clone https://github.com/chess-seventh/rusty-commit-lister
 cd rusty-commit-lister
 cargo build --release
 ```
@@ -102,13 +102,18 @@ cargo build --release
 Then copy the binary to your PATH:
 
 ```bash
-cp target/release/rusty-commit-lister ~/.local/bin/
+cp target/release/rusty_commit_lister ~/.local/bin/
 ```
+
+> **The executable is `rusty_commit_lister`, with underscores.** The repository
+> and the crate's own `--help` banner use hyphens, but `Cargo.toml` declares
+> `[[bin]] name = "rusty_commit_lister"`, and that is the file cargo produces
+> and installs. Every command below is written the way you actually type it.
 
 ### With cargo install (once published)
 
 ```bash
-cargo install rusty-commit-lister
+cargo install rusty_commit_lister
 ```
 
 ---
@@ -170,7 +175,7 @@ scan_days_back = 7
 Launch the TUI:
 
 ```bash
-rusty-commit-lister
+rusty_commit_lister
 ```
 
 ### Keyboard controls
@@ -188,18 +193,18 @@ rusty-commit-lister
 ### Optional flags
 
 ```bash
-# Use a custom config file
-rusty-commit-lister --config /path/to/config.toml
+# Use a custom config file, instead of ~/.config/rusty-commit-lister/config.toml
+rusty_commit_lister --config /path/to/config.toml
+rusty_commit_lister -c /path/to/config.toml
 
-# Scan a specific daily note file directly
-rusty-commit-lister --daily-note /path/to/2026-05-16.md
-
-# Scan only today's note
-rusty-commit-lister --today
-
-# Scan a specific date
-rusty-commit-lister --date 2026-05-14
+# Raise the log level
+rusty_commit_lister --verbose
+rusty_commit_lister -v
 ```
+
+Those are the only two flags the binary accepts — see `Arg::new` in
+`src/main.rs`. Selecting a note or a date from the command line is not
+implemented; the date-range item under [Roadmap](#roadmap) is where it lands.
 
 ---
 
