@@ -137,7 +137,7 @@ fn record_matches_filters(
 
 /// Returns true when no repo filter is active, or the record's URL contains it.
 fn repo_filter_matches(record: &CommitRecord, active_repo_filter: Option<&String>) -> bool {
-    active_repo_filter.as_ref().map_or(true, |filter| {
+    active_repo_filter.is_none_or(|filter| {
         record
             .url
             .as_deref()

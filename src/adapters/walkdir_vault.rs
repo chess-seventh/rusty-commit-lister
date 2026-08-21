@@ -96,7 +96,7 @@ impl VaultScanPort for WalkdirScanAdapter {
             .filter_map(|entry| {
                 let stem = entry.path().file_stem().and_then(|s| s.to_str())?;
                 let note_date = chrono::NaiveDate::parse_from_str(stem, "%Y-%m-%d").ok()?;
-                if window_start.map_or(true, |start| note_date >= start) {
+                if window_start.is_none_or(|start| note_date >= start) {
                     Some(entry)
                 } else {
                     None
