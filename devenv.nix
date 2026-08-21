@@ -262,7 +262,10 @@
       '';
     };
 
-    test = {
+    # Named `test-all`, never `test`: in the devenv shell the bash builtin
+    # `test` wins the name lookup, so a script called `test` silently runs the
+    # builtin with no arguments and exits 1 without running the suite.
+    test-all = {
       description = "Run tests with cargo nextest";
       exec = ''
         #!/usr/bin/env bash
@@ -413,7 +416,7 @@
     alias c=check
     alias b=build
     alias br=build-release
-    alias t=test
+    alias t=test-all
     alias tc=test-coverage
     alias l=lint
     alias f=format
