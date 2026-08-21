@@ -276,9 +276,16 @@ rusty-commit-lister/
 
 ### Prerequisites
 
-Only [devenv](https://devenv.sh/). It provides the whole toolchain — Rust
-**nightly** with `llvm-tools-preview`, plus `cargo-nextest` and `cargo-llvm-cov`
-— so nothing needs to be installed on the bare system.
+Either path works — they are not exclusive, and the Installation section above
+uses the second one:
+
+- **[devenv](https://devenv.sh/)** — the development path, and what the commands
+  below assume. It pins the whole toolchain (Rust nightly with
+  `llvm-tools-preview`, `cargo-nextest`, `cargo-llvm-cov`), so nothing else has
+  to be on the system.
+- **A bare Rust toolchain** — the crate's MSRV is `1.70.0` and CI builds and
+  tests it on **stable**, so plain `cargo build` / `cargo test` work. Only the
+  coverage tooling needs nightly.
 
 ```bash
 devenv shell
@@ -293,13 +300,16 @@ devenv shell -- build
 devenv shell -- run
 ```
 
+Bare toolchain: `cargo build` / `cargo run`.
+
 ### Run tests
 
 ```bash
 devenv shell -- test-all
 ```
 
-`test-all` runs `cargo nextest run --no-fail-fast --all-targets`.
+`test-all` runs `cargo nextest run --no-fail-fast --all-targets`. Bare
+toolchain: `cargo test` — the same suite, without the nextest runner.
 
 > **The script is `test-all`, not `test`.** In the shell, the name `test`
 > resolves to the bash builtin before it reaches a devenv script, so a script
