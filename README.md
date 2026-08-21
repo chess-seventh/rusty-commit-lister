@@ -276,21 +276,44 @@ rusty-commit-lister/
 
 ### Prerequisites
 
-- Rust 1.75+
-- Cargo
+Only [devenv](https://devenv.sh/). It provides the whole toolchain — Rust
+**nightly** with `llvm-tools-preview`, plus `cargo-nextest` and `cargo-llvm-cov`
+— so nothing needs to be installed on the bare system.
+
+```bash
+devenv shell
+```
+
+Entering the shell prints the table of available scripts; `devhelp` reprints it.
 
 ### Build and run
 
 ```bash
-cargo build
-cargo run
+devenv shell -- build
+devenv shell -- run
 ```
 
 ### Run tests
 
 ```bash
-cargo test
+devenv shell -- test-all
 ```
+
+`test-all` runs `cargo nextest run --no-fail-fast --all-targets`.
+
+> **The script is `test-all`, not `test`.** In the shell, the name `test`
+> resolves to the bash builtin before it reaches a devenv script, so a script
+> called `test` would exit 1 without running anything — which reads exactly
+> like a failing suite. Do not rename it back.
+
+For coverage:
+
+```bash
+devenv shell -- test-coverage
+```
+
+That writes `lcov.info` at the repo root; the file is git-ignored because it is
+regenerated on every run.
 
 ### Key dependencies
 
