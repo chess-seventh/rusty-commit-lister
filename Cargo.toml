@@ -37,7 +37,7 @@ documentation = "https://docs.rs/rusty_commit_lister"
 readme = "README.md"
 keywords = []
 categories = []
-rust-version = "1.70.0"
+rust-version = "1.88.0"
 
 # The profile that 'cargo dist' will build with
 [profile.dist]

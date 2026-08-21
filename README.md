@@ -288,9 +288,10 @@ uses the second one:
   below assume. It pins the whole toolchain (Rust nightly with
   `llvm-tools-preview`, `cargo-nextest`, `cargo-llvm-cov`), so nothing else has
   to be on the system.
-- **A bare Rust toolchain** — the crate's MSRV is `1.70.0` and CI builds and
-  tests it on **stable**, so plain `cargo build` / `cargo test` work. Only the
-  coverage tooling needs nightly.
+- **A bare Rust toolchain** — plain `cargo build` / `cargo test` work on
+  current **stable**, which is what CI uses. The floor is **1.88.0**: `ratatui`
+  requires it and pulls in edition-2024 crates, so nothing older compiles at
+  all. Only the coverage tooling needs nightly.
 
 ```bash
 devenv shell
