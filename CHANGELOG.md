@@ -1,3 +1,15 @@
+## [0.3.2](https://github.com/chess-seventh/rusty-commit-lister/compare/v0.3.1...v0.3.2) (2026-08-22)
+
+
+### Bug Fixes
+
+* **L192:** give the crate metadata a repository URL that resolves ([eb4f024](https://github.com/chess-seventh/rusty-commit-lister/commit/eb4f024f794ecf1e6a3660eb4cfc272b68852439))
+* **L192:** keep a coverage run from dirtying the tree ([fb82663](https://github.com/chess-seventh/rusty-commit-lister/commit/fb826633bab84dd9e908337fbba638e8d8450e4a))
+* **L192:** rename the test script off a name the shell claims first ([ce52b15](https://github.com/chess-seventh/rusty-commit-lister/commit/ce52b1520b69d49aa318514d95267e4ebaf54738))
+* **L192:** render the script table once, under this repo's own name ([a80311d](https://github.com/chess-seventh/rusty-commit-lister/commit/a80311daccf579a3d1978f3da749bfe159556788))
+* **L192:** state the toolchain floor the lockfile actually enforces ([85c2773](https://github.com/chess-seventh/rusty-commit-lister/commit/85c2773a8c6db2d6eee9ac5d6f8d5822e9976ff3))
+* **L192:** take the three lints the raised MSRV floor unblocked ([39ba331](https://github.com/chess-seventh/rusty-commit-lister/commit/39ba33120500c5f5210e7d096c951198639172fc))
+
 ## [0.3.1](https://github.com/chess-seventh/rusty-commit-lister/compare/v0.3.0...v0.3.1) (2026-07-28)
 
 ## [0.3.0](https://github.com/chess-seventh/rusty-commit-lister/compare/v0.2.2...v0.3.0) (2026-07-27)
