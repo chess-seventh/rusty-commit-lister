@@ -13,6 +13,12 @@ target/
 # MSVC Windows builds of rustc generate these, which store debugging information
 *.pdb
 
+# Coverage report. Both `test-coverage` and the CI coverage job write this
+# into the tree and regenerate it from scratch every run, so a committed copy
+# is stale the moment it lands - and it was committed, which is why running
+# coverage locally produced a 48k diff nobody asked for.
+lcov.info
+
 .direnv
 
 # Devenv

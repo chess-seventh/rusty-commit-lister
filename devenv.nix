@@ -262,7 +262,10 @@
       '';
     };
 
-    test = {
+    # Named `test-all`, never `test`: in the devenv shell the bash builtin
+    # `test` wins the name lookup, so a script called `test` silently runs the
+    # builtin with no arguments and exits 1 without running the suite.
+    test-all = {
       description = "Run tests with cargo nextest";
       exec = ''
         #!/usr/bin/env bash
@@ -378,10 +381,10 @@
     };
 
     devhelp = {
-      description = "Returns the helper comamnds";
+      description = "Returns the helper commands";
       exec = ''
         echo
-        echo 💡 Helper scripts for DevBootstrapper development:
+        echo 💡 Helper scripts for Rust development:
         echo
         ${pkgs.gnused}/bin/sed -e 's| |••|g' -e 's|=| |' <<EOF | ${pkgs.util-linuxMinimal}/bin/column -t | ${pkgs.gnused}/bin/sed -e 's|^|• |' -e 's|••| |g'
         ${lib.generators.toKeyValue { } (lib.mapAttrs (_name: value: value.description) config.scripts)}
@@ -413,7 +416,7 @@
     alias c=check
     alias b=build
     alias br=build-release
-    alias t=test
+    alias t=test-all
     alias tc=test-coverage
     alias l=lint
     alias f=format
@@ -425,13 +428,10 @@
     # Welcome message
     hello
 
-    echo
-    echo 💡 Helper scripts for Rust development:
-    echo
-    ${pkgs.gnused}/bin/sed -e 's| |••|g' -e 's|=| |' <<EOF | ${pkgs.util-linuxMinimal}/bin/column -t | ${pkgs.gnused}/bin/sed -e 's|^|• |' -e 's|••| |g'
-    ${lib.generators.toKeyValue { } (lib.mapAttrs (_name: value: value.description) config.scripts)}
-    EOF
-    echo
+    # `devhelp` is the only renderer of the script table. Inlining a second
+    # copy here is what let the two drift, and the copy in `devhelp` still
+    # carried the bootstrap template's title instead of this repo's.
+    devhelp
   '';
 
   enterTest = ''

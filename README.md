@@ -6,7 +6,7 @@
 ![Status](https://img.shields.io/badge/Status-WIP-yellow)
 
 > A terminal UI application that reads and displays commits captured by
-> [`rusty-commit-saver`](https://github.com/franci/rusty-commit-saver) from
+> [`rusty-commit-saver`](https://github.com/chess-seventh/rusty-commit-saver) from
 > your Obsidian Diary daily notes.
 
 ---
@@ -31,7 +31,7 @@
 
 ## Overview
 
-`rusty-commit-lister` is a companion tool for [`rusty-commit-saver`](https://github.com/franci/rusty-commit-saver).
+`rusty-commit-lister` is a companion tool for [`rusty-commit-saver`](https://github.com/chess-seventh/rusty-commit-saver).
 
 `rusty-commit-saver` works as a Git post-commit hook and saves every commit
 into your Obsidian Diary daily notes as a Markdown table.
@@ -94,7 +94,7 @@ Obsidian Diary (Markdown files)
 ### From source
 
 ```bash
-git clone https://github.com/franci/rusty-commit-lister
+git clone https://github.com/chess-seventh/rusty-commit-lister
 cd rusty-commit-lister
 cargo build --release
 ```
@@ -102,13 +102,18 @@ cargo build --release
 Then copy the binary to your PATH:
 
 ```bash
-cp target/release/rusty-commit-lister ~/.local/bin/
+cp target/release/rusty_commit_lister ~/.local/bin/
 ```
+
+> **The executable is `rusty_commit_lister`, with underscores.** The repository
+> and the crate's own `--help` banner use hyphens, but `Cargo.toml` declares
+> `[[bin]] name = "rusty_commit_lister"`, and that is the file cargo produces
+> and installs. Every command below is written the way you actually type it.
 
 ### With cargo install (once published)
 
 ```bash
-cargo install rusty-commit-lister
+cargo install rusty_commit_lister
 ```
 
 ---
@@ -170,7 +175,7 @@ scan_days_back = 7
 Launch the TUI:
 
 ```bash
-rusty-commit-lister
+rusty_commit_lister
 ```
 
 ### Keyboard controls
@@ -188,18 +193,18 @@ rusty-commit-lister
 ### Optional flags
 
 ```bash
-# Use a custom config file
-rusty-commit-lister --config /path/to/config.toml
+# Use a custom config file, instead of ~/.config/rusty-commit-lister/config.toml
+rusty_commit_lister --config /path/to/config.toml
+rusty_commit_lister -c /path/to/config.toml
 
-# Scan a specific daily note file directly
-rusty-commit-lister --daily-note /path/to/2026-05-16.md
-
-# Scan only today's note
-rusty-commit-lister --today
-
-# Scan a specific date
-rusty-commit-lister --date 2026-05-14
+# Raise the log level
+rusty_commit_lister --verbose
+rusty_commit_lister -v
 ```
+
+Those are the only two flags the binary accepts — see `Arg::new` in
+`src/main.rs`. Selecting a note or a date from the command line is not
+implemented; the date-range item under [Roadmap](#roadmap) is where it lands.
 
 ---
 
@@ -276,21 +281,55 @@ rusty-commit-lister/
 
 ### Prerequisites
 
-- Rust 1.75+
-- Cargo
+Either path works — they are not exclusive, and the Installation section above
+uses the second one:
+
+- **[devenv](https://devenv.sh/)** — the development path, and what the commands
+  below assume. It pins the whole toolchain (Rust nightly with
+  `llvm-tools-preview`, `cargo-nextest`, `cargo-llvm-cov`), so nothing else has
+  to be on the system.
+- **A bare Rust toolchain** — plain `cargo build` / `cargo test` work on
+  current **stable**, which is what CI uses. The floor is **1.88.0**: `ratatui`
+  requires it and pulls in edition-2024 crates, so nothing older compiles at
+  all. Only the coverage tooling needs nightly.
+
+```bash
+devenv shell
+```
+
+Entering the shell prints the table of available scripts; `devhelp` reprints it.
 
 ### Build and run
 
 ```bash
-cargo build
-cargo run
+devenv shell -- build
+devenv shell -- run
 ```
+
+Bare toolchain: `cargo build` / `cargo run`.
 
 ### Run tests
 
 ```bash
-cargo test
+devenv shell -- test-all
 ```
+
+`test-all` runs `cargo nextest run --no-fail-fast --all-targets`. Bare
+toolchain: `cargo test` — the same suite, without the nextest runner.
+
+> **The script is `test-all`, not `test`.** In the shell, the name `test`
+> resolves to the bash builtin before it reaches a devenv script, so a script
+> called `test` would exit 1 without running anything — which reads exactly
+> like a failing suite. Do not rename it back.
+
+For coverage:
+
+```bash
+devenv shell -- test-coverage
+```
+
+That writes `lcov.info` at the repo root; the file is git-ignored because it is
+regenerated on every run.
 
 ### Key dependencies
 
