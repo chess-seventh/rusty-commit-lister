@@ -5,6 +5,42 @@
   lib,
   ...
 }:
+let
+  # L235 - THE FLEET GATE, as four hooks of this repository's own (D-115).
+  #
+  # WHY A REPOSITORY THAT ALREADY HAS A GATE STILL NEEDS THESE. This repository
+  # sets a LOCAL `core.hooksPath` before the installer runs (the task below), so
+  # it was never one of the eight that prek refused - it declares its own hooks
+  # and they work. The lane's cut baton said to leave it alone for exactly that
+  # reason, and verify round 2 measured why that was not enough:
+  #
+  #   this repository declares no `gitleaks`.
+  #
+  # It reaches the fleet's gitleaks TODAY, and only by accident of state: the
+  # local value is written by a devenv task, so before the first shell entry git
+  # resolves the fleet's GLOBAL `core.hooksPath` and runs the whole fleet gate
+  # here. L235 removes that global value. Without these entries this repository
+  # would keep its own hooks and quietly lose the one scanner that fires on a
+  # credential this machine has never seen - which is the leak worth stopping,
+  # since it is usually pasted in from elsewhere.
+  #
+  # So the four entries are additive: this repository's own hooks still run,
+  # and the fleet gate runs beside them. That is the same shape L173 gave the
+  # flake and `claude-src`, both of which also own their gate.
+  #
+  # Built through writeShellApplication so the script is shellchecked at build
+  # time and the entries name a store path rather than a working-tree file.
+  fleetGateHook = "${
+    pkgs.writeShellApplication {
+      name = "fleet-gate-hook";
+      runtimeInputs = [
+        pkgs.coreutils
+        pkgs.git
+      ];
+      text = builtins.readFile ./hooks/fleet-gate-hook;
+    }
+  }/bin/fleet-gate-hook";
+in
 {
 
   # Environment variables
@@ -85,6 +121,55 @@
   ];
 
   git-hooks.hooks = {
+    # L235 - the fleet gate, reached as four of this repo's own hooks. The
+    # rationale is in the `let` block at the top of this file; what matters here
+    # is that these four are ordinary entries with nothing special about them.
+    fleet-gate = {
+      enable = true;
+      name = "fleet gate";
+      stages = [ "pre-commit" ];
+      entry = "${fleetGateHook} pre-commit";
+      language = "system";
+      pass_filenames = false;
+      always_run = true;
+    };
+
+    # pass_filenames, because git hands commit-msg the message file and the
+    # fleet gate's gitlint and commitizen read it. Getting this wrong lints the
+    # wrong thing while still exiting 0.
+    fleet-gate-commit-msg = {
+      enable = true;
+      name = "fleet gate (message)";
+      stages = [ "commit-msg" ];
+      entry = "${fleetGateHook} commit-msg";
+      language = "system";
+      pass_filenames = true;
+      always_run = true;
+    };
+
+    fleet-gate-pre-push = {
+      enable = true;
+      name = "fleet gate (push)";
+      stages = [ "pre-push" ];
+      entry = "${fleetGateHook} pre-push";
+      language = "system";
+      pass_filenames = false;
+      always_run = true;
+    };
+
+    # The commit diary is hooks_everywhere.nix's post-commit hook - NOT
+    # pkgs/git-commit-gate, which ships pre-commit and commit-msg only. On a box
+    # with no fleet gate there is no diary, and the entry says so per commit.
+    fleet-gate-post-commit = {
+      enable = true;
+      name = "fleet gate (diary)";
+      stages = [ "post-commit" ];
+      entry = "${fleetGateHook} post-commit";
+      language = "system";
+      pass_filenames = false;
+      always_run = true;
+    };
+
     rusty-commit-saver = {
       enable = true;
       name = "🦀 Rusty Commit Saver";
