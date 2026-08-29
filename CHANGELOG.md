@@ -1,3 +1,10 @@
+## [0.4.0](https://github.com/chess-seventh/rusty-commit-lister/compare/v0.3.2...v0.4.0) (2026-08-29)
+
+
+### Features
+
+* **L235:** keep the fleet's gitleaks this repo never declared ([e342845](https://github.com/chess-seventh/rusty-commit-lister/commit/e34284529dd1901c73e5115d788473417855fb72))
+
 ## [0.3.2](https://github.com/chess-seventh/rusty-commit-lister/compare/v0.3.1...v0.3.2) (2026-08-22)
 
 
