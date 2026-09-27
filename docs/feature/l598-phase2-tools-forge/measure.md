@@ -94,9 +94,14 @@ moved to `.github/workflows-paused/`, each carrying a header naming why;
 
 ## Must-prove 3 — a push to the forge creates a task on a seat that exists
 
-⛔ **NOT YET MEASURED** — depends on Must-prove 1's push landing and a
-subsequent push (or the eventual pull request) triggering
-`.forgejo/workflows/gate.yaml`. Record the task id here once one runs.
+✅ **MEASURED 2026-09-27, both green**, commit-status API against `50d10a6`:
+
+- `gate / gate (push)` — task 3, successful in 23m55s
+- `gate / gate (pull_request)` — task 4, successful in 23m42s
+
+⚠ **23+ minutes, not seconds** — the fleet's one `nix` seat was carrying
+other repositories' jobs at the same time, queueing these two behind them.
+Both still finished inside the gate's own 30-minute bound.
 
 ## Must-prove 4 — no push mirror is created, and the README says why
 
