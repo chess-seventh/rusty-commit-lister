@@ -29,6 +29,34 @@
 
 ---
 
+## Where this repository lives
+
+**The fleet's forge is canonical (L598).** `tools/rusty-commit-lister` on the
+forge is where this repository is developed, where its branches are cut and
+where its gate runs; the GitHub repository it came from is a **mirror
+downstream of it**. Both carry every branch and tag, at the same objects.
+
+⚠ **So a commit pushed to GitHub is a commit the forge does not have, and the
+mirror will overwrite it.** Clone from the forge, on the fleet's own network:
+
+```bash
+git clone ssh://forgejo@nixos-02.caracara-palermo.ts.net:2223/tools/rusty-commit-lister.git
+```
+
+⚠ **THE MIRROR IS A PUSH MIRROR AND IT IS NOT THIS REPOSITORY'S TO
+CONFIGURE.** It is an admin-level setting on the forge carrying a GitHub
+credential, so it is set by hand and not by anything here. Until it is live,
+GitHub holds whatever it held on the day of the move;
+`docs/feature/l598-phase2-tools-forge/measure.md` records what was measured.
+
+⛔ **THE SEVEN GitHub ACTIONS WORKFLOWS THIS REPOSITORY HAD ARE PARKED, NOT
+DELETED** — `.github/workflows-paused/`, each with a header saying why. The
+gate is `.forgejo/workflows/gate.yaml`, and it runs `devenv shell -- test-all`
+— the same `cargo nextest` suite `ci.yml` ran; clippy, coverage and the other
+six workflows are not yet ported (each header says why).
+
+---
+
 ## Overview
 
 `rusty-commit-lister` is a companion tool for [`rusty-commit-saver`](https://github.com/chess-seventh/rusty-commit-saver).
