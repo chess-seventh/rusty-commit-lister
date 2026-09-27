@@ -1,3 +1,9 @@
+# PARKED by L598: this repository is canonical on the fleet's forge now.
+# GitHub Actions never reads a workflow outside `.github/workflows/`, so
+# moving this file here is what disables it. Not ported: it publishes to
+# GitHub Pages, a GitHub-specific hosting target this forge has no
+# equivalent for. Whether and where docs get published from the forge is a
+# separate decision, not this lane's to make.
 name: 📚 Documentation
 on:
   release:

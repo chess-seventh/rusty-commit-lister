@@ -1,3 +1,9 @@
+# PARKED by L598: this repository is canonical on the fleet's forge now.
+# GitHub Actions never reads a workflow outside `.github/workflows/`, so
+# moving this file here is what disables it. Not ported: CodeQL is a
+# GitHub-hosted analysis service with no forge equivalent, and the gate's
+# `run:`-only convention rules out its `uses:` steps anyway. Whether this
+# repository gets a forge-side static analysis job is a separate decision.
 name: "🔒 CodeQL"
 on:
   push:
