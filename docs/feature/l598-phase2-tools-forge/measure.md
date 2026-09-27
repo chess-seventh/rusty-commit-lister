@@ -6,10 +6,33 @@ that, never inferred.
 
 ## Must-prove 1 — the forge carries every branch and tag GitHub has
 
-⛔ **NOT YET MEASURED — blocked on the push-create, which Claude Code's
-auto-mode classifier refused as this session's own action ("Data
-Exfiltration").** Franci runs the push himself; this section is filled in once
-it lands.
+✅ **MEASURED 2026-09-27. Clean**, modulo three dependabot branches GitHub
+itself deleted between this measurement and the push (see below) — `comm -23`
+between `origin`'s CURRENT ref list and `forge`'s prints only those three,
+none of which are a gap this lane owes.
+
+⛔ **Push-create did not work.** Claude Code's own auto-mode classifier also
+refused the push as this session's own action ("Data Exfiltration"), so this
+was Franci's hand throughout: he created `tools/rusty-commit-lister` empty on
+the forge (web UI, initially under the `seventh` namespace by mistake, then
+transferred to `tools`), then ran the push below.
+
+⚠ **Two fix-ups, recorded because a green summary would have hidden them.**
+
+1. The push refspec (`refs/remotes/origin/*`) swept up the symbolic
+   `origin/HEAD`, landing a junk `refs/heads/HEAD` branch on the forge;
+   deleted with `git push forge --delete refs/heads/HEAD`.
+2. `--follow-tags` only carries **annotated** tags. `v0.3.0`, `v0.3.1`,
+   `v0.3.2` and `v0.4.0` are lightweight (the four with no peeled `^{}` entry
+   in the BEFORE listing) and were skipped; pushed separately.
+
+⚠ **Dependabot branch churn, not a gap.** Between this measurement and the
+push, GitHub deleted `dependabot/cargo/clap-4.6.6`,
+`dependabot/cargo/toml-1.1.4spec-1.1.0` and
+`dependabot/cargo/toml-1.1.5spec-1.1.0` — superseded by the three this lane's
+BEFORE listing already names (`clap-4.6.7`, `thiserror-2.0.20`,
+`toml-1.1.6spec-1.1.0`). The forge still carries the three older, now-deleted
+ones from the push's own moment; harmless, and not this lane's to reconcile.
 
 BEFORE, measured 2026-09-27 with `git ls-remote --refs`/`--tags` against
 `origin` (GitHub), `refs/pull/*` excluded:
@@ -37,16 +60,30 @@ appears in any later forge listing and is not a discrepancy. `github-pages` is
 a build-artifact branch this repository's docs workflow wrote, carried as-is
 like any other ref — not a source branch, but not excluded either.
 
-The command Franci runs, from
+The commands Franci ran, from
 `/home/seventh/src/claude-worktrees/rusty-commit-lister/L598`:
 
 ```bash
 git push forge 'refs/remotes/origin/*:refs/heads/*' --follow-tags
+git push forge --delete refs/heads/HEAD
+git push forge refs/tags/v0.3.0 refs/tags/v0.3.1 refs/tags/v0.3.2 refs/tags/v0.4.0
 ```
 
-AFTER: ⛔ NOT YET MEASURED. To close this item: `git ls-remote --refs
---tags forge` against `origin`'s list above with `comm -23`, expecting nothing
-printed.
+AFTER, re-measured 2026-09-27, `git ls-remote --tags forge`:
+
+```text
+476d13f17e9c8bc3f72c09d687feddef9f611c9e  refs/tags/v0.2.0
+8b3a1f1d2c0b6e07e64d43f7c25737ecd9ab6820  refs/tags/v0.2.1
+b0910d1df7d839973de0b0f5b1e8b8453b78b87c  refs/tags/v0.2.2
+bca6e7de182252bf4b76c5ae920e0e2f8d31dcc8  refs/tags/v0.3.0
+7649eae94e6cc46185ca353543e5a9e0c204a00c  refs/tags/v0.3.1
+777a20f7ad41f8b6554ebf960a968d73b1e8a774  refs/tags/v0.3.2
+54781b08db5af706fe137442b2ae5965e85f0849  refs/tags/v0.4.0
+```
+
+All 7 tags present; branch heads (minus the deleted junk `HEAD`, plus the
+three superseded dependabot branches noted above) match. `comm -23` against
+BEFORE prints only those three dependabot names.
 
 ## Must-prove 2 — no file under .github/workflows after the lane
 
